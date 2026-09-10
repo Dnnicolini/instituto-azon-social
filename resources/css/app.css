@@ -134,6 +134,8 @@ img {
     height: 32px;
     border-radius: 50%;
     object-fit: contain;
+    transform: scale(1.22);
+    clip-path: circle(50%);
 }
 .accessibility-panel-heading {
     display: flex;
@@ -401,6 +403,7 @@ html[data-a11y-high-contrast] .button {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    transform: scale(1.28);
 }
 .brand strong {
     display: block;
@@ -559,6 +562,7 @@ html[data-a11y-high-contrast] .button {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    transform: scale(1.18);
 }
 .sun {
     width: 580px;
@@ -3502,6 +3506,7 @@ button.cms-button:disabled,
     justify-self: stretch;
     object-fit: contain;
     object-position: center;
+    transform: scale(1.14);
 }
 .events-team > div:last-child {
     padding: 70px clamp(35px, 7vw, 100px);
@@ -3552,12 +3557,14 @@ button.cms-button:disabled,
     max-width: 880px;
     margin: 0;
     color: #fffaf0;
-    font: 500 clamp(44px, 5.4vw, 78px) / 1.03 var(--font-display);
-    letter-spacing: -0.045em;
+    font: 600 clamp(42px, 4.9vw, 70px) / 1.08 var(--font-body);
+    letter-spacing: -0.05em;
 }
 .calendar-hero h1 em {
     color: var(--gold);
-    font-weight: 400;
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.025em;
 }
 .calendar-hero > p {
     z-index: 1;
