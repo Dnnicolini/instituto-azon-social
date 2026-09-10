@@ -1,120 +1,39 @@
 import { Link } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
+import { Pagination } from '@/components/admin/cms-ui';
+import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
+import type { Event, Paginated } from '@/types/cms';
 import type { SeoData } from '@/types/seo';
 
-const events = [
-    {
-        id: 'sabeje-2026',
-        title: 'Sabeje Sepetiba 2026',
-        category: 'Cultura e ancestralidade',
-        status: 'Realizados',
-        date: '29 de agosto de 2026',
-        time: 'Concentração às 9h',
-        place: 'Praça Américo Marçal, Sepetiba',
-        description:
-            'Caminhos de Axé, tradição e ancestralidade. A caminhada seguiu pelas ruas de Sepetiba até o Hunkpame Azon Legidan.',
-        image: '/evento-sabeje.png',
-        imageWidth: 1500,
-        imageHeight: 886,
-        imageClass: 'crop-instagram',
-        badge: 'Realizado em 29/08',
-        action: 'Ver registros no Instagram',
-        href: 'https://www.instagram.com/azonlegidan/',
-    },
-    {
-        id: 'lewa-ori',
-        title: 'Seleção para o Projeto Lewa Orí',
-        category: 'Saúde mental',
-        status: 'Inscrições abertas',
-        date: 'Inscrições abertas',
-        time: 'Seleção remota',
-        place: 'Atendimento on-line',
-        description:
-            'Entrevistas on-line para acolhimento, avaliação e possível inserção no atendimento psicanalítico gratuito do projeto.',
-        image: '/evento-lewa-ori.png',
-        imageWidth: 883,
-        imageHeight: 881,
-        imageClass: '',
-        badge: 'Vagas limitadas',
-        action: 'Solicitar informações',
-        href: 'mailto:instituto.azonsocial@gmail.com?subject=Inscrição%20Projeto%20Lewa%20Orí',
-    },
-    {
-        id: 'aman-mudas',
-        title: 'Cadastro de mudas e ervas — Projeto Aman',
-        category: 'Meio ambiente',
-        status: 'Inscrições abertas',
-        date: 'Cadastro contínuo',
-        time: 'Formulário on-line',
-        place: 'Rio de Janeiro',
-        description:
-            'Cadastre-se para receber mudas e ervas e ser informado sobre novas plantas disponibilizadas pelo projeto Aman — Folhas de Axé.',
-        image: '/evento-aman-mudas.png',
-        imageWidth: 893,
-        imageHeight: 865,
-        imageClass: '',
-        badge: 'Cadastro aberto',
-        action: 'Preencher formulário',
-        href: 'https://forms.gle/gQwuyTMevgnSVNyS9',
-    },
-];
-
-type EventsPageProps = {
+type Filter = 'Todos' | 'Inscrições abertas' | 'Próximos' | 'Realizados';
+function eventGroup(event: Event): Exclude<Filter, 'Todos'> {
+    if (event.registration_url && !event.starts_at) return 'Inscrições abertas';
+    if (!event.starts_at) return 'Próximos';
+    return new Date(event.starts_at).getTime() < Date.now()
+        ? 'Realizados'
+        : 'Próximos';
+}
+export default function EventsPage({
+    seo,
+    events,
+}: {
     seo: SeoData;
-};
-
-export default function EventsPage({ seo }: EventsPageProps) {
-    const [filter, setFilter] = useState('Todos');
+    events: Paginated<Event>;
+}) {
+    const [filter, setFilter] = useState<Filter>('Todos');
     const filtered = useMemo(
         () =>
             filter === 'Todos'
-                ? events
-                : events.filter((event) => event.status === filter),
-        [filter],
+                ? events.data
+                : events.data.filter((event) => eventGroup(event) === filter),
+        [events.data, filter],
     );
     return (
         <>
             <SeoHead seo={seo} />
             <main className="events-page">
-                <header className="site-header events-header">
-                    <Link
-                        className="brand"
-                        href="/"
-                        aria-label="Voltar ao início"
-                    >
-                        <span className="brand-mark">
-                            <img
-                                src="/azon-social-logo.png"
-                                alt=""
-                                width="860"
-                                height="846"
-                            />
-                        </span>
-                        <span>
-                            <strong>Azon Social</strong>
-                            <small>Instituto</small>
-                        </span>
-                    </Link>
-                    <nav
-                        className="events-nav"
-                        aria-label="Navegação da página de eventos"
-                    >
-                        <Link href="/">Início</Link>
-                        <Link href="/#projetos">Projetos</Link>
-                        <Link href="/#noticias">Notícias</Link>
-                        <Link
-                            className="active"
-                            href="/eventos"
-                            aria-current="page"
-                        >
-                            Eventos
-                        </Link>
-                        <Link className="button button-small" href="/#contato">
-                            Contato
-                        </Link>
-                    </nav>
-                </header>
+                <PublicHeader />
                 <section className="events-hero">
                     <div>
                         <p className="eyebrow light">Agenda Azon Social</p>
@@ -124,8 +43,7 @@ export default function EventsPage({ seo }: EventsPageProps) {
                     </div>
                     <p>
                         Confira inscrições abertas, atividades, celebrações e
-                        ações construídas pelo Instituto Azon Social e pelo
-                        Hunkpame Azon Legidan.
+                        ações construídas pelo Instituto Azon Social.
                     </p>
                 </section>
                 <section className="events-content">
@@ -137,14 +55,16 @@ export default function EventsPage({ seo }: EventsPageProps) {
                         <div
                             className="filters"
                             role="group"
-                            aria-label="Filtrar eventos"
+                            aria-label="Filtrar eventos desta página"
                         >
-                            {[
-                                'Todos',
-                                'Inscrições abertas',
-                                'Próximos',
-                                'Realizados',
-                            ].map((item) => (
+                            {(
+                                [
+                                    'Todos',
+                                    'Inscrições abertas',
+                                    'Próximos',
+                                    'Realizados',
+                                ] as Filter[]
+                            ).map((item) => (
                                 <button
                                     key={item}
                                     className={filter === item ? 'active' : ''}
@@ -162,72 +82,115 @@ export default function EventsPage({ seo }: EventsPageProps) {
                             filtered.map((event) => (
                                 <article
                                     className="event-card"
-                                    id={event.id}
+                                    id={event.slug}
                                     key={event.id}
                                 >
                                     <div className="event-image">
-                                        <img
-                                            className={event.imageClass}
-                                            src={event.image}
-                                            alt={event.title}
-                                            width={event.imageWidth}
-                                            height={event.imageHeight}
-                                            loading="lazy"
-                                        />
+                                        {event.cover_url ? (
+                                            <img
+                                                src={event.cover_url}
+                                                alt={
+                                                    event.cover_alt ??
+                                                    event.title
+                                                }
+                                                loading="lazy"
+                                            />
+                                        ) : (
+                                            <div
+                                                className="event-image-fallback"
+                                                aria-hidden="true"
+                                            >
+                                                A
+                                            </div>
+                                        )}
                                         <span className="event-badge">
-                                            {event.badge}
+                                            {event.date_label ??
+                                                eventGroup(event)}
                                         </span>
                                     </div>
                                     <div className="event-info">
                                         <div className="event-meta">
-                                            <span>{event.category}</span>
-                                            <b>{event.status}</b>
+                                            <span>Ação Azon</span>
+                                            <b>{eventGroup(event)}</b>
                                         </div>
                                         <h3>{event.title}</h3>
-                                        <p>{event.description}</p>
+                                        <p>{event.summary}</p>
                                         <dl>
                                             <div>
                                                 <dt>Data</dt>
-                                                <dd>{event.date}</dd>
+                                                <dd>
+                                                    {event.date_label ??
+                                                        (event.starts_at
+                                                            ? new Date(
+                                                                  event.starts_at,
+                                                              ).toLocaleDateString(
+                                                                  'pt-BR',
+                                                                  {
+                                                                      dateStyle:
+                                                                          'long',
+                                                                  },
+                                                              )
+                                                            : 'A definir')}
+                                                </dd>
                                             </div>
                                             <div>
                                                 <dt>Horário</dt>
-                                                <dd>{event.time}</dd>
+                                                <dd>
+                                                    {event.starts_at
+                                                        ? new Date(
+                                                              event.starts_at,
+                                                          ).toLocaleTimeString(
+                                                              'pt-BR',
+                                                              {
+                                                                  hour: '2-digit',
+                                                                  minute: '2-digit',
+                                                              },
+                                                          )
+                                                        : 'A definir'}
+                                                </dd>
                                             </div>
                                             <div>
                                                 <dt>Local</dt>
-                                                <dd>{event.place}</dd>
+                                                <dd>{event.location}</dd>
                                             </div>
                                         </dl>
-                                        {event.id === 'sabeje-2026' && (
-                                            <p className="date-warning">
-                                                <strong>Atenção:</strong> o
-                                                evento foi remarcado para
-                                                29/08/2026. A arte original
-                                                apresenta a data anterior.
-                                            </p>
+                                        {event.registration_url ? (
+                                            <a
+                                                className="button button-event"
+                                                href={event.registration_url}
+                                                target={
+                                                    event.registration_url.startsWith(
+                                                        'http',
+                                                    )
+                                                        ? '_blank'
+                                                        : undefined
+                                                }
+                                                rel="noreferrer"
+                                            >
+                                                Participar ↗
+                                            </a>
+                                        ) : (
+                                            <Link
+                                                className="button button-event"
+                                                href="/#contato"
+                                            >
+                                                Pedir informações →
+                                            </Link>
                                         )}
-                                        <a
-                                            className="button button-event"
-                                            href={event.href}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                        >
-                                            {event.action} ↗
-                                        </a>
                                     </div>
                                 </article>
                             ))
                         ) : (
                             <div className="events-empty">
-                                <h3>Ainda não há itens nesta categoria.</h3>
+                                <h3>Nenhum evento nesta categoria</h3>
                                 <p>
-                                    Novas atividades serão publicadas aqui em
-                                    breve.
+                                    Escolha outro filtro ou volte em breve para
+                                    acompanhar novas ações.
                                 </p>
                             </div>
                         )}
                     </div>
+                    <Pagination page={events} />
                 </section>
                 <section className="events-team">
                     <div className="events-team-image">
@@ -247,56 +210,11 @@ export default function EventsPage({ seo }: EventsPageProps) {
                             nossas raízes em cada ação do Instituto.
                         </p>
                         <Link className="text-link light" href="/#projetos">
-                            Conheça nossos projetos <span>→</span>
+                            Conheça nossos projetos →
                         </Link>
                     </div>
                 </section>
-                <footer className="events-footer">
-                    <div className="footer-brand">
-                        <span className="brand-mark">
-                            <img
-                                src="/azon-social-logo.png"
-                                alt=""
-                                width="860"
-                                height="846"
-                                loading="lazy"
-                            />
-                        </span>
-                        <div>
-                            <strong>Azon Social</strong>
-                            <p>
-                                Ancestralidade, cuidado e transformação social.
-                            </p>
-                        </div>
-                    </div>
-                    <div>
-                        <strong>Informações</strong>
-                        <a href="mailto:instituto.azonsocial@gmail.com">
-                            instituto.azonsocial@gmail.com
-                        </a>
-                        <a href="tel:+5521951015058">(21) 95101-5058</a>
-                    </div>
-                    <div>
-                        <strong>Acompanhe</strong>
-                        <a
-                            href="https://www.instagram.com/azon.social/"
-                            target="_blank"
-                            rel="noreferrer"
-                        >
-                            @azon.social ↗
-                        </a>
-                        <a
-                            href="https://www.instagram.com/azonlegidan/"
-                            target="_blank"
-                            rel="noreferrer"
-                        >
-                            @azonlegidan ↗
-                        </a>
-                    </div>
-                    <p className="copyright">
-                        © {new Date().getFullYear()} Instituto Azon Social
-                    </p>
-                </footer>
+                <PublicFooter />
             </main>
         </>
     );

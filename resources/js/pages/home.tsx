@@ -1,80 +1,71 @@
-import { Link } from '@inertiajs/react';
-import { type FormEvent, useMemo, useState } from 'react';
+import { Link, useForm } from '@inertiajs/react';
+import type { FormEvent } from 'react';
+import { useMemo, useState } from 'react';
+import { FieldError } from '@/components/admin/cms-ui';
 import { SeoHead } from '@/components/seo-head';
+import type { Event, Post, Project, SitePage, SiteSettings } from '@/types/cms';
 import type { SeoData } from '@/types/seo';
-
-const projects = [
-    {
-        tag: 'Saúde mental',
-        title: 'Lewa Orí',
-        tone: 'blue',
-        text: 'Acolhimento, escuta qualificada e cuidado emocional como um direito para todas as pessoas.',
-    },
-    {
-        tag: 'Cozinha social',
-        title: 'Ayidonun',
-        tone: 'gold',
-        text: 'Alimento como sustento, memória, afeto, dignidade e fortalecimento comunitário.',
-    },
-    {
-        tag: 'Ervas de Axé',
-        title: 'Aman',
-        tone: 'green',
-        text: 'Valorização das folhas, dos saberes tradicionais e da relação ancestral com a natureza.',
-    },
-    {
-        tag: 'Lutas sociais',
-        title: 'Emi Syó',
-        tone: 'brown',
-        text: 'Mobilização, defesa de direitos e fortalecimento das vozes do nosso território.',
-    },
-];
-
-const news = [
-    {
-        category: 'Saúde Mental',
-        date: 'Em destaque',
-        title: 'Lewa Orí: escuta que transforma',
-        text: 'Conheça a iniciativa que promove acolhimento e cuidado emocional em comunidade.',
-        tone: 'blue',
-    },
-    {
-        category: 'Cozinha Social',
-        date: 'Em destaque',
-        title: 'Cozinha Ancestral Ayidonun',
-        text: 'Saberes, sabores e afeto reunidos para alimentar pessoas e preservar memórias.',
-        tone: 'gold',
-    },
-    {
-        category: 'Meio Ambiente',
-        date: 'Em destaque',
-        title: 'Folhas, território e ancestralidade',
-        text: 'O projeto Aman fortalece conhecimentos que atravessam gerações.',
-        tone: 'green',
-    },
-];
-
+type PublicDocument = {
+    id: number;
+    title: string;
+    category?: string | null;
+    file_url: string;
+    published_at?: string | null;
+};
 type HomeProps = {
     seo: SeoData;
+    page?: SitePage | null;
+    settings?: Partial<SiteSettings>;
+    posts?: Post[];
+    projects?: Project[];
+    events?: Event[];
+    documents?: PublicDocument[];
 };
-
-export default function Home({ seo }: HomeProps) {
+export default function Home({
+    seo,
+    page,
+    settings = {},
+    posts = [],
+    projects = [],
+    events = [],
+    documents = [],
+}: HomeProps) {
     const [menuOpen, setMenuOpen] = useState(false);
-    const [newsFilter, setNewsFilter] = useState('Todas');
-    const [sent, setSent] = useState(false);
-    const filteredNews = useMemo(
-        () =>
-            newsFilter === 'Todas'
-                ? news
-                : news.filter((item) => item.category === newsFilter),
-        [newsFilter],
+    const [newsFilter, setNewsFilter] = useState('Todos');
+    const form = useForm({
+        name: '',
+        email: '',
+        phone: '',
+        subject: '',
+        message: '',
+        website: '',
+    });
+    const sections = page?.sections ?? [];
+    const section = (type: NonNullable<SitePage['sections']>[number]['type']) =>
+        sections.find((item) => item.type === type);
+    const hero = section('hero');
+    const intro = section('intro');
+    const history = section('history');
+    const participate = section('participate');
+    const transparency = section('transparency');
+    const categories = useMemo(
+        () => ['Todos', ...new Set(posts.map((post) => post.type))],
+        [posts],
     );
-
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        setSent(true);
+    const filtered = useMemo(
+        () =>
+            newsFilter === 'Todos'
+                ? posts
+                : posts.filter((post) => post.type === newsFilter),
+        [posts, newsFilter],
+    );
+    function submit(e: FormEvent) {
+        e.preventDefault();
+        form.post('/contato', {
+            preserveScroll: true,
+            onSuccess: () => form.reset(),
+        });
     }
-
     return (
         <>
             <SeoHead seo={seo} />
@@ -100,39 +91,32 @@ export default function Home({ seo }: HomeProps) {
                     </a>
                     <button
                         className="menu-button"
-                        onClick={() => setMenuOpen(!menuOpen)}
+                        type="button"
+                        onClick={() => setMenuOpen((open) => !open)}
                         aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
                         aria-expanded={menuOpen}
                         aria-controls="main-navigation"
                     >
-                        <span></span>
-                        <span></span>
-                        <span></span>
+                        <span />
+                        <span />
+                        <span />
                     </button>
                     <nav
                         id="main-navigation"
                         className={menuOpen ? 'nav open' : 'nav'}
                         aria-label="Navegação principal"
                     >
-                        {[
-                            ['O Instituto', '#instituto'],
-                            ['Projetos', '#projetos'],
-                            ['Notícias', '#noticias'],
-                        ].map(([label, href]) => (
-                            <a
-                                key={href}
-                                href={href}
-                                onClick={() => setMenuOpen(false)}
-                            >
-                                {label}
-                            </a>
-                        ))}
-                        <Link
-                            href="/eventos"
-                            onClick={() => setMenuOpen(false)}
-                        >
-                            Eventos
-                        </Link>
+                        <a href="#instituto" onClick={() => setMenuOpen(false)}>
+                            O Instituto
+                        </a>
+                        <a href="#projetos" onClick={() => setMenuOpen(false)}>
+                            Projetos
+                        </a>
+                        <a href="#noticias" onClick={() => setMenuOpen(false)}>
+                            Notícias
+                        </a>
+                        <Link href="/eventos">Eventos</Link>
+                        <Link href="/midia">Mídia</Link>
                         <a
                             href="#transparencia"
                             onClick={() => setMenuOpen(false)}
@@ -148,26 +132,35 @@ export default function Home({ seo }: HomeProps) {
                         </a>
                     </nav>
                 </header>
-
                 <section className="hero" id="inicio">
-                    <div className="hero-pattern" aria-hidden="true"></div>
+                    <div className="hero-pattern" aria-hidden="true" />
                     <div className="hero-copy">
                         <p className="eyebrow light">
-                            Educação • Cultura • Cuidado • Território
+                            {hero?.eyebrow ??
+                                'Educação • Cultura • Cuidado • Território'}
                         </p>
                         <h1>
-                            Ancestralidade que cuida.
+                            {hero?.title ??
+                                settings.hero_title ??
+                                'Ancestralidade que cuida.'}
                             <br />
-                            <em>Ação que transforma.</em>
+                            <em>
+                                {hero?.emphasis ??
+                                    settings.hero_emphasis ??
+                                    'Ação que transforma.'}
+                            </em>
                         </h1>
                         <p className="hero-text">
-                            Ações sociais, culturais e ambientais que fortalecem
-                            pessoas, preservam saberes ancestrais e transformam
-                            territórios.
+                            {hero?.text ??
+                                settings.hero_text ??
+                                'Ações sociais, culturais e ambientais que fortalecem pessoas, preservam saberes ancestrais e transformam territórios.'}
                         </p>
                         <div className="hero-actions">
-                            <a className="button button-gold" href="#projetos">
-                                Conheça nossos projetos
+                            <a
+                                className="button button-gold"
+                                href={hero?.cta_url ?? '#projetos'}
+                            >
+                                {hero?.cta_label ?? 'Conheça nossos projetos'}
                             </a>
                             <a className="text-link light" href="#participar">
                                 Quero fazer parte <span>↗</span>
@@ -175,7 +168,7 @@ export default function Home({ seo }: HomeProps) {
                         </div>
                     </div>
                     <div className="hero-visual">
-                        <div className="sun" aria-hidden="true"></div>
+                        <div className="sun" aria-hidden="true" />
                         <div className="logo-disc">
                             <img
                                 src="/azon-social-logo.png"
@@ -185,27 +178,32 @@ export default function Home({ seo }: HomeProps) {
                                 fetchPriority="high"
                             />
                         </div>
-                        <p className="hero-note">Sepetiba • Rio de Janeiro</p>
+                        <p className="hero-note">
+                            {settings.address ?? 'Sepetiba • Rio de Janeiro'}
+                        </p>
                     </div>
                 </section>
-
                 <section className="intro section" id="instituto">
                     <div>
-                        <p className="eyebrow">Quem somos</p>
+                        <p className="eyebrow">
+                            {intro?.eyebrow ?? 'Quem somos'}
+                        </p>
                         <h2>
-                            Cuidar das pessoas também é preservar nossas raízes.
+                            {intro?.title ??
+                                'Cuidar das pessoas também é preservar nossas raízes.'}
                         </h2>
                     </div>
                     <div className="intro-copy">
                         <p>
-                            O Instituto Azon Social nasceu da experiência
-                            comunitária e dos valores cultivados no Hunkpame
-                            Azon Legidan. Nossa atuação une ancestralidade,
-                            cuidado, educação, cultura, defesa de direitos e
-                            preservação ambiental.
+                            {intro?.text ??
+                                page?.body ??
+                                'Nossa atuação une ancestralidade, cuidado, educação, cultura, defesa de direitos e preservação ambiental.'}
                         </p>
-                        <a className="text-link" href="#historia">
-                            Conheça nossa história <span>→</span>
+                        <a
+                            className="text-link"
+                            href={intro?.cta_url ?? '#historia'}
+                        >
+                            {intro?.cta_label ?? 'Conheça nossa história'} →
                         </a>
                     </div>
                     <div className="values-row">
@@ -235,7 +233,6 @@ export default function Home({ seo }: HomeProps) {
                         </article>
                     </div>
                 </section>
-
                 <section className="projects section" id="projetos">
                     <div className="section-heading">
                         <div>
@@ -248,122 +245,157 @@ export default function Home({ seo }: HomeProps) {
                             comunitário.
                         </p>
                     </div>
-                    <div className="project-grid">
-                        {projects.map((project, index) => (
-                            <article
-                                className={`project-card ${project.tone}`}
-                                key={project.title}
-                            >
-                                <div className="card-top">
-                                    <span>{project.tag}</span>
-                                    <b>0{index + 1}</b>
-                                </div>
-                                <div
-                                    className="project-symbol"
-                                    aria-hidden="true"
+                    {projects.length ? (
+                        <div className="project-grid">
+                            {projects.map((project, index) => (
+                                <article
+                                    className={`project-card ${['blue', 'gold', 'green', 'brown'][index % 4]}`}
+                                    key={project.id}
                                 >
-                                    {project.title.charAt(0)}
-                                </div>
-                                <h3>{project.title}</h3>
-                                <p>{project.text}</p>
-                                <a
-                                    href="#contato"
-                                    aria-label={`Conhecer o projeto ${project.title}`}
-                                >
-                                    Conhecer projeto <span>↗</span>
-                                </a>
-                            </article>
-                        ))}
-                    </div>
+                                    <div className="card-top">
+                                        <span>Projeto Azon</span>
+                                        <b>
+                                            {String(index + 1).padStart(2, '0')}
+                                        </b>
+                                    </div>
+                                    <div
+                                        className="project-symbol"
+                                        aria-hidden="true"
+                                    >
+                                        {project.title.charAt(0)}
+                                    </div>
+                                    <h3>{project.title}</h3>
+                                    <p>{project.summary}</p>
+                                    <a href="#contato">
+                                        Conhecer projeto <span>↗</span>
+                                    </a>
+                                </article>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="public-empty">
+                            <h3>Projetos em preparação</h3>
+                            <p>
+                                As iniciativas publicadas pela equipe aparecerão
+                                aqui.
+                            </p>
+                        </div>
+                    )}
                 </section>
-
-                <section className="impact">
-                    <div>
-                        <p className="eyebrow light">Impacto social</p>
-                        <h2>Nosso impacto é construído em comunidade.</h2>
-                    </div>
-                    <p className="impact-copy">
-                        Cada número representa uma história, um encontro e uma
-                        transformação construída coletivamente.
-                    </p>
-                    <div className="impact-numbers">
-                        {[
-                            'Pessoas alcançadas',
-                            'Ações realizadas',
-                            'Parcerias construídas',
-                            'Projetos em andamento',
-                        ].map((label) => (
-                            <div key={label}>
-                                <strong>—</strong>
-                                <span>{label}</span>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-
                 <section className="news section" id="noticias">
                     <div className="section-heading compact">
                         <div>
-                            <p className="eyebrow">Azon News</p>
+                            <p className="eyebrow">Azon em movimento</p>
                             <h2>Histórias do nosso território</h2>
                         </div>
                         <p>
-                            Notícias, atividades, encontros e mobilizações do
-                            Instituto Azon Social.
+                            Artigos, vídeos e conversas produzidos pelo
+                            Instituto.
                         </p>
                     </div>
-                    <div
-                        className="filters"
-                        role="group"
-                        aria-label="Filtrar notícias por categoria"
-                    >
-                        {[
-                            'Todas',
-                            'Saúde Mental',
-                            'Cozinha Social',
-                            'Meio Ambiente',
-                        ].map((filter) => (
-                            <button
-                                className={
-                                    newsFilter === filter ? 'active' : ''
-                                }
-                                type="button"
-                                aria-pressed={newsFilter === filter}
-                                onClick={() => setNewsFilter(filter)}
-                                key={filter}
+                    {posts.length ? (
+                        <>
+                            <div
+                                className="filters"
+                                role="group"
+                                aria-label="Filtrar conteúdos"
                             >
-                                {filter}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="news-grid">
-                        {filteredNews.map((item) => (
-                            <article className="news-card" key={item.title}>
-                                <div className={`news-art ${item.tone}`}>
-                                    <span>{item.category}</span>
-                                </div>
-                                <div className="news-body">
-                                    <small>{item.date}</small>
-                                    <h3>{item.title}</h3>
-                                    <p>{item.text}</p>
-                                    <a href="#contato">Continuar lendo →</a>
-                                </div>
-                            </article>
-                        ))}
-                    </div>
+                                {categories.map((filter) => (
+                                    <button
+                                        className={
+                                            newsFilter === filter
+                                                ? 'active'
+                                                : ''
+                                        }
+                                        type="button"
+                                        aria-pressed={newsFilter === filter}
+                                        onClick={() => setNewsFilter(filter)}
+                                        key={filter}
+                                    >
+                                        {filter === 'Todos'
+                                            ? 'Todos'
+                                            : filter === 'article'
+                                              ? 'Artigos'
+                                              : filter}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="news-grid">
+                                {filtered.slice(0, 6).map((post, index) => (
+                                    <article
+                                        className="news-card"
+                                        key={post.id}
+                                    >
+                                        {post.cover_url ? (
+                                            <img
+                                                className="news-cover"
+                                                src={post.cover_url}
+                                                alt={post.cover_alt ?? ''}
+                                                loading="lazy"
+                                            />
+                                        ) : (
+                                            <div
+                                                className={`news-art ${['blue', 'gold', 'green'][index % 3]}`}
+                                            >
+                                                <span>{post.type}</span>
+                                            </div>
+                                        )}
+                                        <div className="news-body">
+                                            <small>
+                                                {post.published_at
+                                                    ? new Date(
+                                                          post.published_at,
+                                                      ).toLocaleDateString(
+                                                          'pt-BR',
+                                                      )
+                                                    : 'Em destaque'}
+                                            </small>
+                                            <h3>{post.title}</h3>
+                                            <p>{post.excerpt}</p>
+                                            <Link
+                                                href={
+                                                    post.type === 'article'
+                                                        ? `/noticias/${post.slug}`
+                                                        : `/midia/${post.slug}`
+                                                }
+                                            >
+                                                Continuar lendo →
+                                            </Link>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                            <Link
+                                className="text-link home-media-link"
+                                href="/midia"
+                            >
+                                Ver vlogs, vídeos e podcasts →
+                            </Link>
+                        </>
+                    ) : (
+                        <div className="public-empty">
+                            <h3>Novas histórias em preparação</h3>
+                            <p>
+                                Os próximos registros do Instituto serão
+                                publicados aqui.
+                            </p>
+                        </div>
+                    )}
                 </section>
-
                 <section className="agenda section" id="agenda">
                     <div>
                         <p className="eyebrow">Eventos e inscrições</p>
                         <h2>Participe das nossas ações</h2>
                     </div>
                     <div className="agenda-empty">
-                        <span className="calendar-icon">+</span>
+                        <span className="calendar-icon" aria-hidden="true">
+                            {events.length}
+                        </span>
                         <div>
                             <h3>
-                                Inscrições, encontros e atividades em um só
-                                lugar.
+                                {events.length
+                                    ? `${events.length} oportunidade(s) na agenda.`
+                                    : 'A agenda está sendo preparada.'}
                             </h3>
                             <p>
                                 Veja oportunidades abertas, próximos eventos e a
@@ -375,102 +407,120 @@ export default function Home({ seo }: HomeProps) {
                         </Link>
                     </div>
                 </section>
-
                 <section className="history" id="historia">
                     <div className="history-mark" aria-hidden="true">
                         A
                     </div>
                     <div>
-                        <p className="eyebrow light">De onde viemos</p>
+                        <p className="eyebrow light">
+                            {history?.eyebrow ?? 'De onde viemos'}
+                        </p>
                         <h2>
-                            Uma história que nasce no território e na
-                            ancestralidade.
+                            {history?.title ??
+                                'Uma história que nasce no território e na ancestralidade.'}
                         </h2>
                     </div>
                     <div>
                         <p>
-                            O Instituto Azon Social nasce no Hunkpame Azon
-                            Legidan, espaço de tradição, fé, preservação
-                            cultural e cuidado comunitário. Essa ancestralidade
-                            orienta valores como respeito, acolhimento,
-                            responsabilidade coletiva, defesa da natureza e
-                            valorização da vida.
+                            {history?.text ??
+                                'O Instituto Azon Social nasce no Hunkpame Azon Legidan, espaço de tradição, fé, preservação cultural e cuidado comunitário.'}
                         </p>
-                        <a
-                            className="text-link light"
-                            href="https://www.instagram.com/azonlegidan/"
-                            target="_blank"
-                            rel="noreferrer"
-                        >
-                            Conheça o Hunkpame <span>↗</span>
-                        </a>
+                        {history?.cta_url && (
+                            <a
+                                className="text-link light"
+                                href={history.cta_url}
+                            >
+                                {history.cta_label ?? 'Conheça nossa história'}{' '}
+                                →
+                            </a>
+                        )}
                     </div>
                 </section>
-
                 <section className="participate section" id="participar">
                     <div className="section-heading">
                         <div>
-                            <p className="eyebrow">Caminhe com a gente</p>
-                            <h2>Existem muitas formas de transformar.</h2>
+                            <p className="eyebrow">
+                                {participate?.eyebrow ?? 'Caminhe com a gente'}
+                            </p>
+                            <h2>
+                                {participate?.title ??
+                                    'Existem muitas formas de transformar.'}
+                            </h2>
                         </div>
                         <p>
-                            Some sua presença, experiência ou apoio à construção
-                            de um território mais justo e acolhedor.
+                            {participate?.text ??
+                                'Some sua presença, experiência ou apoio à construção de um território mais justo e acolhedor.'}
                         </p>
                     </div>
                     <div className="participate-grid">
                         {[
-                            {
-                                n: '01',
-                                t: 'Seja voluntário',
-                                d: 'Compartilhe seu tempo e conhecimento com nossos projetos.',
-                            },
-                            {
-                                n: '02',
-                                t: 'Seja parceiro',
-                                d: 'Construa ações e oportunidades em parceria com o Instituto.',
-                            },
-                            {
-                                n: '03',
-                                t: 'Apoie nossas ações',
-                                d: 'Contribua para a continuidade e ampliação das iniciativas sociais.',
-                            },
-                        ].map((item) => (
-                            <a href="#contato" key={item.t}>
-                                <span>{item.n}</span>
-                                <h3>{item.t}</h3>
-                                <p>{item.d}</p>
+                            [
+                                '01',
+                                'Seja voluntário',
+                                'Compartilhe seu tempo e conhecimento com nossos projetos.',
+                            ],
+                            [
+                                '02',
+                                'Seja parceiro',
+                                'Construa ações e oportunidades em parceria com o Instituto.',
+                            ],
+                            [
+                                '03',
+                                'Apoie nossas ações',
+                                'Contribua para a continuidade das iniciativas sociais.',
+                            ],
+                        ].map(([n, t, d]) => (
+                            <a href="#contato" key={t}>
+                                <span>{n}</span>
+                                <h3>{t}</h3>
+                                <p>{d}</p>
                                 <b>Quero participar ↗</b>
                             </a>
                         ))}
                     </div>
                 </section>
-
                 <section className="transparency section" id="transparencia">
                     <div>
-                        <p className="eyebrow">Compromisso público</p>
-                        <h2>Transparência fortalece confiança.</h2>
+                        <p className="eyebrow">
+                            {transparency?.eyebrow ?? 'Compromisso público'}
+                        </p>
+                        <h2>
+                            {transparency?.title ??
+                                'Transparência fortalece confiança.'}
+                        </h2>
                         <p>
-                            Este espaço será dedicado a relatórios, documentos,
-                            parcerias, indicadores e prestação de contas do
-                            Instituto.
+                            {transparency?.text ??
+                                'Este espaço reúne relatórios, políticas e prestação de contas do Instituto.'}
                         </p>
                     </div>
-                    <div className="document-list">
-                        {[
-                            'Relatórios anuais',
-                            'Prestação de contas',
-                            'Estatuto e políticas',
-                            'Parcerias e resultados',
-                        ].map((item) => (
-                            <div key={item}>
-                                <span>{item}</span>
-                                <small>Em preparação</small>
-                            </div>
-                        ))}
-                    </div>
+                    {documents.length ? (
+                        <div className="document-list">
+                            {documents.map((document) => (
+                                <div key={document.id}>
+                                    <a
+                                        href={document.file_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        {document.title} ↗
+                                    </a>
+                                    <small>
+                                        {document.category ??
+                                            'Documento público'}
+                                    </small>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="public-empty">
+                            <h3>Documentos em preparação</h3>
+                            <p>
+                                Relatórios e políticas publicados pela equipe
+                                aparecerão aqui.
+                            </p>
+                        </div>
+                    )}
                 </section>
-
                 <section className="contact section" id="contato">
                     <div className="contact-copy">
                         <p className="eyebrow light">Entre em contato</p>
@@ -480,68 +530,110 @@ export default function Home({ seo }: HomeProps) {
                             parcerias, voluntariado e formas de apoio.
                         </p>
                         <div className="contact-details">
-                            <a href="tel:+5521951015058">(21) 95101-5058</a>
-                            <a href="mailto:instituto.azonsocial@gmail.com">
-                                instituto.azonsocial@gmail.com
+                            <a
+                                href={`tel:${settings.phone ?? '+5521951015058'}`}
+                            >
+                                {settings.phone ?? '(21) 95101-5058'}
+                            </a>
+                            <a
+                                href={`mailto:${settings.email ?? 'instituto.azonsocial@gmail.com'}`}
+                            >
+                                {settings.email ??
+                                    'instituto.azonsocial@gmail.com'}
                             </a>
                         </div>
                         <p className="location">
-                            Sepetiba • Rio de Janeiro — RJ
+                            {settings.address ??
+                                'Sepetiba • Rio de Janeiro — RJ'}
                         </p>
                     </div>
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={submit} noValidate>
                         <label>
                             Nome
                             <input
-                                required
-                                name="name"
-                                placeholder="Seu nome completo"
+                                value={form.data.name}
+                                onChange={(e) =>
+                                    form.setData('name', e.target.value)
+                                }
+                                autoComplete="name"
                             />
+                            <FieldError message={form.errors.name} />
                         </label>
                         <label>
                             E-mail
                             <input
-                                required
                                 type="email"
-                                name="email"
-                                placeholder="voce@exemplo.com"
+                                value={form.data.email}
+                                onChange={(e) =>
+                                    form.setData('email', e.target.value)
+                                }
+                                autoComplete="email"
                             />
+                            <FieldError message={form.errors.email} />
+                        </label>
+                        <label>
+                            Telefone (opcional)
+                            <input
+                                value={form.data.phone}
+                                onChange={(e) =>
+                                    form.setData('phone', e.target.value)
+                                }
+                                autoComplete="tel"
+                            />
+                            <FieldError message={form.errors.phone} />
                         </label>
                         <label>
                             Assunto
-                            <select required name="subject" defaultValue="">
-                                <option value="" disabled>
-                                    Selecione uma opção
-                                </option>
+                            <select
+                                value={form.data.subject}
+                                onChange={(e) =>
+                                    form.setData('subject', e.target.value)
+                                }
+                            >
+                                <option value="">Selecione</option>
                                 <option>Informações</option>
                                 <option>Voluntariado</option>
                                 <option>Parceria</option>
                                 <option>Doação</option>
                                 <option>Imprensa</option>
-                                <option>Projetos</option>
                             </select>
                         </label>
-                        <label>
+                        <label className="contact-message-field">
                             Mensagem
                             <textarea
-                                required
-                                name="message"
-                                placeholder="Como podemos conversar?"
-                                rows={4}
-                            ></textarea>
+                                rows={5}
+                                value={form.data.message}
+                                onChange={(e) =>
+                                    form.setData('message', e.target.value)
+                                }
+                            />
+                            <FieldError message={form.errors.message} />
                         </label>
-                        <button className="button button-gold" type="submit">
-                            Preparar mensagem
+                        <label className="honeypot" aria-hidden="true">
+                            Não preencha
+                            <input
+                                tabIndex={-1}
+                                autoComplete="off"
+                                value={form.data.website}
+                                onChange={(e) =>
+                                    form.setData('website', e.target.value)
+                                }
+                            />
+                        </label>
+                        <button
+                            className="button button-gold"
+                            type="submit"
+                            disabled={form.processing}
+                        >
+                            {form.processing ? 'Enviando…' : 'Enviar mensagem'}
                         </button>
-                        {sent && (
+                        {form.recentlySuccessful && (
                             <p className="form-note" role="status">
-                                Mensagem preenchida. A integração de envio será
-                                ativada quando o canal oficial for informado.
+                                Mensagem enviada. A equipe entrará em contato.
                             </p>
                         )}
                     </form>
                 </section>
-
                 <footer>
                     <div className="footer-brand">
                         <span className="brand-mark">
@@ -556,7 +648,8 @@ export default function Home({ seo }: HomeProps) {
                         <div>
                             <strong>Azon Social</strong>
                             <p>
-                                Ancestralidade, cuidado e transformação social.
+                                {settings.tagline ??
+                                    'Ancestralidade, cuidado e transformação social.'}
                             </p>
                         </div>
                     </div>
@@ -564,15 +657,15 @@ export default function Home({ seo }: HomeProps) {
                         <strong>Navegue</strong>
                         <a href="#instituto">O Instituto</a>
                         <a href="#projetos">Projetos</a>
-                        <a href="#noticias">Notícias</a>
+                        <Link href="/midia">Mídia</Link>
                         <Link href="/eventos">Eventos</Link>
-                        <a href="#transparencia">Transparência</a>
                     </div>
                     <div>
                         <strong>Contato</strong>
-                        <a href="tel:+5521951015058">(21) 95101-5058</a>
-                        <a href="mailto:instituto.azonsocial@gmail.com">
-                            instituto.azonsocial@gmail.com
+                        <a
+                            href={`mailto:${settings.email ?? 'instituto.azonsocial@gmail.com'}`}
+                        >
+                            {settings.email ?? 'instituto.azonsocial@gmail.com'}
                         </a>
                         <a
                             href="https://www.instagram.com/azon.social/"

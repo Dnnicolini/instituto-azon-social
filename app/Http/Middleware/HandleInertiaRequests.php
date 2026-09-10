@@ -35,12 +35,41 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user()?->loadMissing('roles.permissions');
+        $roles = $user?->roles->pluck('slug')->values()->all() ?? [];
+        $permissions = $user?->roles->flatMap->permissions->pluck('slug')->unique()->values()->all() ?? [];
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'email_verified_at' => $user->email_verified_at?->toIso8601String(),
+                    'roles' => $roles,
+                    'permissions' => $permissions,
+                ] : null,
             ],
+            'flash' => [
+                'success' => fn (): mixed => $request->session()->get('success'),
+                'status' => fn (): mixed => $request->session()->get('status'),
+            ],
+            ...($request->is('admin/*') || $request->is('admin') ? [
+                'seo' => [
+                    'title' => 'Área administrativa | Instituto Azon Social',
+                    'description' => 'Área restrita de gestão de conteúdo.',
+                    'canonical' => $request->url(),
+                    'robots' => 'noindex, nofollow',
+                    'image' => url('/azon-social-logo.png'),
+                    'imageAlt' => 'Logomarca do Instituto Azon Social',
+                    'type' => 'website',
+                    'locale' => 'pt_BR',
+                    'siteName' => config('site.name'),
+                    'schema' => [],
+                ],
+            ] : []),
         ];
     }
 }

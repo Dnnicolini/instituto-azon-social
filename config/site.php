@@ -15,6 +15,5 @@ return [
     ],
     'social' => [
         'instagram' => 'https://www.instagram.com/azon.social/',
-        'hunkpame_instagram' => 'https://www.instagram.com/azonlegidan/',
     ],
 ];

@@ -5,6 +5,9 @@
         <loc>{{ $url['loc'] }}</loc>
         <changefreq>weekly</changefreq>
         <priority>{{ $url['priority'] }}</priority>
+@isset($url['lastmod'])
+        <lastmod>{{ $url['lastmod'] }}</lastmod>
+@endisset
     </url>
 @endforeach
 </urlset>

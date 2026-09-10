@@ -1,59 +1,96 @@
 # Instituto Azon Social
 
-Site institucional do Instituto Azon Social, migrado para a stack oficial mais recente do Laravel com React e renderização preparada para SEO.
+Site institucional e CMS do Instituto Azon Social em Laravel, React e Inertia, com renderização SSR preparada para SEO. O painel é privado; não existe cadastro público.
 
 ## Stack
 
-- Laravel 13
-- PHP 8.4.1 ou superior
-- React 19 com TypeScript
+- Laravel 13 e PHP 8.4.1+
+- React 19 e TypeScript
 - Inertia 3 com SSR
-- Tailwind CSS 4
-- Vite+ 0.3
-- Pest 5, Pint e Larastan/PHPStan
-- Node.js 22.13 ou superior
+- Tailwind CSS 4 e Vite+ 0.3
+- Pest 5, Pint, Larastan/PHPStan e Playwright
+- Node.js 22.13+
 
 ## Instalação local
 
 ```bash
 composer setup
+php artisan db:seed
+php artisan azon:create-admin seu-email@exemplo.org
 composer run dev
 ```
 
-O comando de desenvolvimento inicia Laravel, filas, logs, Vite e o processo SSR do Inertia. A aplicação usa SQLite por padrão.
+`composer setup` instala as dependências, cria o `.env` e o banco SQLite quando necessário, gera a chave da aplicação, executa as migrations, cria o link público de uploads e gera o build SSR. O comando `azon:create-admin` solicita nome e senha forte sem gravar a senha no repositório ou nos argumentos do processo.
 
-## Publicação
+## Conteúdo e acesso
 
-Configure o ambiente publicado com `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL` apontando para o domínio definitivo e `APP_TIMEZONE=America/Sao_Paulo`. Depois do build SSR, mantenha `php artisan inertia:start-ssr` em execução por um supervisor de processos; sem esse processo, os metadados essenciais continuam no HTML, mas o corpo React não é pré-renderizado no servidor.
+O CMS administra:
+
+- notícias, vlogs, vídeos e podcasts;
+- projetos e eventos;
+- documentos de transparência;
+- páginas e seções estruturadas da página inicial;
+- configurações e contatos institucionais;
+- mensagens enviadas pelo formulário;
+- usuários, grupos e permissões.
+
+Os grupos de sistema são:
+
+- `Administrador`: acesso total, inclusive CRM, usuários, grupos e configurações;
+- `Editor`: cria e edita rascunhos, sem publicar;
+- `Publicador`: publica, agenda e arquiva conteúdo, sem acesso ao CRM;
+
+Grupos personalizados podem ser criados pelo administrador. O backend aplica todas as permissões por middleware e Policies; ocultar uma opção na interface não é usado como mecanismo de segurança. O último administrador não pode ser removido ou rebaixado, e gestores delegados não podem conceder o grupo Administrador.
+
+## Rotas públicas
+
+- `/`: página institucional dinâmica;
+- `/eventos`: agenda e inscrições;
+- `/midia`: biblioteca de vlogs, vídeos e podcasts;
+- `/midia/{slug}`: conteúdo audiovisual;
+- `/noticias/{slug}`: artigo institucional;
+- `/podcast.xml`: feed RSS dos episódios publicados;
+- `/pagina/{slug}`: páginas adicionais publicadas;
+- `/robots.txt` e `/sitemap.xml`: descoberta para buscadores.
+
+`/admin` e todas as rotas abaixo dele exigem autenticação, verificação de e-mail e permissão. Elas enviam `noindex, nofollow` e `X-Robots-Tag`; o público só consegue enviar o formulário de contato. O Instagram oficial é [@azon.social](https://www.instagram.com/azon.social/) e permanece apenas como link institucional, sem sincronização de posts, destaques ou API.
+
+## Publicação agendada
+
+O Laravel Scheduler executa `cms:publish-scheduled` a cada minuto, com proteção contra sobreposição. No servidor, configure um único cron para chamar o scheduler:
+
+```cron
+* * * * * cd /caminho/do/projeto && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Mantenha também os processos de fila e `php artisan inertia:start-ssr` sob um supervisor. Em produção, use `APP_ENV=production`, `APP_DEBUG=false`, HTTPS, cookies seguros, backup do banco e armazenamento persistente para `storage/app/public`. `APP_URL` deve apontar para o domínio canônico e `APP_TIMEZONE` para `America/Sao_Paulo`.
 
 ## Verificações
 
 ```bash
-composer ci:check
+composer test
+npm run check
+npm run types:check
 npm run build:ssr
+npm run test:e2e
+composer validate --strict
+composer audit
+npm audit
 ```
 
-## Rotas
+Os testes de navegador usam Chromium. Em uma estação que já possua o Chrome, é possível apontar o executável:
 
-- `/`: página institucional
-- `/eventos`: eventos, inscrições e oportunidades
-- `/admin/login` e `/admin`: demonstração visual do futuro painel, sem autenticação, persistência ou dados reais
-- `/robots.txt`: regras para mecanismos de busca
-- `/sitemap.xml`: mapa das páginas públicas indexáveis
+```bash
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome npm run test:e2e
+```
 
-## SEO
+## SEO e dados
 
-Cada página pública define título, descrição, canonical, Open Graph, Twitter Card e JSON-LD. A home publica dados estruturados de organização e website; eventos publica dados de coleção e do Sabeje Sepetiba 2026. As rotas administrativas usam `noindex, nofollow` e são excluídas do sitemap.
+As páginas públicas definem título, descrição, canonical, Open Graph, Twitter Card e JSON-LD. O sitemap inclui somente conteúdo publicado; rascunhos, itens agendados para o futuro e páginas administrativas ficam de fora.
 
-`APP_URL` é a origem canônica. Atualize essa variável quando o Laravel for publicado em um domínio diferente.
+O seed inicial preserva as informações institucionais conhecidas e não cria usuários nem credenciais. Contatos públicos atuais:
 
-## Conteúdo institucional
-
-Os contatos usados no código são os mesmos da versão pública atual:
-
-- `instituto.azonsocial@gmail.com`
-- `(21) 95101-5058`
-- Sepetiba, Rio de Janeiro — RJ
-- Instagram: `@azon.social` e `@azonlegidan`
-
-O formulário de contato ainda é apenas demonstrativo e não envia mensagens. As artes de eventos foram preservadas do projeto original.
+- `instituto.azonsocial@gmail.com`;
+- `(21) 95101-5058`;
+- Sepetiba, Rio de Janeiro — RJ;
+- Instagram: [@azon.social](https://www.instagram.com/azon.social/).

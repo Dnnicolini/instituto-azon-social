@@ -36,3 +36,11 @@ jobs:
 
       - name: Run CI Checks
         run: composer ci:check
+
+      - name: Prepare browser tests
+        run: |
+          php artisan db:seed --force
+          npx playwright install --with-deps chromium
+
+      - name: Run browser tests
+        run: npm run test:e2e

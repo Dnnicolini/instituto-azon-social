@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\CreatesCmsUsers;
 use Tests\TestCase;
 
 /*
@@ -14,4 +16,5 @@ use Tests\TestCase;
 */
 
 pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class, CreatesCmsUsers::class)
     ->in('Feature');
