@@ -6,6 +6,19 @@ use App\Services\InstagramFeedSynchronizer;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
+it('skips the automatic Instagram sync cleanly while the integration is inactive', function (): void {
+    config([
+        'services.instagram.enabled' => false,
+        'services.instagram.access_token' => null,
+    ]);
+
+    $this->artisan('instagram:sync')
+        ->expectsOutput('Instagram ainda não conectado; sincronização automática ignorada.')
+        ->assertSuccessful();
+
+    $this->assertDatabaseCount('social_integrations', 0);
+});
+
 it('imports Instagram publications idempotently with their official caption and local image', function (): void {
     Storage::fake('public');
     config([

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\SocialIntegration;
 use App\Services\InstagramFeedSynchronizer;
 use Illuminate\Console\Command;
 use Throwable;
@@ -14,6 +15,20 @@ class SyncInstagramFeedCommand extends Command
 
     public function handle(InstagramFeedSynchronizer $synchronizer): int
     {
+        $storedIntegrationIsActive = SocialIntegration::query()
+            ->where('provider', 'instagram')
+            ->where('enabled', true)
+            ->whereNotNull('access_token')
+            ->exists();
+        $environmentIntegrationIsActive = (bool) config('services.instagram.enabled')
+            && filled(config('services.instagram.access_token'));
+
+        if (! $storedIntegrationIsActive && ! $environmentIntegrationIsActive) {
+            $this->line('Instagram ainda não conectado; sincronização automática ignorada.');
+
+            return self::SUCCESS;
+        }
+
         $limit = $this->option('limit');
 
         try {
