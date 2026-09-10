@@ -4,6 +4,8 @@ use App\Enums\ContentStatus;
 use App\Enums\PostType;
 use App\Models\ContactMessage;
 use App\Models\Post;
+use App\Models\Project;
+use App\Models\SiteSetting;
 use Database\Seeders\ContentSeeder;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -81,6 +83,12 @@ it('shows published social highlights before the latest posts', function (): voi
 
 it('seeds current content and editable structured home sections idempotently', function (): void {
     $this->seed(ContentSeeder::class);
+    Project::query()->where('slug', 'ayi-gbe')->update([
+        'summary' => 'Texto editado pela equipe no CRM.',
+    ]);
+    SiteSetting::query()->where('key', 'tagline')->update([
+        'value' => 'Mensagem editada pela equipe.',
+    ]);
     $this->seed(ContentSeeder::class);
 
     $this->assertDatabaseCount('projects', 6);
@@ -91,12 +99,13 @@ it('seeds current content and editable structured home sections idempotently', f
     $this->assertDatabaseHas('projects', [
         'slug' => 'ayi-gbe',
         'title' => 'AYI GBÈ',
+        'summary' => 'Texto editado pela equipe no CRM.',
         'status' => ContentStatus::Published->value,
     ]);
     $this->assertDatabaseHas('projects', ['slug' => 'hunto', 'title' => 'Huntó']);
     $this->assertDatabaseHas('site_settings', [
-        'key' => 'founder_name',
-        'value' => 'Doté Rodrigo D’ Avimaje',
+        'key' => 'tagline',
+        'value' => 'Mensagem editada pela equipe.',
     ]);
 
     $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page): Assert => $page

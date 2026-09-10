@@ -25,9 +25,10 @@ class EventRequest extends ContentRequest
             'ends_at' => ['nullable', 'date', 'after:starts_at'],
             'date_label' => ['nullable', 'string', 'max:100'],
             'registration_url' => ['nullable', 'url:http,https,mailto', 'max:2048'],
+            'participation_details' => ['nullable', 'string', 'max:5000'],
             'status' => $this->statusRules(),
             'published_at' => ['nullable', 'date'],
-            'cover' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120'],
+            'cover' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120', 'dimensions:max_width=5000,max_height=5000'],
             'cover_alt' => ['nullable', 'string', 'max:255', 'required_with:cover'],
         ];
     }

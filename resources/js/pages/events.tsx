@@ -11,7 +11,7 @@ type Filter = 'Todos' | 'Inscrições abertas' | 'Próximos' | 'Realizados';
 function eventGroup(event: Event): Exclude<Filter, 'Todos'> {
     if (event.registration_url && !event.starts_at) return 'Inscrições abertas';
     if (!event.starts_at) return 'Próximos';
-    return new Date(event.starts_at).getTime() < Date.now()
+    return new Date(event.ends_at ?? event.starts_at).getTime() < Date.now()
         ? 'Realizados'
         : 'Próximos';
 }
@@ -195,12 +195,12 @@ export default function EventsPage({
                     <Pagination page={events} />
                 </section>
                 <section className="events-team">
-                    <div className="events-team-image">
+                    <div className="events-team-image events-team-logo">
                         <img
-                            src="/evento-aman-equipe.png"
-                            alt="Equipe do projeto Aman — Folhas de Axé"
-                            width="854"
-                            height="855"
+                            src="/azon-social-logo.webp"
+                            alt="Logomarca do Instituto Azon Social"
+                            width="721"
+                            height="721"
                             loading="lazy"
                         />
                     </div>

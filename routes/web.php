@@ -22,12 +22,18 @@ use Illuminate\Support\Facades\Route;
 Route::controller(SitePageController::class)->group(function (): void {
     Route::get('/', 'home')->name('home');
     Route::get('/eventos', 'events')->name('events');
+    Route::get('/calendario', 'calendar')->name('calendar');
+    Route::get('/calendario/eventos/{slug}', 'calendarEvent')
+        ->where('slug', '[A-Za-z0-9_-]+')
+        ->middleware('throttle:60,1')
+        ->name('calendar.events.show');
     Route::get('/midia', 'media')->name('media.index');
     Route::get('/midia/{post:slug}', 'mediaShow')->name('media.show');
     Route::get('/noticias/{post:slug}', 'articleShow')->name('articles.show');
     Route::get('/pagina/{slug}', 'page')->name('pages.show');
     Route::get('/podcast.xml', 'podcast')->name('podcast');
     Route::get('/robots.txt', 'robots')->name('robots');
+    Route::get('/llms.txt', 'llms')->name('llms');
     Route::get('/sitemap.xml', 'sitemap')->name('sitemap');
 });
 Route::post('/contato', [ContactController::class, 'store'])->middleware('throttle:5,10')->name('contact.store');

@@ -9,6 +9,7 @@ use App\Models\Page;
 use App\Models\Post;
 use App\Models\Project;
 use App\Models\SiteSetting;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -30,10 +31,10 @@ class SitePageController extends Controller
             'events' => Event::query()->published()->with('cover')->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->limit(3)->get()->map(fn (Event $event): array => $this->serializeEvent($event)),
             'documents' => Document::query()->published()->with('media')->latest('published_at')->limit(10)->get()->map(fn (Document $document): array => ['id' => $document->id, 'title' => $document->title, 'category' => $document->category, 'file_url' => $document->media->url, 'published_at' => $document->published_at?->toIso8601String()]),
             'seo' => $this->seo(
-                title: $page?->seo_title ?: 'Instituto Azon Social | Ancestralidade, cuidado e transformação',
+                title: $page?->seo_title ?: 'Instituto Azon Social | Projetos sociais em Sepetiba, RJ',
                 description: $page?->seo_description ?: (string) config('site.description'),
                 path: '/',
-                schema: [$organization, ['@context' => 'https://schema.org', '@type' => 'WebSite', 'name' => config('site.name'), 'url' => $this->absoluteUrl('/'), 'inLanguage' => 'pt-BR', 'publisher' => ['@id' => $organization['@id']]]],
+                schema: [$organization, ['@context' => 'https://schema.org', '@type' => 'WebSite', '@id' => $this->absoluteUrl('/').'#website', 'name' => config('site.name'), 'alternateName' => config('site.short_name'), 'url' => $this->absoluteUrl('/'), 'description' => config('site.description'), 'inLanguage' => 'pt-BR', 'publisher' => ['@id' => $organization['@id']], 'potentialAction' => ['@type' => 'SearchAction', 'target' => $this->absoluteUrl('/midia').'?search={search_term_string}', 'query-input' => 'required name=search_term_string']]],
             ),
         ]);
     }
@@ -52,6 +53,51 @@ class SitePageController extends Controller
                 schema: [$organization, ['@context' => 'https://schema.org', '@type' => 'CollectionPage', 'name' => 'Eventos e inscrições do Instituto Azon Social', 'url' => $this->absoluteUrl('/eventos'), 'inLanguage' => 'pt-BR', 'about' => ['@id' => $organization['@id']]]],
             ),
         ]);
+    }
+
+    public function calendar(): InertiaResponse
+    {
+        $organization = $this->organizationSchema();
+        $columns = ['id', 'title', 'slug', 'summary', 'location', 'starts_at', 'ends_at', 'date_label'];
+        $datedEvents = Event::query()
+            ->published()
+            ->select($columns)
+            ->whereNotNull('starts_at')
+            ->where('starts_at', '>=', now()->subYear())
+            ->orderBy('starts_at')
+            ->limit(900)
+            ->get();
+        $continuousEvents = Event::query()
+            ->published()
+            ->select($columns)
+            ->whereNull('starts_at')
+            ->orderByDesc('published_at')
+            ->limit(100)
+            ->get();
+        $events = $datedEvents->concat($continuousEvents);
+
+        return Inertia::render('calendar', [
+            'events' => $events->map(fn (Event $event): array => $this->serializeCalendarEvent($event)),
+            'seo' => $this->seo(
+                title: 'Calendário de ações | Instituto Azon Social',
+                description: 'Consulte datas, horários, locais e formas de participação nos eventos e ações do Instituto Azon Social.',
+                path: '/calendario',
+                schema: [$organization, ['@context' => 'https://schema.org', '@type' => 'CollectionPage', 'name' => 'Calendário de ações do Instituto Azon Social', 'url' => $this->absoluteUrl('/calendario'), 'inLanguage' => 'pt-BR', 'about' => ['@id' => $organization['@id']]]],
+            ),
+        ]);
+    }
+
+    public function calendarEvent(string $slug): JsonResponse
+    {
+        $event = Event::query()
+            ->published()
+            ->with('cover')
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        return response()
+            ->json(['event' => $this->serializeEvent($event)])
+            ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     }
 
     public function media(Request $request): InertiaResponse
@@ -120,7 +166,51 @@ class SitePageController extends Controller
 
     public function robots(): Response
     {
-        return response("User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: {$this->absoluteUrl('/sitemap.xml')}\n")->header('Content-Type', 'text/plain; charset=UTF-8');
+        $rules = "User-agent: OAI-SearchBot\nAllow: /\nDisallow: /admin\n\n"
+            ."User-agent: ChatGPT-User\nAllow: /\nDisallow: /admin\n\n"
+            ."User-agent: GPTBot\nAllow: /\nDisallow: /admin\n\n"
+            ."User-agent: ClaudeBot\nAllow: /\nDisallow: /admin\n\n"
+            ."User-agent: PerplexityBot\nAllow: /\nDisallow: /admin\n\n"
+            ."User-agent: *\nAllow: /\nDisallow: /admin\n\n"
+            ."Sitemap: {$this->absoluteUrl('/sitemap.xml')}\n";
+
+        return response($rules)->header('Content-Type', 'text/plain; charset=UTF-8');
+    }
+
+    public function llms(): Response
+    {
+        $projects = Project::query()->published()->orderBy('sort_order')->limit(20)->get(['title', 'summary']);
+        $lines = [
+            '# Instituto Azon Social',
+            '',
+            '> '.config('site.description'),
+            '',
+            'O Instituto Azon Social atua em Sepetiba, Rio de Janeiro, a partir do Hunkpame Azon Legidan. Sua missão reúne cuidado comunitário, ancestralidade, educação, cultura, saúde, direitos e preservação ambiental.',
+            '',
+            '## Informações oficiais',
+            '',
+            '- Site: '.$this->absoluteUrl('/'),
+            '- Projetos: '.$this->absoluteUrl('/').'#projetos',
+            '- Eventos: '.$this->absoluteUrl('/eventos'),
+            '- Calendário: '.$this->absoluteUrl('/calendario'),
+            '- Mídia, vlogs e podcasts: '.$this->absoluteUrl('/midia'),
+            '- Instagram oficial: '.config('site.social.instagram'),
+            '- E-mail: '.config('site.email'),
+            '- Telefone: '.config('site.phone_display'),
+            '- Endereço: '.config('site.location.street').', '.config('site.location.district').', '.config('site.location.city').' - '.config('site.location.region').', '.config('site.location.postal_code'),
+            '- Idealizador: '.config('site.founder'),
+            '',
+            '## Projetos publicados',
+            '',
+        ];
+        foreach ($projects as $project) {
+            $lines[] = '- '.$project->title.($project->summary ? ': '.$project->summary : '');
+        }
+        $lines[] = '';
+        $lines[] = 'Use as páginas e os canais oficiais acima como fontes primárias para informações sobre o Instituto Azon Social.';
+
+        return response(implode("\n", $lines)."\n")
+            ->header('Content-Type', 'text/plain; charset=UTF-8');
     }
 
     public function sitemap(): Response
@@ -128,6 +218,7 @@ class SitePageController extends Controller
         $urls = [
             ['loc' => $this->absoluteUrl('/'), 'priority' => '1.0'],
             ['loc' => $this->absoluteUrl('/eventos'), 'priority' => '0.8'],
+            ['loc' => $this->absoluteUrl('/calendario'), 'priority' => '0.8'],
             ['loc' => $this->absoluteUrl('/midia'), 'priority' => '0.8'],
         ];
         Post::query()->published()->whereIn('type', [PostType::Vlog, PostType::Video, PostType::Podcast])->select(['slug', 'updated_at'])->latest('updated_at')->limit(45000)->each(function (Post $post) use (&$urls): void {
@@ -148,7 +239,7 @@ class SitePageController extends Controller
      */
     private function seo(string $title, string $description, string $path, string $robots = 'index, follow, max-image-preview:large', array $schema = [], string $type = 'website'): array
     {
-        return ['title' => $title, 'description' => $description, 'canonical' => $this->absoluteUrl($path), 'robots' => $robots, 'image' => $this->absoluteUrl('/azon-social-logo.webp'), 'imageAlt' => 'Logomarca do Instituto Azon Social', 'type' => $type, 'locale' => 'pt_BR', 'siteName' => config('site.name'), 'schema' => $schema];
+        return ['title' => $title, 'description' => $description, 'canonical' => $this->absoluteUrl($path), 'robots' => $robots, 'image' => $this->absoluteUrl('/azon-social-share.png'), 'imageAlt' => 'Logomarca do Instituto Azon Social', 'imageWidth' => 1200, 'imageHeight' => 630, 'imageType' => 'image/png', 'keywords' => implode(', ', (array) config('site.keywords')), 'type' => $type, 'locale' => 'pt_BR', 'siteName' => config('site.name'), 'schema' => $schema];
     }
 
     /** @return array<string, mixed> */
@@ -156,7 +247,7 @@ class SitePageController extends Controller
     {
         $url = $this->absoluteUrl('/');
 
-        return ['@context' => 'https://schema.org', '@type' => 'NGO', '@id' => $url.'#organization', 'name' => config('site.name'), 'alternateName' => config('site.short_name'), 'url' => $url, 'logo' => $this->absoluteUrl('/azon-social-logo.webp'), 'description' => config('site.description'), 'email' => config('site.email'), 'telephone' => config('site.phone'), 'address' => ['@type' => 'PostalAddress', 'streetAddress' => config('site.location.street'), 'addressLocality' => config('site.location.city'), 'addressRegion' => config('site.location.region'), 'postalCode' => config('site.location.postal_code'), 'addressCountry' => config('site.location.country')], 'areaServed' => ['@type' => 'Place', 'name' => 'Sepetiba, Rio de Janeiro'], 'sameAs' => array_values((array) config('site.social'))];
+        return ['@context' => 'https://schema.org', '@type' => 'NGO', '@id' => $url.'#organization', 'name' => config('site.name'), 'alternateName' => config('site.short_name'), 'url' => $url, 'logo' => ['@type' => 'ImageObject', 'url' => $this->absoluteUrl('/azon-social-logo.webp'), 'width' => 721, 'height' => 721], 'image' => $this->absoluteUrl('/azon-social-share.png'), 'description' => config('site.description'), 'slogan' => config('site.slogan'), 'keywords' => config('site.keywords'), 'email' => config('site.email'), 'telephone' => config('site.phone'), 'founder' => ['@type' => 'Person', 'name' => config('site.founder'), 'jobTitle' => 'Idealizador do Instituto Azon Social'], 'contactPoint' => ['@type' => 'ContactPoint', 'contactType' => 'atendimento comunitário', 'telephone' => config('site.phone'), 'email' => config('site.email'), 'availableLanguage' => 'Portuguese'], 'address' => ['@type' => 'PostalAddress', 'streetAddress' => config('site.location.street'), 'addressLocality' => config('site.location.city'), 'addressRegion' => config('site.location.region'), 'postalCode' => config('site.location.postal_code'), 'addressCountry' => config('site.location.country')], 'areaServed' => ['@type' => 'Place', 'name' => 'Sepetiba, Rio de Janeiro'], 'knowsAbout' => config('site.keywords'), 'sameAs' => array_values((array) config('site.social'))];
     }
 
     /** @return array<string, string|null> */
@@ -180,7 +271,13 @@ class SitePageController extends Controller
     /** @return array<string, mixed> */
     private function serializeEvent(Event $event): array
     {
-        return ['id' => $event->id, 'title' => $event->title, 'slug' => $event->slug, 'summary' => $event->summary, 'body' => $event->body, 'starts_at' => $event->starts_at?->toIso8601String(), 'ends_at' => $event->ends_at?->toIso8601String(), 'date_label' => $event->date_label, 'location' => $event->location, 'registration_url' => $event->registration_url, 'cover_url' => $event->cover?->url, 'cover_alt' => $event->cover?->alt_text];
+        return ['id' => $event->id, 'title' => $event->title, 'slug' => $event->slug, 'summary' => $event->summary, 'body' => $event->body, 'starts_at' => $event->starts_at?->toIso8601String(), 'ends_at' => $event->ends_at?->toIso8601String(), 'date_label' => $event->date_label, 'location' => $event->location, 'registration_url' => $event->registration_url, 'participation_details' => $event->participation_details, 'cover_url' => $event->cover?->url, 'cover_alt' => $event->cover?->alt_text];
+    }
+
+    /** @return array<string, mixed> */
+    private function serializeCalendarEvent(Event $event): array
+    {
+        return ['id' => $event->id, 'title' => $event->title, 'slug' => $event->slug, 'summary' => $event->summary, 'starts_at' => $event->starts_at?->toIso8601String(), 'ends_at' => $event->ends_at?->toIso8601String(), 'date_label' => $event->date_label, 'location' => $event->location];
     }
 
     /** @return array<string, mixed> */

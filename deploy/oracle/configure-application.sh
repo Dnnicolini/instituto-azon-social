@@ -25,6 +25,13 @@ if [[ -f "$ENV_FILE" ]]; then
     INSTAGRAM_ACCOUNT_ID_VALUE="$(sed -n 's/^INSTAGRAM_ACCOUNT_ID=//p' "$ENV_FILE" | head -n 1)"
     INSTAGRAM_ACCESS_TOKEN_VALUE="$(sed -n 's/^INSTAGRAM_ACCESS_TOKEN=//p' "$ENV_FILE" | head -n 1)"
     INSTAGRAM_TOKEN_EXPIRES_AT_VALUE="$(sed -n 's/^INSTAGRAM_TOKEN_EXPIRES_AT=//p' "$ENV_FILE" | head -n 1)"
+    MEDIA_DISK_VALUE="$(sed -n 's/^MEDIA_DISK=//p' "$ENV_FILE" | head -n 1)"
+    MEDIA_TEMPORARY_URL_MINUTES_VALUE="$(sed -n 's/^MEDIA_TEMPORARY_URL_MINUTES=//p' "$ENV_FILE" | head -n 1)"
+    R2_ACCESS_KEY_ID_VALUE="$(sed -n 's/^R2_ACCESS_KEY_ID=//p' "$ENV_FILE" | head -n 1)"
+    R2_SECRET_ACCESS_KEY_VALUE="$(sed -n 's/^R2_SECRET_ACCESS_KEY=//p' "$ENV_FILE" | head -n 1)"
+    R2_BUCKET_VALUE="$(sed -n 's/^R2_BUCKET=//p' "$ENV_FILE" | head -n 1)"
+    R2_ENDPOINT_VALUE="$(sed -n 's/^R2_ENDPOINT=//p' "$ENV_FILE" | head -n 1)"
+    R2_URL_VALUE="$(sed -n 's/^R2_URL=//p' "$ENV_FILE" | head -n 1)"
 fi
 if [[ -z "${APP_KEY_VALUE:-}" ]]; then
     APP_KEY_VALUE="base64:$(openssl rand -base64 32 | tr -d '\n')"
@@ -55,6 +62,14 @@ printf '%s\n' \
     'SESSION_SECURE_COOKIE=true' \
     'BROADCAST_CONNECTION=log' \
     'FILESYSTEM_DISK=local' \
+    "MEDIA_DISK=${MEDIA_DISK_VALUE:-public}" \
+    "MEDIA_TEMPORARY_URL_MINUTES=${MEDIA_TEMPORARY_URL_MINUTES_VALUE:-120}" \
+    "R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID_VALUE:-}" \
+    "R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY_VALUE:-}" \
+    'R2_REGION=auto' \
+    "R2_BUCKET=${R2_BUCKET_VALUE:-azon-social-media}" \
+    "R2_ENDPOINT=${R2_ENDPOINT_VALUE:-https://SEU_ACCOUNT_ID.r2.cloudflarestorage.com}" \
+    "R2_URL=${R2_URL_VALUE:-}" \
     'QUEUE_CONNECTION=database' \
     'CACHE_STORE=database' \
     'MAIL_MAILER=log' \
@@ -94,7 +109,13 @@ chown -R www-data:www-data "$APP_DIR/storage" "$APP_DIR/bootstrap/cache"
 cd "$APP_DIR"
 sudo -u www-data php artisan migrate --force
 sudo -u www-data php artisan db:seed --force
-php artisan storage:link --force
+if [[ "${MEDIA_DISK_VALUE:-public}" == 'r2' ]]; then
+    if [[ -L "$APP_DIR/public/storage" ]]; then
+        unlink "$APP_DIR/public/storage"
+    fi
+else
+    php artisan storage:link --force
+fi
 sudo -u www-data php artisan optimize:clear
 sudo -u www-data php artisan config:cache
 sudo -u www-data php artisan route:cache

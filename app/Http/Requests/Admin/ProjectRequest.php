@@ -23,7 +23,7 @@ class ProjectRequest extends ContentRequest
             'status' => $this->statusRules(),
             'published_at' => ['nullable', 'date'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:10000'],
-            'cover' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120'],
+            'cover' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120', 'dimensions:max_width=5000,max_height=5000'],
             'cover_alt' => ['nullable', 'string', 'max:255', 'required_with:cover'],
         ];
     }

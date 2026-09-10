@@ -58,7 +58,7 @@ class ProjectController extends AdminController
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
             } elseif ($request->has('cover_alt') && $project->cover) {
-                $project->cover->update(['alt_text' => $request->validated('cover_alt')]);
+                $this->updateAssetAlt($project->cover, $request->validated('cover_alt'));
             }
             $project->update($data);
             $this->recordChange('project.updated', $project, $before);

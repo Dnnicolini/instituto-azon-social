@@ -102,6 +102,7 @@ export type Event = {
     cover_url?: string | null;
     cover_alt?: string | null;
     registration_url?: string | null;
+    participation_details?: string | null;
     published_at?: string | null;
     updated_at: string;
 };

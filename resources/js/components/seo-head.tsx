@@ -15,6 +15,8 @@ export function SeoHead({ seo }: SeoHeadProps) {
                 content={seo.description}
             />
             <meta head-key="robots" name="robots" content={seo.robots} />
+            <meta head-key="keywords" name="keywords" content={seo.keywords} />
+            <meta head-key="author" name="author" content={seo.siteName} />
             <link head-key="canonical" rel="canonical" href={seo.canonical} />
             <meta head-key="og:title" property="og:title" content={seo.title} />
             <meta
@@ -35,6 +37,21 @@ export function SeoHead({ seo }: SeoHeadProps) {
                 content={seo.locale}
             />
             <meta head-key="og:image" property="og:image" content={seo.image} />
+            <meta
+                head-key="og:image:width"
+                property="og:image:width"
+                content={String(seo.imageWidth)}
+            />
+            <meta
+                head-key="og:image:height"
+                property="og:image:height"
+                content={String(seo.imageHeight)}
+            />
+            <meta
+                head-key="og:image:type"
+                property="og:image:type"
+                content={seo.imageType}
+            />
             <meta
                 head-key="og:image:alt"
                 property="og:image:alt"
@@ -59,6 +76,11 @@ export function SeoHead({ seo }: SeoHeadProps) {
                 head-key="twitter:image"
                 name="twitter:image"
                 content={seo.image}
+            />
+            <meta
+                head-key="twitter:image:alt"
+                name="twitter:image:alt"
+                content={seo.imageAlt}
             />
             {seo.schema.map((schema, index) => (
                 <script

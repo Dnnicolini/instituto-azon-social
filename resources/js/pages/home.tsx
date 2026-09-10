@@ -167,8 +167,8 @@ export default function Home({
                         <img
                             src="/azon-social-logo.webp"
                             alt=""
-                            width="941"
-                            height="1672"
+                            width="721"
+                            height="721"
                         />
                     </span>
                     <span>
@@ -203,6 +203,7 @@ export default function Home({
                         Notícias
                     </a>
                     <Link href="/eventos">Eventos</Link>
+                    <Link href="/calendario">Calendário</Link>
                     <Link href="/midia">Mídia</Link>
                     {documents.length > 0 && (
                         <a
@@ -263,8 +264,8 @@ export default function Home({
                             <img
                                 src="/azon-social-logo.webp"
                                 alt="Logomarca do Instituto Azon Social"
-                                width="941"
-                                height="1672"
+                                width="721"
+                                height="721"
                                 fetchPriority="high"
                             />
                         </div>
@@ -616,8 +617,8 @@ export default function Home({
                                                     <img
                                                         src="/azon-social-logo.webp"
                                                         alt=""
-                                                        width="941"
-                                                        height="1672"
+                                                        width="721"
+                                                        height="721"
                                                         loading="lazy"
                                                     />
                                                 </span>
@@ -729,8 +730,8 @@ export default function Home({
                                         <img
                                             src="/azon-social-logo.webp"
                                             alt=""
-                                            width="941"
-                                            height="1672"
+                                            width="721"
+                                            height="721"
                                         />
                                     </div>
                                 )}
@@ -816,21 +817,18 @@ export default function Home({
                                 '01',
                                 'Seja voluntário',
                                 'Compartilhe seu tempo, escuta e conhecimento profissional com nossos projetos comunitários em Sepetiba.',
-                                null,
                             ],
                             [
                                 '02',
                                 'Seja parceiro',
                                 'Construa ações, editais, programas formativos e oportunidades estratégicas em parceria com o Instituto.',
-                                null,
                             ],
                             [
                                 '03',
                                 'Apoie nossas ações',
                                 'Contribua para a sustentabilidade e continuidade das iniciativas sociais e oficinas formativas.',
-                                '/social/instagram-acao-proposito.webp',
                             ],
-                        ].map(([n, t, d, image], index) => (
+                        ].map(([n, t, d], index) => (
                             <a
                                 className={
                                     index === 2 ? 'participate-featured' : ''
@@ -839,15 +837,6 @@ export default function Home({
                                 key={t}
                             >
                                 <span className="participate-number">{n}</span>
-                                {image && (
-                                    <span className="participate-media">
-                                        <img
-                                            src={image}
-                                            alt="Doações reunidas pelas ações solidárias do Instituto Azon Social"
-                                            loading="lazy"
-                                        />
-                                    </span>
-                                )}
                                 <h3>{t}</h3>
                                 <p>{d}</p>
                                 <b>
@@ -1055,8 +1044,8 @@ export default function Home({
                         <img
                             src="/dote-rodrigo.webp"
                             alt="Doté Rodrigo D’ Avimaje"
-                            width="150"
-                            height="150"
+                            width="1254"
+                            height="1254"
                             loading="lazy"
                         />
                     </figure>
@@ -1081,8 +1070,8 @@ export default function Home({
                         <img
                             src="/azon-social-logo.webp"
                             alt=""
-                            width="941"
-                            height="1672"
+                            width="721"
+                            height="721"
                             loading="lazy"
                         />
                     </span>
@@ -1101,6 +1090,7 @@ export default function Home({
                     <a href="#idealizador">Idealizador</a>
                     <Link href="/midia">Mídia</Link>
                     <Link href="/eventos">Eventos</Link>
+                    <Link href="/calendario">Calendário</Link>
                 </div>
                 <div>
                     <strong>Contato</strong>

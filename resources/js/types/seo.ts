@@ -7,6 +7,10 @@ export type SeoData = {
     robots: string;
     image: string;
     imageAlt: string;
+    imageWidth: number;
+    imageHeight: number;
+    imageType: string;
+    keywords: string;
     type: string;
     locale: string;
     siteName: string;

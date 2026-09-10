@@ -269,12 +269,16 @@ class InstagramFeedSynchronizer
         }
 
         $path = 'instagram/'.$providerId.'.'.$extensions[$mimeType];
-        if (! Storage::disk('public')->put($path, $body)) {
+        $disk = (string) config('filesystems.media_disk', 'public');
+        if (! Storage::disk($disk)->put($path, $body, [
+            'ContentType' => $mimeType,
+            'CacheControl' => 'public, max-age=31536000, immutable',
+        ])) {
             return null;
         }
 
         return MediaAsset::query()->updateOrCreate(
-            ['disk' => 'public', 'path' => $path],
+            ['disk' => $disk, 'path' => $path],
             [
                 'original_name' => basename($path),
                 'mime_type' => $mimeType,

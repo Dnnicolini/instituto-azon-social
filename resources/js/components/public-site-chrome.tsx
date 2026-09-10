@@ -10,8 +10,8 @@ export function PublicHeader() {
                     <img
                         src="/azon-social-logo.webp"
                         alt=""
-                        width="941"
-                        height="1672"
+                        width="721"
+                        height="721"
                     />
                 </span>
                 <span>
@@ -40,6 +40,17 @@ export function PublicHeader() {
                 <Link href="/#projetos">Projetos</Link>
                 <Link href="/eventos">Eventos</Link>
                 <Link
+                    href="/calendario"
+                    aria-current={
+                        typeof window !== 'undefined' &&
+                        window.location.pathname === '/calendario'
+                            ? 'page'
+                            : undefined
+                    }
+                >
+                    Calendário
+                </Link>
+                <Link
                     href="/midia"
                     aria-current={
                         typeof window !== 'undefined' &&
@@ -65,8 +76,8 @@ export function PublicFooter({ children }: { children?: ReactNode }) {
                     <img
                         src="/azon-social-logo.webp"
                         alt=""
-                        width="941"
-                        height="1672"
+                        width="721"
+                        height="721"
                         loading="lazy"
                     />
                 </span>
@@ -79,6 +90,7 @@ export function PublicFooter({ children }: { children?: ReactNode }) {
                 <strong>Explore</strong>
                 <Link href="/midia">Mídia</Link>
                 <Link href="/eventos">Eventos</Link>
+                <Link href="/calendario">Calendário</Link>
             </div>
             <div>
                 <strong>Contato</strong>

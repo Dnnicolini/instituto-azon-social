@@ -24,6 +24,15 @@ class MediaAsset extends Model
             return '/'.ltrim($this->path, '/');
         }
 
+        if ($this->disk === 'r2' && ! filled(config('filesystems.disks.r2.url'))) {
+            $minutes = max(5, (int) config('filesystems.temporary_url_minutes', 120));
+
+            return Storage::disk($this->disk)->temporaryUrl(
+                $this->path,
+                now()->addMinutes($minutes),
+            );
+        }
+
         return Storage::disk($this->disk)->url($this->path);
     }
 }

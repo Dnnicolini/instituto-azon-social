@@ -78,7 +78,7 @@ class PostController extends AdminController
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
             } elseif ($request->has('cover_alt') && $post->cover) {
-                $post->cover->update(['alt_text' => $request->validated('cover_alt')]);
+                $this->updateAssetAlt($post->cover, $request->validated('cover_alt'));
             }
             $post->update($data);
             $this->recordChange('post.updated', $post, $before);

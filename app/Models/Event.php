@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $location
  * @property string|null $date_label
  * @property string|null $registration_url
+ * @property string|null $participation_details
  * @property ContentStatus $status
  * @property Carbon|null $starts_at
  * @property Carbon|null $ends_at
@@ -28,7 +29,7 @@ class Event extends Model
 {
     use HasPublicationStatus, SoftDeletes;
 
-    protected $fillable = ['cover_media_id', 'title', 'slug', 'summary', 'body', 'location', 'starts_at', 'ends_at', 'date_label', 'registration_url', 'status', 'published_at'];
+    protected $fillable = ['cover_media_id', 'title', 'slug', 'summary', 'body', 'location', 'starts_at', 'ends_at', 'date_label', 'registration_url', 'participation_details', 'status', 'published_at'];
 
     protected function casts(): array
     {

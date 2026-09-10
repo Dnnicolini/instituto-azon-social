@@ -46,18 +46,19 @@ Grupos personalizados podem ser criados pelo administrador. O backend aplica tod
 
 - `/`: página institucional dinâmica;
 - `/eventos`: agenda e inscrições;
+- `/calendario`: calendário mensal com detalhes e orientações de participação;
 - `/midia`: biblioteca de vlogs, vídeos e podcasts;
 - `/midia/{slug}`: conteúdo audiovisual;
 - `/noticias/{slug}`: artigo institucional;
 - `/podcast.xml`: feed RSS dos episódios publicados;
 - `/pagina/{slug}`: páginas adicionais publicadas;
-- `/robots.txt` e `/sitemap.xml`: descoberta para buscadores.
+- `/robots.txt`, `/sitemap.xml` e `/llms.txt`: descoberta para buscadores e mecanismos de resposta com IA.
 
 `/admin` e todas as rotas abaixo dele exigem autenticação, verificação de e-mail e permissão. Elas enviam `noindex, nofollow` e `X-Robots-Tag`; o público só consegue enviar o formulário de contato. Em produção, `admin.azonsocial.org.br` abre o CRM e o domínio público encaminha qualquer tentativa de acesso ao painel para esse subdomínio.
 
 ## Sincronização do Instagram
 
-O feed oficial [@azon.social](https://www.instagram.com/azon.social/) pode ser conectado por um administrador em **Configurações → Instagram**. A integração usa a API oficial da Meta, salva o token criptografado, copia as imagens para o armazenamento local e preserva o conteúdo anterior se a API estiver indisponível. O scheduler verifica novas publicações a cada dez minutos e renova semanalmente o token de longa duração.
+O feed oficial [@azon.social](https://www.instagram.com/azon.social/) pode ser conectado por um administrador em **Configurações → Instagram**. A integração usa a API oficial da Meta, salva o token criptografado, copia as imagens para o disco de mídia configurado e preserva o conteúdo anterior se a API estiver indisponível. O scheduler verifica novas publicações a cada dez minutos e renova semanalmente o token de longa duração.
 
 Configuração inicial na Meta:
 
@@ -70,6 +71,39 @@ Configuração inicial na Meta:
 
 O aplicativo solicita apenas `instagram_business_basic`, suficiente para ler a mídia da própria conta. O App Secret e os tokens nunca devem ser enviados ao navegador, copiados para o Git ou incluídos em logs.
 
+## Armazenamento de mídias no Cloudflare R2
+
+O bucket privado `azon-social-media` foi criado na conta Cloudflare do Instituto. Imagens, documentos e mídias enviados pelo CMS ou sincronizados do Instagram usam o disco definido por `MEDIA_DISK`. O padrão continua sendo `public`, portanto o desenvolvimento local e uma produção ainda sem credenciais R2 não deixam de funcionar.
+
+Para ativar o R2, crie no painel Cloudflare um token de API R2 limitado ao bucket `azon-social-media`, com leitura e gravação de objetos. Guarde a Access Key ID e a Secret Access Key somente no cofre/arquivo de ambiente protegido do servidor; nunca no Git. A configuração esperada é:
+
+```dotenv
+MEDIA_DISK=r2
+MEDIA_TEMPORARY_URL_MINUTES=120
+R2_ACCESS_KEY_ID=preencher-no-servidor
+R2_SECRET_ACCESS_KEY=preencher-no-servidor
+R2_REGION=auto
+R2_BUCKET=azon-social-media
+R2_ENDPOINT=https://SEU_ACCOUNT_ID.r2.cloudflarestorage.com
+R2_URL=
+```
+
+O bucket permanece privado e o site gera links temporários para os arquivos. Depois de inserir as credenciais no servidor, valide a conexão e migre as mídias existentes sem apagar a cópia local:
+
+```bash
+php artisan config:clear
+php artisan media:migrate-storage --from=public --to=r2
+php artisan config:cache
+```
+
+O comando é idempotente: arquivos já enviados não são duplicados e o banco só passa a apontar para o R2 após o destino confirmar o objeto. Depois de conferir o site e possuir backup válido, uma segunda execução remove as antigas cópias públicas:
+
+```bash
+php artisan media:migrate-storage --from=public --to=r2 --delete-source
+```
+
+Quando `MEDIA_DISK=r2`, a rotina de deploy deixa de expor o link `public/storage`, impedindo acesso por URLs locais antigas. Ela também preserva as configurações R2 já existentes no arquivo protegido `/etc/azon/production.env`.
+
 ## Publicação agendada
 
 O Laravel Scheduler executa `cms:publish-scheduled` a cada minuto, com proteção contra sobreposição. No servidor, configure um único cron para chamar o scheduler:
@@ -78,7 +112,7 @@ O Laravel Scheduler executa `cms:publish-scheduled` a cada minuto, com proteçã
 * * * * * cd /caminho/do/projeto && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Mantenha também os processos de fila e `php artisan inertia:start-ssr` sob um supervisor. Em produção, use `APP_ENV=production`, `APP_DEBUG=false`, HTTPS, cookies seguros, backup do banco e armazenamento persistente para `storage/app/public`. `APP_URL` deve apontar para o domínio canônico e `APP_TIMEZONE` para `America/Sao_Paulo`.
+Mantenha também os processos de fila e `php artisan inertia:start-ssr` sob um supervisor. Em produção, use `APP_ENV=production`, `APP_DEBUG=false`, HTTPS, cookies seguros, backup do banco e armazenamento persistente. Enquanto `MEDIA_DISK=public`, preserve `storage/app/public`; com `MEDIA_DISK=r2`, mantenha backup e política de retenção também para o bucket. `APP_URL` deve apontar para o domínio canônico e `APP_TIMEZONE` para `America/Sao_Paulo`.
 
 ## Verificações
 
@@ -101,9 +135,9 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome npm run test:e2e
 
 ## SEO e dados
 
-As páginas públicas definem título, descrição, canonical, Open Graph, Twitter Card e JSON-LD. O sitemap inclui somente conteúdo publicado; rascunhos, itens agendados para o futuro e páginas administrativas ficam de fora.
+As páginas públicas definem título, descrição, termos institucionais, canonical, Open Graph, Twitter Card e JSON-LD com organização, endereço, área de atuação, contato, idealizador e temas de trabalho. O sitemap inclui somente conteúdo publicado; rascunhos, itens agendados para o futuro e páginas administrativas ficam de fora. O `robots.txt` permite a descoberta do conteúdo público pelo OAI-SearchBot e por outros mecanismos de resposta, mantendo todo o CRM bloqueado, enquanto o `llms.txt` oferece uma síntese institucional e aponta para as fontes oficiais.
 
-O seed inicial preserva as informações institucionais conhecidas e não cria usuários nem credenciais. Contatos públicos atuais:
+O seed inicial preserva as informações institucionais conhecidas, não cria usuários nem credenciais e nunca sobrescreve textos alterados posteriormente no CRM. Contatos públicos atuais:
 
 - `instituto.azonsocial@gmail.com`;
 - `(21) 95101-5058`;

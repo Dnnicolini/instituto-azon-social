@@ -17,6 +17,7 @@ export function EventForm({ event }: { event?: Event }) {
         ends_at: string;
         date_label: string;
         registration_url: string;
+        participation_details: string;
         status: ContentStatus;
         published_at: string;
         cover_alt: string;
@@ -31,6 +32,7 @@ export function EventForm({ event }: { event?: Event }) {
         ends_at: event?.ends_at?.slice(0, 16) ?? '',
         date_label: event?.date_label ?? '',
         registration_url: event?.registration_url ?? '',
+        participation_details: event?.participation_details ?? '',
         status:
             event?.status &&
             ['draft', 'review', 'scheduled', 'published', 'archived'].includes(
@@ -201,6 +203,25 @@ export function EventForm({ event }: { event?: Event }) {
                             />
                         </label>
                         <FieldError message={form.errors.registration_url} />
+                    </div>
+                    <div className="cms-field">
+                        <label>
+                            Como participar
+                            <textarea
+                                rows={5}
+                                placeholder="Explique inscrições, documentos, público e orientações para participar."
+                                value={form.data.participation_details}
+                                onChange={(e) =>
+                                    form.setData(
+                                        'participation_details',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                        </label>
+                        <FieldError
+                            message={form.errors.participation_details}
+                        />
                     </div>
                 </section>
             </div>

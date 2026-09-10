@@ -46,7 +46,7 @@ class ContentSeeder extends Seeder
             ],
         ];
         foreach ($projects as [$title, $slug, $summary, $body, $order, $coverMediaId]) {
-            Project::query()->updateOrCreate(['slug' => $slug], [
+            Project::query()->firstOrCreate(['slug' => $slug], [
                 'title' => $title,
                 'summary' => $summary,
                 'body' => $body ?: $summary,
@@ -62,7 +62,7 @@ class ContentSeeder extends Seeder
             ['Cozinha Ancestral Ayidonun', 'cozinha-ancestral-ayidonun', 'Saberes, sabores e afeto reunidos para alimentar pessoas e preservar memórias.'],
             ['Folhas, território e ancestralidade', 'folhas-territorio-e-ancestralidade', 'O projeto Aman fortalece conhecimentos que atravessam gerações.'],
         ] as [$title, $slug, $excerpt]) {
-            Post::query()->updateOrCreate(['slug' => $slug], [
+            Post::query()->firstOrCreate(['slug' => $slug], [
                 'type' => PostType::Article,
                 'title' => $title,
                 'excerpt' => $excerpt,
@@ -209,7 +209,7 @@ CAPTION,
             ],
         ];
         foreach ($socialPosts as [$title, $slug, $excerpt, $caption, $url, $publishedAt, $featured, $sortOrder, $cover]) {
-            Post::query()->updateOrCreate(['slug' => $slug], [
+            Post::query()->firstOrCreate(['slug' => $slug], [
                 'type' => PostType::Social,
                 'title' => $title,
                 'excerpt' => $excerpt,
@@ -230,7 +230,7 @@ CAPTION,
             ['Cadastro de mudas e ervas — Projeto Aman', 'cadastro-mudas-aman', 'Cadastro para receber mudas e ervas e acompanhar novas plantas disponibilizadas.', 'Rio de Janeiro', null, 'Cadastro contínuo', 'https://forms.gle/gQwuyTMevgnSVNyS9', 'aman'],
         ];
         foreach ($events as [$title, $slug, $summary, $location, $startsAt, $dateLabel, $registrationUrl, $asset]) {
-            Event::query()->updateOrCreate(['slug' => $slug], [
+            Event::query()->firstOrCreate(['slug' => $slug], [
                 'title' => $title,
                 'summary' => $summary,
                 'body' => $summary,
@@ -238,13 +238,16 @@ CAPTION,
                 'starts_at' => $startsAt,
                 'date_label' => $dateLabel,
                 'registration_url' => $registrationUrl,
+                'participation_details' => $registrationUrl
+                    ? 'Use o link de participação para fazer sua inscrição. Em caso de dúvida, fale com a equipe do Instituto Azon Social.'
+                    : 'Entre em contato com a equipe do Instituto Azon Social para confirmar disponibilidade, orientações e formas de participação.',
                 'status' => ContentStatus::Published,
                 'published_at' => '2026-01-01 12:00:00',
                 'cover_media_id' => $assets[$asset]->id,
             ]);
         }
 
-        Page::query()->updateOrCreate(['slug' => 'inicio'], [
+        Page::query()->firstOrCreate(['slug' => 'inicio'], [
             'title' => 'Página inicial',
             'body' => 'Página institucional do Instituto Azon Social.',
             'sections' => [
@@ -256,7 +259,7 @@ CAPTION,
             ],
             'status' => ContentStatus::Published,
             'published_at' => '2026-01-01 12:00:00',
-            'seo_title' => 'Instituto Azon Social | Ancestralidade, cuidado e transformação',
+            'seo_title' => 'Instituto Azon Social | Projetos sociais em Sepetiba, RJ',
             'seo_description' => (string) config('site.description'),
         ]);
 
@@ -273,13 +276,13 @@ CAPTION,
             'founder_name' => ['Doté Rodrigo D’ Avimaje', 'text', 'home'],
             'founder_text' => ['Doté Rodrigo D’ Avimaje é o idealizador do Instituto Azon Social, atual presidente do Presente de Yamanjá de Sepetiba e sacerdote Jeje Mahi. Sua visão une ancestralidade, cuidado comunitário e transformação social.', 'textarea', 'home'],
         ] as $key => [$value, $type, $group]) {
-            SiteSetting::query()->updateOrCreate(['key' => $key], compact('value', 'type', 'group'));
+            SiteSetting::query()->firstOrCreate(['key' => $key], compact('value', 'type', 'group'));
         }
     }
 
     private function asset(string $path, string $alt, int $width, int $height, string $mimeType = 'image/png'): MediaAsset
     {
-        return MediaAsset::query()->updateOrCreate(
+        return MediaAsset::query()->firstOrCreate(
             ['disk' => 'site', 'path' => $path],
             ['original_name' => $path, 'mime_type' => $mimeType, 'size' => 0, 'alt_text' => $alt, 'width' => $width, 'height' => $height],
         );

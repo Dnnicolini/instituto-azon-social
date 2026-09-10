@@ -16,7 +16,8 @@ abstract class AdminController extends Controller
     {
         abort_unless(request()->user()->hasPermission('media.manage'), 403);
 
-        $path = $file->store($folder, 'public');
+        $disk = (string) config('filesystems.media_disk', 'public');
+        $path = $file->store($folder, $disk);
         abort_unless(is_string($path), 500, 'Não foi possível armazenar o arquivo.');
 
         $width = null;
@@ -28,7 +29,7 @@ abstract class AdminController extends Controller
 
         return MediaAsset::query()->create([
             'uploaded_by' => request()->user()?->id,
-            'disk' => 'public',
+            'disk' => $disk,
             'path' => $path,
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => (string) $file->getMimeType(),
@@ -37,6 +38,16 @@ abstract class AdminController extends Controller
             'width' => $width,
             'height' => $height,
         ]);
+    }
+
+    protected function updateAssetAlt(MediaAsset $asset, ?string $altText): void
+    {
+        if ($asset->alt_text === $altText) {
+            return;
+        }
+
+        abort_unless(request()->user()?->hasPermission('media.manage'), 403);
+        $asset->update(['alt_text' => $altText]);
     }
 
     /** @param array<string, mixed> $data

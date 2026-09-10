@@ -20,8 +20,8 @@ export function AuthShell({
                             <img
                                 src="/azon-social-logo.webp"
                                 alt=""
-                                width="941"
-                                height="1672"
+                                width="721"
+                                height="721"
                             />
                         </span>
                         <span>

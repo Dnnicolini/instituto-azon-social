@@ -15,7 +15,7 @@ it('renders the institutional home with complete SEO data', function (): void {
 
     $response->assertOk()->assertInertia(fn (Assert $page): Assert => $page
         ->component('home')
-        ->where('seo.title', 'Instituto Azon Social | Ancestralidade, cuidado e transformação')
+        ->where('seo.title', 'Instituto Azon Social | Projetos sociais em Sepetiba, RJ')
         ->where('seo.canonical', 'https://instituto-azon-social.dnnicolini.chatgpt.site/')
         ->where('seo.robots', 'index, follow, max-image-preview:large')
         ->has('seo.schema', 2));
@@ -25,11 +25,13 @@ it('renders the institutional home with complete SEO data', function (): void {
         ->assertHeader('X-Content-Type-Options', 'nosniff')
         ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
         ->assertSee('<html lang="pt-BR">', false)
-        ->assertSee('<title data-inertia="title">Instituto Azon Social | Ancestralidade, cuidado e transformação</title>', false)
-        ->assertSee('<meta data-inertia="description" name="description" content="Ações sociais, culturais e ambientais', false)
+        ->assertSee('<title data-inertia="title">Instituto Azon Social | Projetos sociais em Sepetiba, RJ</title>', false)
+        ->assertSee('<meta data-inertia="description" name="description" content="Instituto social em Sepetiba', false)
+        ->assertSee('<meta data-inertia="keywords" name="keywords" content="instituto social, projetos sociais em Sepetiba', false)
         ->assertSee('<link data-inertia="canonical" rel="canonical" href="https://instituto-azon-social.dnnicolini.chatgpt.site/">', false)
         ->assertSee('<meta data-inertia="og:site_name" property="og:site_name" content="Instituto Azon Social">', false)
         ->assertSee('<meta data-inertia="twitter:card" name="twitter:card" content="summary">', false)
+        ->assertSee('<meta data-inertia="og:image:width" property="og:image:width" content="1200">', false)
         ->assertSee('"@type":"NGO"', false)
         ->assertSee('"@type":"WebSite"', false);
 });
@@ -51,6 +53,17 @@ it('renders events with page-specific metadata and structured data', function ()
         ->assertDontSee('"@type":"Event"', false);
 });
 
+it('renders the public calendar with indexable metadata', function (): void {
+    $this->get(route('calendar'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('calendar')
+            ->where('seo.title', 'Calendário de ações | Instituto Azon Social')
+            ->where('seo.canonical', 'https://instituto-azon-social.dnnicolini.chatgpt.site/calendario')
+            ->has('events', 0)
+            ->has('seo.schema', 2));
+});
+
 it('keeps authentication out of search indexes and blocks the admin dashboard', function (): void {
     $this->get(route('admin.login'))
         ->assertOk()
@@ -68,7 +81,18 @@ it('serves robots rules and points crawlers to the sitemap', function (): void {
         ->assertOk()
         ->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
         ->assertSeeText('Disallow: /admin')
+        ->assertSeeText('User-agent: OAI-SearchBot')
         ->assertSeeText('Sitemap: https://instituto-azon-social.dnnicolini.chatgpt.site/sitemap.xml');
+});
+
+it('serves an AI-readable institutional source without exposing the CRM', function (): void {
+    $this->get(route('llms'))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
+        ->assertSeeText('# Instituto Azon Social')
+        ->assertSeeText('Hunkpame Azon Legidan')
+        ->assertSeeText('Idealizador: Doté Rodrigo D’ Avimaje')
+        ->assertDontSee('/admin');
 });
 
 it('serves a sitemap with only public indexable pages', function (): void {
@@ -78,9 +102,10 @@ it('serves a sitemap with only public indexable pages', function (): void {
         ->assertHeader('Content-Type', 'application/xml; charset=UTF-8')
         ->assertSee('https://instituto-azon-social.dnnicolini.chatgpt.site/', false)
         ->assertSee('https://instituto-azon-social.dnnicolini.chatgpt.site/eventos', false)
+        ->assertSee('https://instituto-azon-social.dnnicolini.chatgpt.site/calendario', false)
         ->assertDontSee('<lastmod>', false)
         ->assertDontSee('/admin', false);
 
     $response->assertSee('https://instituto-azon-social.dnnicolini.chatgpt.site/midia', false);
-    expect(substr_count($response->getContent(), '<url>'))->toBe(3);
+    expect(substr_count($response->getContent(), '<url>'))->toBe(4);
 });

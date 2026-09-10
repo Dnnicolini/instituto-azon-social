@@ -58,7 +58,7 @@ class EventController extends AdminController
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
             } elseif ($request->has('cover_alt') && $event->cover) {
-                $event->cover->update(['alt_text' => $request->validated('cover_alt')]);
+                $this->updateAssetAlt($event->cover, $request->validated('cover_alt'));
             }
             $event->update($data);
             $this->recordChange('event.updated', $event, $before);
@@ -81,6 +81,6 @@ class EventController extends AdminController
     /** @return array<string, mixed> */
     private function serialize(Event $event): array
     {
-        return ['id' => $event->id, 'title' => $event->title, 'slug' => $event->slug, 'summary' => $event->summary, 'body' => $event->body, 'status' => $event->status->value, 'starts_at' => $event->starts_at?->toIso8601String(), 'ends_at' => $event->ends_at?->toIso8601String(), 'date_label' => $event->date_label, 'location' => $event->location, 'registration_url' => $event->registration_url, 'cover_url' => $event->cover?->url, 'cover_alt' => $event->cover?->alt_text, 'published_at' => $event->published_at?->toIso8601String(), 'updated_at' => $event->updated_at?->toIso8601String()];
+        return ['id' => $event->id, 'title' => $event->title, 'slug' => $event->slug, 'summary' => $event->summary, 'body' => $event->body, 'status' => $event->status->value, 'starts_at' => $event->starts_at?->toIso8601String(), 'ends_at' => $event->ends_at?->toIso8601String(), 'date_label' => $event->date_label, 'location' => $event->location, 'registration_url' => $event->registration_url, 'participation_details' => $event->participation_details, 'cover_url' => $event->cover?->url, 'cover_alt' => $event->cover?->alt_text, 'published_at' => $event->published_at?->toIso8601String(), 'updated_at' => $event->updated_at?->toIso8601String()];
     }
 }

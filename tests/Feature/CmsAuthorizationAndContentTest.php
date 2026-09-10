@@ -3,6 +3,7 @@
 use App\Enums\ContentStatus;
 use App\Enums\PostType;
 use App\Models\ContactMessage;
+use App\Models\MediaAsset;
 use App\Models\Permission;
 use App\Models\Post;
 use App\Models\Role;
@@ -262,6 +263,71 @@ it('requires media permission before storing an upload', function (): void {
     ])->assertForbidden();
 
     $this->assertDatabaseMissing('posts', ['slug' => 'video-sem-autorizacao-de-midia']);
+});
+
+it('requires media permission only when an existing cover description changes', function (): void {
+    $this->seed(AuthorizationSeeder::class);
+    $contentRole = Role::query()->create([
+        'name' => 'Editor sem mídia',
+        'slug' => 'editor-without-media',
+        'is_system' => false,
+    ]);
+    $contentRole->permissions()->sync(Permission::query()
+        ->whereIn('slug', ['access-admin', 'content.update'])
+        ->pluck('id'));
+    $editor = User::factory()->create();
+    $editor->roles()->attach($contentRole);
+    $cover = MediaAsset::query()->create([
+        'disk' => 'public',
+        'path' => 'cms/images/capa-existente.webp',
+        'original_name' => 'capa-existente.webp',
+        'mime_type' => 'image/webp',
+        'size' => 100,
+        'alt_text' => 'Descrição original',
+    ]);
+    $post = Post::query()->create([
+        'type' => PostType::Article,
+        'title' => 'Conteúdo existente',
+        'slug' => 'conteudo-existente',
+        'status' => ContentStatus::Draft,
+        'cover_media_id' => $cover->id,
+    ]);
+    $payload = [
+        'type' => 'article',
+        'title' => 'Conteúdo revisado',
+        'slug' => 'conteudo-existente',
+        'status' => 'draft',
+        'cover_alt' => 'Descrição original',
+    ];
+
+    $this->actingAs($editor)->put(route('admin.posts.update', $post), $payload)->assertRedirect();
+
+    $payload['cover_alt'] = 'Descrição alterada sem permissão';
+    $this->actingAs($editor)->put(route('admin.posts.update', $post), $payload)->assertForbidden();
+    expect($cover->fresh()->alt_text)->toBe('Descrição original');
+});
+
+it('rejects oversized image dimensions for projects and events', function (): void {
+    Storage::fake('public');
+    $publisher = $this->cmsUser('publisher');
+
+    $this->actingAs($publisher)->post(route('admin.projects.store'), [
+        'title' => 'Projeto com capa enorme',
+        'slug' => 'projeto-com-capa-enorme',
+        'status' => 'draft',
+        'sort_order' => 0,
+        'cover' => UploadedFile::fake()->image('projeto.png', 5001, 20),
+        'cover_alt' => 'Capa muito larga',
+    ])->assertSessionHasErrors('cover');
+
+    $this->actingAs($publisher)->post(route('admin.events.store'), [
+        'title' => 'Evento com capa enorme',
+        'slug' => 'evento-com-capa-enorme',
+        'status' => 'draft',
+        'location' => 'Sepetiba, Rio de Janeiro',
+        'cover' => UploadedFile::fake()->image('evento.png', 20, 5001),
+        'cover_alt' => 'Capa muito alta',
+    ])->assertSessionHasErrors('cover');
 });
 
 it('publishes scheduled content once when it becomes due', function (): void {
