@@ -158,9 +158,9 @@ export default function Home({
             <SeoHead seo={seo} />
             <AccessibilityTools />
             <header className="site-header">
-                <a
+                <Link
                     className="brand"
-                    href="#inicio"
+                    href="/"
                     aria-label="Instituto Azon Social — início"
                 >
                     <span className="brand-mark">
@@ -175,7 +175,7 @@ export default function Home({
                         <strong>Azon Social</strong>
                         <small>Instituto</small>
                     </span>
-                </a>
+                </Link>
                 <button
                     className="menu-button"
                     type="button"

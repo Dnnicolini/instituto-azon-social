@@ -15,6 +15,13 @@ test('public content, navigation and SEO are available', async ({ page }) => {
         /index, follow/,
     );
 
+    await page.goto('/#projetos');
+    await page
+        .getByRole('link', { name: 'Instituto Azon Social — início' })
+        .click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator('#inicio')).toBeInViewport();
+
     await page.getByRole('link', { name: 'Eventos' }).first().click();
     await expect(page).toHaveURL(/\/eventos$/);
     await expect(
