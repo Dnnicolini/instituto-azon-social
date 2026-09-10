@@ -5,7 +5,7 @@ Site institucional do Instituto Azon Social, migrado para a stack oficial mais r
 ## Stack
 
 - Laravel 13
-- PHP 8.3 ou superior
+- PHP 8.4.1 ou superior
 - React 19 com TypeScript
 - Inertia 3 com SSR
 - Tailwind CSS 4
