@@ -7,7 +7,7 @@ export type ContentStatus =
     | 'published'
     | 'archived';
 
-export type ContentType = 'article' | 'vlog' | 'video' | 'podcast';
+export type ContentType = 'article' | 'vlog' | 'video' | 'podcast' | 'social';
 
 export type SelectOption = {
     value: string;
@@ -56,9 +56,18 @@ export type Post = {
     body?: string | null;
     cover_url?: string | null;
     cover_alt?: string | null;
-    provider?: 'youtube' | 'vimeo' | 'spotify' | 'anchor' | 'other' | null;
+    provider?:
+        | 'youtube'
+        | 'vimeo'
+        | 'spotify'
+        | 'anchor'
+        | 'instagram'
+        | 'other'
+        | null;
     external_url?: string | null;
     duration_seconds?: number | null;
+    is_featured?: boolean;
+    sort_order?: number;
     seo_title?: string | null;
     seo_description?: string | null;
     published_at?: string | null;
@@ -195,4 +204,5 @@ export const typeLabels: Record<ContentType, string> = {
     vlog: 'Vlog',
     video: 'Vídeo',
     podcast: 'Podcast',
+    social: 'Publicação social',
 };

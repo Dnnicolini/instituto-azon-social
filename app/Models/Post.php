@@ -21,6 +21,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $provider
  * @property string|null $external_url
  * @property int|null $duration_seconds
+ * @property bool $is_featured
+ * @property int $sort_order
  * @property string|null $seo_title
  * @property string|null $seo_description
  * @property Carbon|null $published_at
@@ -30,11 +32,11 @@ class Post extends Model
 {
     use HasPublicationStatus, SoftDeletes;
 
-    protected $fillable = ['author_id', 'cover_media_id', 'type', 'title', 'slug', 'excerpt', 'body', 'provider', 'external_url', 'duration_seconds', 'status', 'published_at', 'seo_title', 'seo_description'];
+    protected $fillable = ['author_id', 'cover_media_id', 'type', 'title', 'slug', 'excerpt', 'body', 'provider', 'external_url', 'duration_seconds', 'is_featured', 'sort_order', 'status', 'published_at', 'seo_title', 'seo_description'];
 
     protected function casts(): array
     {
-        return ['type' => PostType::class, 'status' => ContentStatus::class, 'published_at' => 'datetime'];
+        return ['type' => PostType::class, 'status' => ContentStatus::class, 'published_at' => 'datetime', 'is_featured' => 'boolean', 'sort_order' => 'integer'];
     }
 
     /** @return BelongsTo<User, $this> */

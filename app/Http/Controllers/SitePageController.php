@@ -25,6 +25,7 @@ class SitePageController extends Controller
             'page' => $page ? $this->serializePage($page) : null,
             'settings' => $this->publicSettings(),
             'posts' => Post::query()->published()->with('cover')->where('type', PostType::Article)->latest('published_at')->limit(3)->get()->map(fn (Post $post): array => $this->serializePost($post)),
+            'socialPosts' => Post::query()->published()->with('cover')->where('type', PostType::Social)->orderByDesc('is_featured')->orderBy('sort_order')->orderByDesc('published_at')->limit(6)->get()->map(fn (Post $post): array => $this->serializePost($post)),
             'projects' => Project::query()->published()->with('cover')->orderBy('sort_order')->limit(8)->get()->map(fn (Project $project): array => $this->serializeProject($project)),
             'events' => Event::query()->published()->with('cover')->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->limit(3)->get()->map(fn (Event $event): array => $this->serializeEvent($event)),
             'documents' => Document::query()->published()->with('media')->latest('published_at')->limit(10)->get()->map(fn (Document $document): array => ['id' => $document->id, 'title' => $document->title, 'category' => $document->category, 'file_url' => $document->media->url, 'published_at' => $document->published_at?->toIso8601String()]),
@@ -147,7 +148,7 @@ class SitePageController extends Controller
      */
     private function seo(string $title, string $description, string $path, string $robots = 'index, follow, max-image-preview:large', array $schema = [], string $type = 'website'): array
     {
-        return ['title' => $title, 'description' => $description, 'canonical' => $this->absoluteUrl($path), 'robots' => $robots, 'image' => $this->absoluteUrl('/azon-social-logo.png'), 'imageAlt' => 'Logomarca do Instituto Azon Social', 'type' => $type, 'locale' => 'pt_BR', 'siteName' => config('site.name'), 'schema' => $schema];
+        return ['title' => $title, 'description' => $description, 'canonical' => $this->absoluteUrl($path), 'robots' => $robots, 'image' => $this->absoluteUrl('/azon-social-logo.webp'), 'imageAlt' => 'Logomarca do Instituto Azon Social', 'type' => $type, 'locale' => 'pt_BR', 'siteName' => config('site.name'), 'schema' => $schema];
     }
 
     /** @return array<string, mixed> */
@@ -155,7 +156,7 @@ class SitePageController extends Controller
     {
         $url = $this->absoluteUrl('/');
 
-        return ['@context' => 'https://schema.org', '@type' => 'NGO', '@id' => $url.'#organization', 'name' => config('site.name'), 'alternateName' => config('site.short_name'), 'url' => $url, 'logo' => $this->absoluteUrl('/azon-social-logo.png'), 'description' => config('site.description'), 'email' => config('site.email'), 'telephone' => config('site.phone'), 'address' => ['@type' => 'PostalAddress', 'addressLocality' => config('site.location.city'), 'addressRegion' => config('site.location.region'), 'addressCountry' => config('site.location.country')], 'areaServed' => ['@type' => 'Place', 'name' => 'Sepetiba, Rio de Janeiro'], 'sameAs' => array_values((array) config('site.social'))];
+        return ['@context' => 'https://schema.org', '@type' => 'NGO', '@id' => $url.'#organization', 'name' => config('site.name'), 'alternateName' => config('site.short_name'), 'url' => $url, 'logo' => $this->absoluteUrl('/azon-social-logo.webp'), 'description' => config('site.description'), 'email' => config('site.email'), 'telephone' => config('site.phone'), 'address' => ['@type' => 'PostalAddress', 'addressLocality' => config('site.location.city'), 'addressRegion' => config('site.location.region'), 'addressCountry' => config('site.location.country')], 'areaServed' => ['@type' => 'Place', 'name' => 'Sepetiba, Rio de Janeiro'], 'sameAs' => array_values((array) config('site.social'))];
     }
 
     /** @return array<string, string|null> */
@@ -167,13 +168,13 @@ class SitePageController extends Controller
     /** @return array<string, mixed> */
     private function serializePost(Post $post, bool $withBody = false): array
     {
-        return ['id' => $post->id, 'slug' => $post->slug, 'title' => $post->title, 'type' => $post->type->value, 'excerpt' => $post->excerpt, 'body' => $withBody ? $post->body : null, 'cover_url' => $post->cover?->url, 'cover_alt' => $post->cover?->alt_text, 'provider' => $post->provider, 'external_url' => $post->external_url, 'duration_seconds' => $post->duration_seconds, 'published_at' => $post->published_at?->toIso8601String(), 'author' => $post->relationLoaded('author') ? $post->author?->name : null];
+        return ['id' => $post->id, 'slug' => $post->slug, 'title' => $post->title, 'type' => $post->type->value, 'excerpt' => $post->excerpt, 'body' => $withBody ? $post->body : null, 'cover_url' => $post->cover?->url, 'cover_alt' => $post->cover?->alt_text, 'provider' => $post->provider, 'external_url' => $post->external_url, 'duration_seconds' => $post->duration_seconds, 'is_featured' => $post->is_featured, 'sort_order' => $post->sort_order, 'published_at' => $post->published_at?->toIso8601String(), 'author' => $post->relationLoaded('author') ? $post->author?->name : null];
     }
 
     /** @return array<string, mixed> */
     private function serializeProject(Project $project): array
     {
-        return ['id' => $project->id, 'name' => $project->title, 'title' => $project->title, 'slug' => $project->slug, 'summary' => $project->summary, 'body' => $project->body, 'cover_url' => $project->cover?->url];
+        return ['id' => $project->id, 'name' => $project->title, 'title' => $project->title, 'slug' => $project->slug, 'summary' => $project->summary, 'body' => $project->body, 'status' => $project->status->value, 'cover_url' => $project->cover?->url, 'cover_alt' => $project->cover?->alt_text, 'sort_order' => $project->sort_order, 'published_at' => $project->published_at?->toIso8601String(), 'updated_at' => $project->updated_at?->toIso8601String()];
     }
 
     /** @return array<string, mixed> */

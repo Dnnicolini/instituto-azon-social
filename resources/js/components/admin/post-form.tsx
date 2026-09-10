@@ -14,9 +14,18 @@ export function PostForm({ post }: { post?: Post }) {
         status: ContentStatus;
         excerpt: string;
         body: string;
-        provider: '' | 'youtube' | 'vimeo' | 'spotify' | 'anchor' | 'other';
+        provider:
+            | ''
+            | 'youtube'
+            | 'vimeo'
+            | 'spotify'
+            | 'anchor'
+            | 'instagram'
+            | 'other';
         external_url: string;
         duration_seconds: string;
+        is_featured: boolean;
+        sort_order: string;
         published_at: string;
         seo_title: string;
         seo_description: string;
@@ -29,18 +38,28 @@ export function PostForm({ post }: { post?: Post }) {
         status: post?.status ?? 'draft',
         excerpt: post?.excerpt ?? '',
         body: post?.body ?? '',
-        provider: post?.provider ?? '',
+        provider:
+            post?.provider ?? (post?.type === 'social' ? 'instagram' : ''),
         external_url: post?.external_url ?? '',
         duration_seconds: post?.duration_seconds
             ? String(post.duration_seconds)
             : '',
+        is_featured: post?.is_featured ?? false,
+        sort_order: String(post?.sort_order ?? 0),
         published_at: post?.published_at?.slice(0, 16) ?? '',
         seo_title: post?.seo_title ?? '',
         seo_description: post?.seo_description ?? '',
         cover_alt: post?.cover_alt ?? '',
         cover: null,
     });
-    const isMedia = form.data.type !== 'article';
+    const isSocial = form.data.type === 'social';
+    const isMedia = ['vlog', 'video', 'podcast'].includes(form.data.type);
+    const slugPrefix =
+        form.data.type === 'article'
+            ? '/noticias/'
+            : isSocial
+              ? 'social/'
+              : '/midia/';
     function submit(event: FormEvent) {
         event.preventDefault();
         if (post)
@@ -71,7 +90,7 @@ export function PostForm({ post }: { post?: Post }) {
                     <div className="cms-field">
                         <label htmlFor="post-slug">Endereço amigável</label>
                         <div className="cms-input-prefix">
-                            <span>/midia/</span>
+                            <span>{slugPrefix}</span>
                             <input
                                 id="post-slug"
                                 value={form.data.slug}
@@ -114,62 +133,74 @@ export function PostForm({ post }: { post?: Post }) {
                         <FieldError message={form.errors.body} />
                     </div>
                 </section>
-                {isMedia && (
+                {(isMedia || isSocial) && (
                     <section className="cms-form-section">
-                        <h2>Reprodução</h2>
+                        <h2>{isSocial ? 'Instagram' : 'Reprodução'}</h2>
                         <div className="cms-form-grid two">
                             <div className="cms-field">
                                 <label htmlFor="provider">Plataforma</label>
-                                <select
-                                    id="provider"
-                                    value={form.data.provider}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'provider',
-                                            e.target
-                                                .value as typeof form.data.provider,
-                                        )
-                                    }
-                                >
-                                    <option value="">Selecione</option>
-                                    <option value="youtube">YouTube</option>
-                                    <option value="vimeo">Vimeo</option>
-                                    <option value="spotify">Spotify</option>
-                                    <option value="anchor">
-                                        Spotify for Creators
-                                    </option>
-                                    <option value="other">
-                                        Outra plataforma
-                                    </option>
-                                </select>
+                                {isSocial ? (
+                                    <input
+                                        id="provider"
+                                        value="Instagram"
+                                        readOnly
+                                    />
+                                ) : (
+                                    <select
+                                        id="provider"
+                                        value={form.data.provider}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'provider',
+                                                e.target
+                                                    .value as typeof form.data.provider,
+                                            )
+                                        }
+                                    >
+                                        <option value="">Selecione</option>
+                                        <option value="youtube">YouTube</option>
+                                        <option value="vimeo">Vimeo</option>
+                                        <option value="spotify">Spotify</option>
+                                        <option value="anchor">
+                                            Spotify for Creators
+                                        </option>
+                                        <option value="other">
+                                            Outra plataforma
+                                        </option>
+                                    </select>
+                                )}
                                 <FieldError message={form.errors.provider} />
                             </div>
-                            <div className="cms-field">
-                                <label htmlFor="duration">
-                                    Duração em segundos
-                                </label>
-                                <input
-                                    id="duration"
-                                    inputMode="numeric"
-                                    type="number"
-                                    min="1"
-                                    placeholder="Ex.: 1440"
-                                    value={form.data.duration_seconds}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'duration_seconds',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <FieldError
-                                    message={form.errors.duration_seconds}
-                                />
-                            </div>
+                            {isMedia && (
+                                <div className="cms-field">
+                                    <label htmlFor="duration">
+                                        Duração em segundos
+                                    </label>
+                                    <input
+                                        id="duration"
+                                        inputMode="numeric"
+                                        type="number"
+                                        min="1"
+                                        placeholder="Ex.: 1440"
+                                        value={form.data.duration_seconds}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'duration_seconds',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <FieldError
+                                        message={form.errors.duration_seconds}
+                                    />
+                                </div>
+                            )}
                         </div>
                         <div className="cms-field">
                             <label htmlFor="external-url">
-                                URL do vídeo ou episódio
+                                {isSocial
+                                    ? 'Link direto da publicação'
+                                    : 'URL do vídeo ou episódio'}
                             </label>
                             <input
                                 id="external-url"
@@ -181,8 +212,9 @@ export function PostForm({ post }: { post?: Post }) {
                                 }
                             />
                             <small>
-                                Apenas endereços validados do YouTube, Vimeo ou
-                                Spotify serão incorporados.
+                                {isSocial
+                                    ? 'Use o endereço de um post ou reel público do Instagram.'
+                                    : 'Apenas endereços validados do YouTube, Vimeo ou Spotify serão incorporados.'}
                             </small>
                             <FieldError message={form.errors.external_url} />
                         </div>
@@ -233,12 +265,18 @@ export function PostForm({ post }: { post?: Post }) {
                         <select
                             id="post-type"
                             value={form.data.type}
-                            onChange={(e) =>
-                                form.setData(
-                                    'type',
-                                    e.target.value as ContentType,
-                                )
-                            }
+                            onChange={(e) => {
+                                const type = e.target.value as ContentType;
+                                form.setData('type', type);
+                                if (type === 'social') {
+                                    form.setData('provider', 'instagram');
+                                    form.setData('duration_seconds', '');
+                                } else if (form.data.type === 'social') {
+                                    form.setData('provider', '');
+                                    form.setData('is_featured', false);
+                                    form.setData('sort_order', '0');
+                                }
+                            }}
                         >
                             {Object.entries(typeLabels).map(
                                 ([value, label]) => (
@@ -293,6 +331,49 @@ export function PostForm({ post }: { post?: Post }) {
                                 }
                             />
                             <FieldError message={form.errors.published_at} />
+                        </div>
+                    )}
+                    {isSocial && (
+                        <div className="cms-social-options">
+                            <label className="cms-check-row">
+                                <input
+                                    type="checkbox"
+                                    checked={form.data.is_featured}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'is_featured',
+                                            e.target.checked,
+                                        )
+                                    }
+                                />
+                                <span>
+                                    <strong>Mostrar como destaque</strong>
+                                    <small>
+                                        Destaques aparecem antes das publicações
+                                        mais recentes.
+                                    </small>
+                                </span>
+                            </label>
+                            <div className="cms-field">
+                                <label htmlFor="social-sort-order">
+                                    Ordem entre destaques
+                                </label>
+                                <input
+                                    id="social-sort-order"
+                                    type="number"
+                                    min="0"
+                                    max="9999"
+                                    value={form.data.sort_order}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'sort_order',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <small>Use 0 para a posição mais alta.</small>
+                                <FieldError message={form.errors.sort_order} />
+                            </div>
                         </div>
                     )}
                 </section>

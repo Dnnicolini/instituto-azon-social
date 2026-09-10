@@ -1,6 +1,6 @@
 import { Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FieldError } from '@/components/admin/cms-ui';
 import { SeoHead } from '@/components/seo-head';
 import type { Event, Post, Project, SitePage, SiteSettings } from '@/types/cms';
@@ -17,21 +17,51 @@ type HomeProps = {
     page?: SitePage | null;
     settings?: Partial<SiteSettings>;
     posts?: Post[];
+    socialPosts?: Post[];
     projects?: Project[];
     events?: Event[];
     documents?: PublicDocument[];
 };
+
+const instagramProfileUrl = 'https://www.instagram.com/azon.social/';
+
+function instagramEmbedUrl(value?: string | null): string | null {
+    if (!value) return null;
+
+    try {
+        const url = new URL(value);
+        if (!['instagram.com', 'www.instagram.com'].includes(url.hostname))
+            return null;
+
+        const match = url.pathname.match(/\/(p|reel)\/([A-Za-z0-9_-]+)/);
+        return match
+            ? `https://www.instagram.com/${match[1]}/${match[2]}/embed/captioned/`
+            : null;
+    } catch {
+        return null;
+    }
+}
+
 export default function Home({
     seo,
     page,
     settings = {},
     posts = [],
+    socialPosts = [],
     projects = [],
     events = [],
     documents = [],
 }: HomeProps) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [newsFilter, setNewsFilter] = useState('Todos');
+    const [selectedProject, setSelectedProject] = useState<Project | null>(
+        null,
+    );
+    const [selectedSocialPost, setSelectedSocialPost] = useState<Post | null>(
+        null,
+    );
+    const projectDialogRef = useRef<HTMLDialogElement>(null);
+    const socialDialogRef = useRef<HTMLDialogElement>(null);
     const form = useForm({
         name: '',
         email: '',
@@ -59,6 +89,20 @@ export default function Home({
                 : posts.filter((post) => post.type === newsFilter),
         [posts, newsFilter],
     );
+    useEffect(() => {
+        const dialog = projectDialogRef.current;
+        if (!dialog) return;
+
+        if (selectedProject && !dialog.open) dialog.showModal();
+        if (!selectedProject && dialog.open) dialog.close();
+    }, [selectedProject]);
+    useEffect(() => {
+        const dialog = socialDialogRef.current;
+        if (!dialog) return;
+
+        if (selectedSocialPost && !dialog.open) dialog.showModal();
+        if (!selectedSocialPost && dialog.open) dialog.close();
+    }, [selectedSocialPost]);
     function submit(e: FormEvent) {
         e.preventDefault();
         form.post('/contato', {
@@ -78,10 +122,10 @@ export default function Home({
                     >
                         <span className="brand-mark">
                             <img
-                                src="/azon-social-logo.png"
+                                src="/azon-social-logo.webp"
                                 alt=""
-                                width="860"
-                                height="846"
+                                width="941"
+                                height="1672"
                             />
                         </span>
                         <span>
@@ -171,10 +215,10 @@ export default function Home({
                         <div className="sun" aria-hidden="true" />
                         <div className="logo-disc">
                             <img
-                                src="/azon-social-logo.png"
+                                src="/azon-social-logo.webp"
                                 alt="Logomarca do Instituto Azon Social"
-                                width="860"
-                                height="846"
+                                width="941"
+                                height="1672"
                                 fetchPriority="high"
                             />
                         </div>
@@ -258,17 +302,35 @@ export default function Home({
                                             {String(index + 1).padStart(2, '0')}
                                         </b>
                                     </div>
-                                    <div
-                                        className="project-symbol"
-                                        aria-hidden="true"
-                                    >
-                                        {project.title.charAt(0)}
-                                    </div>
+                                    {project.cover_url ? (
+                                        <div className="project-art">
+                                            <img
+                                                src={project.cover_url}
+                                                alt={project.cover_alt ?? ''}
+                                                loading="lazy"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div
+                                            className="project-symbol"
+                                            aria-hidden="true"
+                                        >
+                                            {project.title.charAt(0)}
+                                        </div>
+                                    )}
                                     <h3>{project.title}</h3>
                                     <p>{project.summary}</p>
-                                    <a href="#contato">
+                                    <button
+                                        className="project-card-action"
+                                        type="button"
+                                        onClick={() =>
+                                            setSelectedProject(project)
+                                        }
+                                        aria-haspopup="dialog"
+                                        aria-label={`Conhecer projeto ${project.title}`}
+                                    >
                                         Conhecer projeto <span>↗</span>
-                                    </a>
+                                    </button>
                                 </article>
                             ))}
                         </div>
@@ -282,6 +344,59 @@ export default function Home({
                         </div>
                     )}
                 </section>
+                <dialog
+                    className="social-dialog project-dialog"
+                    ref={projectDialogRef}
+                    aria-labelledby="project-preview-title"
+                    onClose={() => setSelectedProject(null)}
+                    onClick={(event) => {
+                        if (event.target === event.currentTarget)
+                            setSelectedProject(null);
+                    }}
+                >
+                    {selectedProject && (
+                        <div className="social-dialog-inner">
+                            <button
+                                className="social-dialog-close"
+                                type="button"
+                                aria-label="Fechar projeto"
+                                onClick={() => setSelectedProject(null)}
+                                autoFocus
+                            >
+                                ×
+                            </button>
+                            <div className="social-dialog-media project-dialog-media">
+                                {selectedProject.cover_url ? (
+                                    <img
+                                        src={selectedProject.cover_url}
+                                        alt={selectedProject.cover_alt ?? ''}
+                                    />
+                                ) : (
+                                    <div
+                                        className="project-dialog-letter"
+                                        aria-hidden="true"
+                                    >
+                                        {selectedProject.title.charAt(0)}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="social-dialog-copy project-dialog-copy">
+                                <p className="eyebrow">Projeto Azon</p>
+                                <h2 id="project-preview-title">
+                                    {selectedProject.title}
+                                </h2>
+                                <p>{selectedProject.body}</p>
+                                <a
+                                    className="button button-gold"
+                                    href="#contato"
+                                    onClick={() => setSelectedProject(null)}
+                                >
+                                    Quero saber mais
+                                </a>
+                            </div>
+                        </div>
+                    )}
+                </dialog>
                 <section className="news section" id="noticias">
                     <div className="section-heading compact">
                         <div>
@@ -382,6 +497,96 @@ export default function Home({
                         </div>
                     )}
                 </section>
+                <section className="social-section section" id="redes-sociais">
+                    <div className="social-heading">
+                        <div>
+                            <p className="eyebrow">Redes sociais</p>
+                            <h2>Acompanhe nossas redes sociais</h2>
+                        </div>
+                        <div className="social-heading-copy">
+                            <p>
+                                Bastidores, encontros e ações do Instituto Azon
+                                Social.
+                            </p>
+                            <a
+                                className="text-link"
+                                href={instagramProfileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                @azon.social — ver perfil ↗
+                            </a>
+                        </div>
+                    </div>
+                    {socialPosts.length ? (
+                        <div className="social-grid">
+                            {socialPosts.map((post, index) => (
+                                <article className="social-card" key={post.id}>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setSelectedSocialPost(post)
+                                        }
+                                        aria-haspopup="dialog"
+                                        aria-label={`Abrir prévia: ${post.title}`}
+                                    >
+                                        <span className="social-card-media">
+                                            {post.cover_url ? (
+                                                <img
+                                                    src={post.cover_url}
+                                                    alt={post.cover_alt ?? ''}
+                                                    loading="lazy"
+                                                />
+                                            ) : (
+                                                <span
+                                                    className={`social-card-placeholder tone-${index % 4}`}
+                                                    aria-hidden="true"
+                                                >
+                                                    <img
+                                                        src="/azon-social-logo.webp"
+                                                        alt=""
+                                                        width="941"
+                                                        height="1672"
+                                                        loading="lazy"
+                                                    />
+                                                </span>
+                                            )}
+                                            {post.is_featured && (
+                                                <span className="social-featured">
+                                                    Destaque
+                                                </span>
+                                            )}
+                                        </span>
+                                        <span className="social-card-copy">
+                                            <small>
+                                                {post.published_at
+                                                    ? new Date(
+                                                          post.published_at,
+                                                      ).toLocaleDateString(
+                                                          'pt-BR',
+                                                      )
+                                                    : 'Publicação'}
+                                            </small>
+                                            <strong>{post.title}</strong>
+                                            <span>{post.excerpt}</span>
+                                            <b>
+                                                Ver prévia <i>↗</i>
+                                            </b>
+                                        </span>
+                                    </button>
+                                </article>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="public-empty">
+                            <h3>Novas publicações em preparação</h3>
+                            <p>
+                                Os registros publicados pela equipe aparecerão
+                                aqui.
+                            </p>
+                        </div>
+                    )}
+                </section>
                 <section className="agenda section" id="agenda">
                     <div>
                         <p className="eyebrow">Eventos e inscrições</p>
@@ -407,6 +612,85 @@ export default function Home({
                         </Link>
                     </div>
                 </section>
+                <dialog
+                    className="social-dialog"
+                    ref={socialDialogRef}
+                    aria-labelledby="social-preview-title"
+                    onClose={() => setSelectedSocialPost(null)}
+                    onClick={(event) => {
+                        if (event.target === event.currentTarget)
+                            setSelectedSocialPost(null);
+                    }}
+                >
+                    {selectedSocialPost && (
+                        <div className="social-dialog-inner">
+                            <button
+                                className="social-dialog-close"
+                                type="button"
+                                aria-label="Fechar prévia"
+                                onClick={() => setSelectedSocialPost(null)}
+                                autoFocus
+                            >
+                                ×
+                            </button>
+                            <div className="social-dialog-media">
+                                {instagramEmbedUrl(
+                                    selectedSocialPost.external_url,
+                                ) ? (
+                                    <iframe
+                                        src={
+                                            instagramEmbedUrl(
+                                                selectedSocialPost.external_url,
+                                            ) ?? undefined
+                                        }
+                                        title={`Publicação no Instagram: ${selectedSocialPost.title}`}
+                                        loading="lazy"
+                                        allow="encrypted-media; picture-in-picture"
+                                        referrerPolicy="strict-origin-when-cross-origin"
+                                    />
+                                ) : selectedSocialPost.cover_url ? (
+                                    <img
+                                        src={selectedSocialPost.cover_url}
+                                        alt={selectedSocialPost.cover_alt ?? ''}
+                                    />
+                                ) : (
+                                    <div className="social-dialog-placeholder">
+                                        <img
+                                            src="/azon-social-logo.webp"
+                                            alt=""
+                                            width="941"
+                                            height="1672"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="social-dialog-copy">
+                                <p className="eyebrow">@azon.social</p>
+                                <small>
+                                    {selectedSocialPost.published_at
+                                        ? new Date(
+                                              selectedSocialPost.published_at,
+                                          ).toLocaleDateString('pt-BR')
+                                        : 'Publicação do Instituto'}
+                                </small>
+                                <h2 id="social-preview-title">
+                                    {selectedSocialPost.title}
+                                </h2>
+                                <p>{selectedSocialPost.excerpt}</p>
+                                {selectedSocialPost.external_url && (
+                                    <a
+                                        className="button button-gold"
+                                        href={selectedSocialPost.external_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        Ver no Instagram ↗
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </dialog>
                 <section className="history" id="historia">
                     <div className="history-mark" aria-hidden="true">
                         A
@@ -638,10 +922,10 @@ export default function Home({
                     <div className="footer-brand">
                         <span className="brand-mark">
                             <img
-                                src="/azon-social-logo.png"
+                                src="/azon-social-logo.webp"
                                 alt=""
-                                width="860"
-                                height="846"
+                                width="941"
+                                height="1672"
                                 loading="lazy"
                             />
                         </span>

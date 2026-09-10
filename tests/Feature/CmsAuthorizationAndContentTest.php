@@ -177,6 +177,48 @@ it('requires a coherent platform and secure URL for media', function (): void {
     ])->assertSessionHasErrors('external_url');
 });
 
+it('validates and stores curated Instagram publications', function (): void {
+    $publisher = $this->cmsUser('publisher');
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'social',
+        'title' => 'Destaque do território',
+        'slug' => 'destaque-do-territorio',
+        'status' => 'published',
+        'published_at' => now()->subMinute()->toDateTimeString(),
+        'provider' => 'instagram',
+        'external_url' => 'https://www.instagram.com/p/SafePost123/',
+        'is_featured' => true,
+        'sort_order' => 5,
+    ])->assertRedirect();
+
+    $this->assertDatabaseHas('posts', [
+        'slug' => 'destaque-do-territorio',
+        'type' => 'social',
+        'provider' => 'instagram',
+        'is_featured' => true,
+        'sort_order' => 5,
+    ]);
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'social',
+        'title' => 'Link inseguro',
+        'slug' => 'link-inseguro',
+        'status' => 'draft',
+        'provider' => 'instagram',
+        'external_url' => 'https://instagram.com.example.org/p/Fake123/',
+    ])->assertSessionHasErrors('external_url');
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'social',
+        'title' => 'Perfil sem publicação',
+        'slug' => 'perfil-sem-publicacao',
+        'status' => 'draft',
+        'provider' => 'instagram',
+        'external_url' => 'https://www.instagram.com/azon.social/',
+    ])->assertSessionHasErrors('external_url');
+});
+
 it('requires media permission before storing an upload', function (): void {
     Storage::fake('public');
     $this->seed(AuthorizationSeeder::class);

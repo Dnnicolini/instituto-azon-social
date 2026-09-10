@@ -41,15 +41,63 @@ it('keeps draft and future media out of sitemap and RSS', function (): void {
     $this->get(route('sitemap'))->assertOk()->assertSee('/midia/publicado', false)->assertDontSee('/midia/futuro', false)->assertDontSee('/admin', false);
 });
 
+it('shows published social highlights before the latest posts', function (): void {
+    Post::query()->create([
+        'type' => PostType::Social,
+        'title' => 'Publicação recente',
+        'slug' => 'publicacao-recente',
+        'status' => ContentStatus::Published,
+        'published_at' => now()->subMinute(),
+        'provider' => 'instagram',
+        'external_url' => 'https://www.instagram.com/p/Recent123/',
+    ]);
+    Post::query()->create([
+        'type' => PostType::Social,
+        'title' => 'Publicação fixada',
+        'slug' => 'publicacao-fixada',
+        'status' => ContentStatus::Published,
+        'published_at' => now()->subMonth(),
+        'provider' => 'instagram',
+        'external_url' => 'https://www.instagram.com/p/Featured123/',
+        'is_featured' => true,
+        'sort_order' => 10,
+    ]);
+    Post::query()->create([
+        'type' => PostType::Social,
+        'title' => 'Publicação futura',
+        'slug' => 'publicacao-futura',
+        'status' => ContentStatus::Published,
+        'published_at' => now()->addDay(),
+        'provider' => 'instagram',
+        'external_url' => 'https://www.instagram.com/p/Future123/',
+    ]);
+
+    $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page): Assert => $page
+        ->has('socialPosts', 2)
+        ->where('socialPosts.0.slug', 'publicacao-fixada')
+        ->where('socialPosts.0.is_featured', true)
+        ->where('socialPosts.1.slug', 'publicacao-recente'));
+});
+
 it('seeds current content and editable structured home sections idempotently', function (): void {
     $this->seed(ContentSeeder::class);
     $this->seed(ContentSeeder::class);
 
-    $this->assertDatabaseCount('projects', 4);
+    $this->assertDatabaseCount('projects', 6);
     $this->assertDatabaseCount('events', 3);
     $this->assertDatabaseCount('pages', 1);
     $this->assertDatabaseHas('events', ['slug' => 'selecao-lewa-ori', 'starts_at' => null, 'date_label' => 'Inscrições abertas']);
 
+    $this->assertDatabaseHas('projects', [
+        'slug' => 'ayi-gbe',
+        'title' => 'AYI GBÈ',
+        'status' => ContentStatus::Published->value,
+    ]);
+    $this->assertDatabaseHas('projects', ['slug' => 'hunto', 'title' => 'Huntó']);
+
     $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page): Assert => $page
-        ->has('page.sections', 5)->has('settings')->has('posts', 3)->has('projects', 4)->has('events', 3));
+        ->has('page.sections', 5)->has('settings')->has('posts', 3)->has('socialPosts', 6)->has('projects', 6)->has('events', 3)
+        ->where('projects.5.slug', 'ayi-gbe')
+        ->where('projects.5.cover_url', '/projeto-ayi-gbe.webp')
+        ->where('projects.5.cover_alt', 'AYI GBÈ — Saúde preventiva e cuidado com o corpo'));
 });

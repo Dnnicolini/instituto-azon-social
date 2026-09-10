@@ -19,7 +19,7 @@ class PostController extends AdminController
 
         $filters = [
             'search' => mb_substr(trim((string) $request->query('search', '')), 0, 100),
-            'type' => in_array($request->query('type'), ['article', 'vlog', 'video', 'podcast', 'media'], true) ? $request->query('type') : null,
+            'type' => in_array($request->query('type'), ['article', 'vlog', 'video', 'podcast', 'social', 'media'], true) ? $request->query('type') : null,
             'status' => in_array($request->query('status'), ['draft', 'review', 'scheduled', 'published', 'archived'], true) ? $request->query('status') : null,
         ];
         $query = Post::query()->with(['author:id,name', 'cover:id,disk,path,alt_text'])->latest('updated_at');
@@ -106,6 +106,7 @@ class PostController extends AdminController
             'status' => $post->status->value, 'excerpt' => $post->excerpt, 'body' => $post->body,
             'cover_url' => $post->cover?->url, 'cover_alt' => $post->cover?->alt_text, 'provider' => $post->provider, 'external_url' => $post->external_url,
             'duration_seconds' => $post->duration_seconds, 'published_at' => $post->published_at?->toIso8601String(),
+            'is_featured' => $post->is_featured, 'sort_order' => $post->sort_order,
             'scheduled_at' => $post->status->value === 'scheduled' ? $post->published_at?->toIso8601String() : null,
             'seo_title' => $post->seo_title, 'seo_description' => $post->seo_description,
             'author' => $post->relationLoaded('author') ? $post->author?->name : null, 'updated_at' => $post->updated_at?->toIso8601String(),

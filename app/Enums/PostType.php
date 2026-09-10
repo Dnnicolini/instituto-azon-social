@@ -8,4 +8,5 @@ enum PostType: string
     case Vlog = 'vlog';
     case Video = 'video';
     case Podcast = 'podcast';
+    case Social = 'social';
 }

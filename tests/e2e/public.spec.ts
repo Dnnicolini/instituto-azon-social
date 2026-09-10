@@ -64,6 +64,60 @@ test('contact form validates and persists a message', async ({ page }) => {
     ).toBeVisible();
 });
 
+test('social publications open an accessible preview and link to Instagram', async ({
+    page,
+}) => {
+    await page.goto('/#redes-sociais');
+
+    await expect(
+        page.getByRole('heading', { name: 'Acompanhe nossas redes sociais' }),
+    ).toBeVisible();
+    await page
+        .getByRole('button', { name: /Abrir prévia: Projeto Lewa Orí/i })
+        .click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('iframe')).toHaveAttribute(
+        'src',
+        /instagram\.com\/p\/DZuiy3vRHXZ\/embed\/captioned/,
+    );
+    await expect(
+        dialog.getByRole('link', { name: 'Ver no Instagram ↗' }),
+    ).toHaveAttribute('target', '_blank');
+
+    await dialog.getByRole('button', { name: 'Fechar prévia' }).click();
+    await expect(dialog).not.toBeVisible();
+});
+
+test('AYI GBE and Hunto projects expose their new artwork and details', async ({
+    page,
+}) => {
+    await page.goto('/#projetos');
+
+    await expect(page.getByRole('heading', { name: 'AYI GBÈ' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Huntó' })).toBeVisible();
+    await expect(
+        page.getByRole('img', {
+            name: 'AYI GBÈ — Saúde preventiva e cuidado com o corpo',
+        }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('img', { name: 'Huntó — Mestres dos Saberes' }),
+    ).toBeVisible();
+
+    await page
+        .getByRole('button', { name: 'Conhecer projeto AYI GBÈ' })
+        .click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(
+        dialog.getByText('Saúde que começa no cuidado com a vida'),
+    ).toBeVisible();
+    await dialog.getByRole('button', { name: 'Fechar projeto' }).click();
+    await expect(dialog).not.toBeVisible();
+});
+
 test('admin is private and authentication is not indexable', async ({
     page,
 }) => {

@@ -33,7 +33,7 @@ export default function PostsIndex({
             <AdminLayout title="Conteúdos">
                 <PageHeading
                     title="Conteúdos"
-                    description="Artigos, vlogs, vídeos e podcasts em um único fluxo editorial."
+                    description="Artigos, vlogs, vídeos, podcasts e publicações sociais em um único fluxo editorial."
                 >
                     <Can permission="content.create">
                         <Link

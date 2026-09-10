@@ -22,6 +22,12 @@ const navigation = [
         permission: 'content.view',
     },
     {
+        label: 'Redes sociais',
+        href: '/admin/posts?type=social',
+        icon: '⌁',
+        permission: 'content.view',
+    },
+    {
         label: 'Projetos',
         href: '/admin/projetos',
         icon: '◆',
@@ -81,6 +87,10 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
     } = usePage<AdminSharedProps>().props;
     const currentPath =
         typeof window === 'undefined' ? '/admin' : window.location.pathname;
+    const currentType =
+        typeof window === 'undefined'
+            ? null
+            : new URLSearchParams(window.location.search).get('type');
 
     function logout() {
         router.post('/admin/logout');
@@ -103,10 +113,10 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                 <Link className="admin-sidebar-brand" href="/" prefetch>
                     <span className="brand-mark">
                         <img
-                            src="/azon-social-logo.png"
+                            src="/azon-social-logo.webp"
                             alt=""
-                            width="860"
-                            height="846"
+                            width="941"
+                            height="1672"
                         />
                     </span>
                     <span>
@@ -125,12 +135,16 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                                     auth.user.roles.includes('administrator')),
                         )
                         .map((item) => {
+                            const [itemPath, itemQuery] = item.href.split('?');
+                            const itemType = itemQuery
+                                ? new URLSearchParams(itemQuery).get('type')
+                                : null;
                             const active =
                                 item.href === '/admin'
                                     ? currentPath === '/admin'
-                                    : currentPath.startsWith(
-                                          item.href.split('?')[0],
-                                      );
+                                    : currentPath.startsWith(itemPath) &&
+                                      (itemPath !== '/admin/posts' ||
+                                          itemType === currentType);
                             return (
                                 <Link
                                     key={item.href}

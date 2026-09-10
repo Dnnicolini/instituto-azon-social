@@ -8,10 +8,10 @@ export function PublicHeader() {
             <Link className="brand" href="/">
                 <span className="brand-mark">
                     <img
-                        src="/azon-social-logo.png"
+                        src="/azon-social-logo.webp"
                         alt=""
-                        width="860"
-                        height="846"
+                        width="941"
+                        height="1672"
                     />
                 </span>
                 <span>
@@ -63,10 +63,10 @@ export function PublicFooter({ children }: { children?: ReactNode }) {
             <div className="footer-brand">
                 <span className="brand-mark">
                     <img
-                        src="/azon-social-logo.png"
+                        src="/azon-social-logo.webp"
                         alt=""
-                        width="860"
-                        height="846"
+                        width="941"
+                        height="1672"
                         loading="lazy"
                     />
                 </span>

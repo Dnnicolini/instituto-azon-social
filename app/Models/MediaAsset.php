@@ -20,6 +20,10 @@ class MediaAsset extends Model
 
     public function getUrlAttribute(): string
     {
+        if ($this->disk === 'site') {
+            return '/'.ltrim($this->path, '/');
+        }
+
         return Storage::disk($this->disk)->url($this->path);
     }
 }
