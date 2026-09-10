@@ -91,7 +91,7 @@ if [[ ! -e "$APP_DIR/.env" ]]; then
     ln -s "$ENV_FILE" "$APP_DIR/.env"
 fi
 
-chown -R ubuntu:www-data "$APP_DIR"
+chown -R ubuntu:www-data "$APP_DIR/"
 find "$APP_DIR" -type d -exec chmod 0750 {} +
 find "$APP_DIR" -type f -exec chmod 0640 {} +
 chmod 0750 "$APP_DIR/artisan"
