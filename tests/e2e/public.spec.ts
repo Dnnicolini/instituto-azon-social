@@ -66,7 +66,7 @@ test('institutional pillars and founder presentation are visible', async ({
     await page.goto('/eventos');
     await expect(
         page.getByRole('img', { name: 'Logomarca do Instituto Azon Social' }),
-    ).toHaveAttribute('src', '/azon-social-logo.webp');
+    ).toHaveAttribute('src', '/azon-social-logo-v2.webp');
     await expect(page.locator('#transparencia')).toHaveCount(0);
     await expect(page.locator('.participate-featured img')).toHaveCount(0);
 });

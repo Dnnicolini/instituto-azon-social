@@ -8,7 +8,7 @@ export function PublicHeader() {
             <Link className="brand" href="/">
                 <span className="brand-mark">
                     <img
-                        src="/azon-social-logo.webp"
+                        src="/azon-social-logo-v2.webp"
                         alt=""
                         width="721"
                         height="721"
@@ -74,7 +74,7 @@ export function PublicFooter({ children }: { children?: ReactNode }) {
             <div className="footer-brand">
                 <span className="brand-mark">
                     <img
-                        src="/azon-social-logo.webp"
+                        src="/azon-social-logo-v2.webp"
                         alt=""
                         width="721"
                         height="721"

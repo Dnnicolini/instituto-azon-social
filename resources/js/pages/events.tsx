@@ -197,7 +197,7 @@ export default function EventsPage({
                 <section className="events-team">
                     <div className="events-team-image events-team-logo">
                         <img
-                            src="/azon-social-logo.webp"
+                            src="/azon-social-logo-v2.webp"
                             alt="Logomarca do Instituto Azon Social"
                             width="721"
                             height="721"

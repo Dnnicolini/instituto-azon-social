@@ -62,7 +62,7 @@ class HandleInertiaRequests extends Middleware
                     'description' => 'Área restrita de gestão de conteúdo.',
                     'canonical' => $request->url(),
                     'robots' => 'noindex, nofollow',
-                    'image' => url('/azon-social-share.png'),
+                    'image' => url('/azon-social-share-v2.png'),
                     'imageAlt' => 'Logomarca do Instituto Azon Social',
                     'imageWidth' => 1200,
                     'imageHeight' => 630,

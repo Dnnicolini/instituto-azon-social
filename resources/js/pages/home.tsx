@@ -165,7 +165,7 @@ export default function Home({
                 >
                     <span className="brand-mark">
                         <img
-                            src="/azon-social-logo.webp"
+                            src="/azon-social-logo-v2.webp"
                             alt=""
                             width="721"
                             height="721"
@@ -262,7 +262,7 @@ export default function Home({
                         <div className="sun" aria-hidden="true" />
                         <div className="logo-disc">
                             <img
-                                src="/azon-social-logo.webp"
+                                src="/azon-social-logo-v2.webp"
                                 alt="Logomarca do Instituto Azon Social"
                                 width="721"
                                 height="721"
@@ -615,7 +615,7 @@ export default function Home({
                                                     aria-hidden="true"
                                                 >
                                                     <img
-                                                        src="/azon-social-logo.webp"
+                                                        src="/azon-social-logo-v2.webp"
                                                         alt=""
                                                         width="721"
                                                         height="721"
@@ -728,7 +728,7 @@ export default function Home({
                                 ) : (
                                     <div className="social-dialog-placeholder">
                                         <img
-                                            src="/azon-social-logo.webp"
+                                            src="/azon-social-logo-v2.webp"
                                             alt=""
                                             width="721"
                                             height="721"
@@ -1068,7 +1068,7 @@ export default function Home({
                 <div className="footer-brand">
                     <span className="brand-mark">
                         <img
-                            src="/azon-social-logo.webp"
+                            src="/azon-social-logo-v2.webp"
                             alt=""
                             width="721"
                             height="721"

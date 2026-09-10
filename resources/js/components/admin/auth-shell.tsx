@@ -18,7 +18,7 @@ export function AuthShell({
                     <Link className="brand admin-brand" href="/">
                         <span className="brand-mark">
                             <img
-                                src="/azon-social-logo.webp"
+                                src="/azon-social-logo-v2.webp"
                                 alt=""
                                 width="721"
                                 height="721"

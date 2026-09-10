@@ -113,7 +113,7 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                 <Link className="admin-sidebar-brand" href="/" prefetch>
                     <span className="brand-mark">
                         <img
-                            src="/azon-social-logo.webp"
+                            src="/azon-social-logo-v2.webp"
                             alt=""
                             width="721"
                             height="721"
