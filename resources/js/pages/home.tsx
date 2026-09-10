@@ -269,7 +269,6 @@ export default function Home({
                                 fetchPriority="high"
                             />
                         </div>
-                        <p className="hero-note">Sepetiba • Rio de Janeiro</p>
                     </div>
                 </section>
                 <section className="intro section" id="instituto">
