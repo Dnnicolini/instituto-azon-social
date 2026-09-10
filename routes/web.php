@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ContactMessageController as AdminContactMessageCo
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\EventController;
+use App\Http\Controllers\Admin\InstagramIntegrationController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\ProjectController;
@@ -58,6 +59,10 @@ Route::prefix('admin')->middleware('noindex')->group(function (): void {
         Route::resource('paginas', PageController::class)->except('show')->parameters(['paginas' => 'page'])->names('pages');
         Route::get('/configuracoes', [SettingsController::class, 'edit'])->name('settings.edit');
         Route::put('/configuracoes', [SettingsController::class, 'update'])->name('settings.update');
+        Route::get('/integracoes/instagram/conectar', [InstagramIntegrationController::class, 'connect'])->name('instagram.connect');
+        Route::get('/integracoes/instagram/retorno', [InstagramIntegrationController::class, 'callback'])->name('instagram.callback');
+        Route::post('/integracoes/instagram/sincronizar', [InstagramIntegrationController::class, 'sync'])->middleware('throttle:3,1')->name('instagram.sync');
+        Route::delete('/integracoes/instagram', [InstagramIntegrationController::class, 'disconnect'])->name('instagram.disconnect');
         Route::resource('mensagens', AdminContactMessageController::class)->only(['index', 'update', 'destroy'])->parameters(['mensagens' => 'message'])->names('messages');
         Route::resource('usuarios', UserController::class)->only(['index', 'store', 'update', 'destroy'])->parameters(['usuarios' => 'user'])->names('users');
         Route::resource('grupos', RoleController::class)->only(['index', 'store', 'update', 'destroy'])->parameters(['grupos' => 'role'])->names('roles');

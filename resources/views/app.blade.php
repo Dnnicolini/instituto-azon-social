@@ -37,5 +37,8 @@
     </head>
     <body>
         <x-inertia::app />
+        @unless (str_starts_with($page['component'], 'admin/') || str_starts_with($page['component'], 'auth/'))
+            <script defer src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+        @endunless
     </body>
 </html>

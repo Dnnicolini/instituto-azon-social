@@ -94,10 +94,28 @@ it('seeds current content and editable structured home sections idempotently', f
         'status' => ContentStatus::Published->value,
     ]);
     $this->assertDatabaseHas('projects', ['slug' => 'hunto', 'title' => 'Huntó']);
+    $this->assertDatabaseHas('site_settings', [
+        'key' => 'founder_name',
+        'value' => 'Doté Rodrigo D’ Avimaje',
+    ]);
 
     $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page): Assert => $page
         ->has('page.sections', 5)->has('settings')->has('posts', 3)->has('socialPosts', 6)->has('projects', 6)->has('events', 3)
+        ->where('settings.founder_name', 'Doté Rodrigo D’ Avimaje')
+        ->where('socialPosts.0.cover_url', '/social/instagram-lewa-ori.webp')
+        ->where('socialPosts.0.body', fn (string $caption): bool => str_contains($caption, 'Contando com a colaboração voluntária'))
         ->where('projects.5.slug', 'ayi-gbe')
         ->where('projects.5.cover_url', '/projeto-ayi-gbe.webp')
         ->where('projects.5.cover_alt', 'AYI GBÈ — Saúde preventiva e cuidado com o corpo'));
+});
+
+it('loads the official accessibility widget only on public pages', function (): void {
+    $this->seed(ContentSeeder::class);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('https://vlibras.gov.br/app/vlibras-plugin.js', false);
+    $this->get(route('admin.login'))
+        ->assertOk()
+        ->assertDontSee('vlibras-plugin.js', false);
 });

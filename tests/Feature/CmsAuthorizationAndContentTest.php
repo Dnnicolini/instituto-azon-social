@@ -54,6 +54,23 @@ it('keeps the contact CRM exclusive to administrators', function (): void {
     $this->actingAs($administrator)->get(route('admin.messages.index'))->assertOk();
 });
 
+it('keeps Instagram account connection exclusive to administrators', function (): void {
+    config([
+        'services.instagram.client_id' => 'instagram-app-id',
+        'services.instagram.client_secret' => 'instagram-app-secret',
+    ]);
+    $publisher = $this->cmsUser('publisher');
+    $administrator = $this->cmsUser('administrator');
+
+    $this->actingAs($publisher)
+        ->get(route('admin.instagram.connect'))
+        ->assertForbidden();
+    $this->actingAs($administrator)
+        ->get(route('admin.instagram.connect'))
+        ->assertRedirectContains('https://www.instagram.com/oauth/authorize?')
+        ->assertSessionHas('instagram_oauth_state');
+});
+
 it('does not allow CRM permissions in delegated groups', function (): void {
     $administrator = $this->cmsUser('administrator');
     $crmPermission = Permission::query()->where('slug', 'messages.view')->firstOrFail();

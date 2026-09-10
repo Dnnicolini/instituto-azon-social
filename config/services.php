@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    'instagram' => [
+        'enabled' => env('INSTAGRAM_SYNC_ENABLED', false),
+        'client_id' => env('INSTAGRAM_CLIENT_ID'),
+        'client_secret' => env('INSTAGRAM_CLIENT_SECRET'),
+        'redirect_uri' => env('INSTAGRAM_REDIRECT_URI'),
+        'username' => env('INSTAGRAM_USERNAME', 'azon.social'),
+        'account_id' => env('INSTAGRAM_ACCOUNT_ID'),
+        'access_token' => env('INSTAGRAM_ACCESS_TOKEN'),
+        'token_expires_at' => env('INSTAGRAM_TOKEN_EXPIRES_AT'),
+        'graph_url' => env('INSTAGRAM_GRAPH_URL', 'https://graph.instagram.com'),
+        'max_posts' => (int) env('INSTAGRAM_SYNC_MAX_POSTS', 25),
+    ],
+
 ];

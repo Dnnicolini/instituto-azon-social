@@ -9,3 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('cms:publish-scheduled')->everyMinute()->withoutOverlapping();
+Schedule::command('instagram:sync')->everyTenMinutes()->withoutOverlapping(9);
+Schedule::command('instagram:refresh-token')->weeklyOn(1, '03:30')->withoutOverlapping(30);

@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { AccessibilityTools } from '@/components/accessibility-tools';
 import { MediaPlayer } from '@/components/media-player';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
@@ -18,8 +19,13 @@ export default function MediaShow({
     return (
         <>
             <SeoHead seo={seo} />
+            <AccessibilityTools />
             <PublicHeader />
-            <main className="media-detail">
+            <main
+                className="media-detail"
+                id="conteudo-principal"
+                tabIndex={-1}
+            >
                 <header>
                     <Link href="/midia">← Voltar à biblioteca</Link>
                     <p>

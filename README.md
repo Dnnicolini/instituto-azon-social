@@ -53,7 +53,22 @@ Grupos personalizados podem ser criados pelo administrador. O backend aplica tod
 - `/pagina/{slug}`: páginas adicionais publicadas;
 - `/robots.txt` e `/sitemap.xml`: descoberta para buscadores.
 
-`/admin` e todas as rotas abaixo dele exigem autenticação, verificação de e-mail e permissão. Elas enviam `noindex, nofollow` e `X-Robots-Tag`; o público só consegue enviar o formulário de contato. O Instagram oficial é [@azon.social](https://www.instagram.com/azon.social/) e permanece apenas como link institucional, sem sincronização de posts, destaques ou API.
+`/admin` e todas as rotas abaixo dele exigem autenticação, verificação de e-mail e permissão. Elas enviam `noindex, nofollow` e `X-Robots-Tag`; o público só consegue enviar o formulário de contato. Em produção, `admin.azonsocial.org.br` abre o CRM e o domínio público encaminha qualquer tentativa de acesso ao painel para esse subdomínio.
+
+## Sincronização do Instagram
+
+O feed oficial [@azon.social](https://www.instagram.com/azon.social/) pode ser conectado por um administrador em **Configurações → Instagram**. A integração usa a API oficial da Meta, salva o token criptografado, copia as imagens para o armazenamento local e preserva o conteúdo anterior se a API estiver indisponível. O scheduler verifica novas publicações a cada dez minutos e renova semanalmente o token de longa duração.
+
+Configuração inicial na Meta:
+
+1. transforme `@azon.social` em conta profissional, se ainda for pessoal;
+2. crie um aplicativo do tipo Business no [Meta for Developers](https://developers.facebook.com/apps/);
+3. adicione o caso de uso da Instagram API com Instagram Login;
+4. informe `https://admin.azonsocial.org.br/admin/integracoes/instagram/retorno` como URI OAuth válida;
+5. coloque o Instagram App ID e o App Secret somente no arquivo protegido `/etc/azon/production.env`, como `INSTAGRAM_CLIENT_ID` e `INSTAGRAM_CLIENT_SECRET`;
+6. habilite `INSTAGRAM_SYNC_ENABLED=true`, limpe/recrie o cache de configuração e use o botão **Conectar @azon.social** no CRM uma vez.
+
+O aplicativo solicita apenas `instagram_business_basic`, suficiente para ler a mídia da própria conta. O App Secret e os tokens nunca devem ser enviados ao navegador, copiados para o Git ou incluídos em logs.
 
 ## Publicação agendada
 

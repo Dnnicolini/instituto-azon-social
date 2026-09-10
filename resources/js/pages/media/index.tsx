@@ -1,5 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import { EmptyState, Pagination } from '@/components/admin/cms-ui';
+import { AccessibilityTools } from '@/components/accessibility-tools';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
 import type { Paginated, Post } from '@/types/cms';
@@ -37,8 +38,9 @@ export default function MediaIndex({
     return (
         <>
             <SeoHead seo={seo} />
+            <AccessibilityTools />
             <PublicHeader />
-            <main className="media-page">
+            <main className="media-page" id="conteudo-principal" tabIndex={-1}>
                 <section className="media-hero">
                     <div>
                         <p className="eyebrow light">Vozes do território</p>

@@ -79,7 +79,6 @@ export function PublicFooter({ children }: { children?: ReactNode }) {
                 <strong>Explore</strong>
                 <Link href="/midia">Mídia</Link>
                 <Link href="/eventos">Eventos</Link>
-                <Link href="/#transparencia">Transparência</Link>
             </div>
             <div>
                 <strong>Contato</strong>

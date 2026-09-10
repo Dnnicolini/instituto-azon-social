@@ -25,7 +25,7 @@ class SitePageController extends Controller
             'page' => $page ? $this->serializePage($page) : null,
             'settings' => $this->publicSettings(),
             'posts' => Post::query()->published()->with('cover')->where('type', PostType::Article)->latest('published_at')->limit(3)->get()->map(fn (Post $post): array => $this->serializePost($post)),
-            'socialPosts' => Post::query()->published()->with('cover')->where('type', PostType::Social)->orderByDesc('is_featured')->orderBy('sort_order')->orderByDesc('published_at')->limit(6)->get()->map(fn (Post $post): array => $this->serializePost($post)),
+            'socialPosts' => Post::query()->published()->with('cover')->where('type', PostType::Social)->orderByDesc('is_featured')->orderBy('sort_order')->orderByDesc('published_at')->limit(6)->get()->map(fn (Post $post): array => $this->serializePost($post, withBody: true)),
             'projects' => Project::query()->published()->with('cover')->orderBy('sort_order')->limit(8)->get()->map(fn (Project $project): array => $this->serializeProject($project)),
             'events' => Event::query()->published()->with('cover')->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->limit(3)->get()->map(fn (Event $event): array => $this->serializeEvent($event)),
             'documents' => Document::query()->published()->with('media')->latest('published_at')->limit(10)->get()->map(fn (Document $document): array => ['id' => $document->id, 'title' => $document->title, 'category' => $document->category, 'file_url' => $document->media->url, 'published_at' => $document->published_at?->toIso8601String()]),
@@ -156,7 +156,7 @@ class SitePageController extends Controller
     {
         $url = $this->absoluteUrl('/');
 
-        return ['@context' => 'https://schema.org', '@type' => 'NGO', '@id' => $url.'#organization', 'name' => config('site.name'), 'alternateName' => config('site.short_name'), 'url' => $url, 'logo' => $this->absoluteUrl('/azon-social-logo.webp'), 'description' => config('site.description'), 'email' => config('site.email'), 'telephone' => config('site.phone'), 'address' => ['@type' => 'PostalAddress', 'addressLocality' => config('site.location.city'), 'addressRegion' => config('site.location.region'), 'addressCountry' => config('site.location.country')], 'areaServed' => ['@type' => 'Place', 'name' => 'Sepetiba, Rio de Janeiro'], 'sameAs' => array_values((array) config('site.social'))];
+        return ['@context' => 'https://schema.org', '@type' => 'NGO', '@id' => $url.'#organization', 'name' => config('site.name'), 'alternateName' => config('site.short_name'), 'url' => $url, 'logo' => $this->absoluteUrl('/azon-social-logo.webp'), 'description' => config('site.description'), 'email' => config('site.email'), 'telephone' => config('site.phone'), 'address' => ['@type' => 'PostalAddress', 'streetAddress' => config('site.location.street'), 'addressLocality' => config('site.location.city'), 'addressRegion' => config('site.location.region'), 'postalCode' => config('site.location.postal_code'), 'addressCountry' => config('site.location.country')], 'areaServed' => ['@type' => 'Place', 'name' => 'Sepetiba, Rio de Janeiro'], 'sameAs' => array_values((array) config('site.social'))];
     }
 
     /** @return array<string, string|null> */

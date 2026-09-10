@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { AdminLayout } from '@/components/admin/admin-layout';
 import { FieldError, PageHeading } from '@/components/admin/cms-ui';
@@ -17,11 +17,33 @@ const labels: Record<
     hero_title: { label: 'Título da abertura', group: 'Página inicial' },
     hero_emphasis: { label: 'Destaque da abertura', group: 'Página inicial' },
     hero_text: { label: 'Texto da abertura', group: 'Página inicial', rows: 4 },
+    founder_name: { label: 'Nome do idealizador', group: 'Idealizador' },
+    founder_text: {
+        label: 'Apresentação do idealizador',
+        group: 'Idealizador',
+        rows: 5,
+    },
 };
+
+type InstagramIntegration = {
+    connected: boolean;
+    can_connect: boolean;
+    username?: string | null;
+    last_synced_at?: string | null;
+    token_expires_at?: string | null;
+    last_error?: string | null;
+};
+
 export default function Settings({
     seo,
     settings,
-}: AdminSharedProps & { settings: SiteSettings }) {
+    instagramIntegration,
+    errors,
+}: AdminSharedProps & {
+    settings: SiteSettings;
+    instagramIntegration: InstagramIntegration;
+    errors?: Record<string, string>;
+}) {
     const form = useForm<{ settings: SiteSettings }>({ settings });
     function submit(e: FormEvent) {
         e.preventDefault();
@@ -38,6 +60,94 @@ export default function Settings({
                     title="Configurações do site"
                     description="Atualize identidade, contato e mensagens centrais do Instituto."
                 />
+                <section className="cms-form-section instagram-integration">
+                    <div>
+                        <p className="cms-kicker">Integração automática</p>
+                        <h2>Instagram</h2>
+                        <p>
+                            {instagramIntegration.connected
+                                ? `@${instagramIntegration.username ?? 'azon.social'} está conectado. Novas publicações são verificadas automaticamente em intervalos de até dez minutos.`
+                                : 'Conecte a conta profissional @azon.social uma única vez. Depois disso, fotos, legendas, datas e links serão sincronizados sem cadastro manual.'}
+                        </p>
+                    </div>
+                    <dl className="instagram-integration-status">
+                        <div>
+                            <dt>Status</dt>
+                            <dd>
+                                {instagramIntegration.connected
+                                    ? 'Conectado'
+                                    : 'Desconectado'}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Última sincronização</dt>
+                            <dd>
+                                {instagramIntegration.last_synced_at
+                                    ? new Date(
+                                          instagramIntegration.last_synced_at,
+                                      ).toLocaleString('pt-BR')
+                                    : 'Ainda não realizada'}
+                            </dd>
+                        </div>
+                    </dl>
+                    {instagramIntegration.last_error && (
+                        <p className="cms-alert error" role="alert">
+                            A última tentativa falhou. O site preservou as
+                            publicações anteriores.
+                        </p>
+                    )}
+                    {errors?.instagram && (
+                        <p className="cms-alert error" role="alert">
+                            {errors.instagram}
+                        </p>
+                    )}
+                    <div className="instagram-integration-actions">
+                        {instagramIntegration.connected ? (
+                            <>
+                                <button
+                                    className="cms-button primary"
+                                    type="button"
+                                    onClick={() =>
+                                        router.post(
+                                            '/admin/integracoes/instagram/sincronizar',
+                                        )
+                                    }
+                                >
+                                    Sincronizar agora
+                                </button>
+                                <button
+                                    className="cms-button danger"
+                                    type="button"
+                                    onClick={() => {
+                                        if (
+                                            confirm(
+                                                'Desconectar o Instagram? As publicações já salvas serão mantidas.',
+                                            )
+                                        ) {
+                                            router.delete(
+                                                '/admin/integracoes/instagram',
+                                            );
+                                        }
+                                    }}
+                                >
+                                    Desconectar
+                                </button>
+                            </>
+                        ) : instagramIntegration.can_connect ? (
+                            <a
+                                className="cms-button primary"
+                                href="/admin/integracoes/instagram/conectar"
+                            >
+                                Conectar @azon.social
+                            </a>
+                        ) : (
+                            <p className="cms-help">
+                                Falta cadastrar o aplicativo da Meta no
+                                servidor. Consulte as instruções de implantação.
+                            </p>
+                        )}
+                    </div>
+                </section>
                 <form
                     className="cms-form-single settings-form"
                     onSubmit={submit}

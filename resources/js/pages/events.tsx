@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import { Pagination } from '@/components/admin/cms-ui';
+import { AccessibilityTools } from '@/components/accessibility-tools';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
 import type { Event, Paginated } from '@/types/cms';
@@ -32,8 +33,9 @@ export default function EventsPage({
     return (
         <>
             <SeoHead seo={seo} />
-            <main className="events-page">
-                <PublicHeader />
+            <AccessibilityTools />
+            <PublicHeader />
+            <main className="events-page" id="conteudo-principal" tabIndex={-1}>
                 <section className="events-hero">
                     <div>
                         <p className="eyebrow light">Agenda Azon Social</p>
@@ -214,8 +216,8 @@ export default function EventsPage({
                         </Link>
                     </div>
                 </section>
-                <PublicFooter />
             </main>
+            <PublicFooter />
         </>
     );
 }

@@ -8,9 +8,11 @@ return [
     'phone' => '+5521951015058',
     'phone_display' => '(21) 95101-5058',
     'location' => [
+        'street' => 'Rua Shalon, 46',
         'district' => 'Sepetiba',
         'city' => 'Rio de Janeiro',
         'region' => 'RJ',
+        'postal_code' => '23540-140',
         'country' => 'BR',
     ],
     'social' => [

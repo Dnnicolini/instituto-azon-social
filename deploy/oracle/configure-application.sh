@@ -4,6 +4,7 @@ set -Eeuo pipefail
 APP_DIR=/var/www/apps/azon/current
 SHARED_DIR=/var/www/apps/azon/shared
 ENV_DIR=/etc/azon
+ENV_FILE=$ENV_DIR/production.env
 
 if [[ ! -f "$APP_DIR/artisan" ]]; then
     echo "Application files are missing from $APP_DIR." >&2
@@ -16,13 +17,19 @@ touch "$SHARED_DIR/database/database.sqlite"
 chown www-data:www-data "$SHARED_DIR/database/database.sqlite"
 chmod 0660 "$SHARED_DIR/database/database.sqlite"
 
-if [[ -f "$ENV_DIR/production.env" ]]; then
-    APP_KEY_VALUE="$(sed -n 's/^APP_KEY=//p' "$ENV_DIR/production.env" | head -n 1)"
+if [[ -f "$ENV_FILE" ]]; then
+    APP_KEY_VALUE="$(sed -n 's/^APP_KEY=//p' "$ENV_FILE" | head -n 1)"
+    INSTAGRAM_SYNC_ENABLED_VALUE="$(sed -n 's/^INSTAGRAM_SYNC_ENABLED=//p' "$ENV_FILE" | head -n 1)"
+    INSTAGRAM_CLIENT_ID_VALUE="$(sed -n 's/^INSTAGRAM_CLIENT_ID=//p' "$ENV_FILE" | head -n 1)"
+    INSTAGRAM_CLIENT_SECRET_VALUE="$(sed -n 's/^INSTAGRAM_CLIENT_SECRET=//p' "$ENV_FILE" | head -n 1)"
+    INSTAGRAM_ACCOUNT_ID_VALUE="$(sed -n 's/^INSTAGRAM_ACCOUNT_ID=//p' "$ENV_FILE" | head -n 1)"
+    INSTAGRAM_ACCESS_TOKEN_VALUE="$(sed -n 's/^INSTAGRAM_ACCESS_TOKEN=//p' "$ENV_FILE" | head -n 1)"
+    INSTAGRAM_TOKEN_EXPIRES_AT_VALUE="$(sed -n 's/^INSTAGRAM_TOKEN_EXPIRES_AT=//p' "$ENV_FILE" | head -n 1)"
 fi
 if [[ -z "${APP_KEY_VALUE:-}" ]]; then
     APP_KEY_VALUE="base64:$(openssl rand -base64 32 | tr -d '\n')"
 fi
-install -m 0640 -o root -g www-data /dev/null "$ENV_DIR/production.env"
+install -m 0640 -o root -g www-data /dev/null "$ENV_FILE"
 printf '%s\n' \
     'APP_NAME="Instituto Azon Social"' \
     'APP_ENV=production' \
@@ -53,11 +60,20 @@ printf '%s\n' \
     'MAIL_MAILER=log' \
     'MAIL_FROM_ADDRESS="instituto.azonsocial@gmail.com"' \
     'MAIL_FROM_NAME="${APP_NAME}"' \
+    "INSTAGRAM_SYNC_ENABLED=${INSTAGRAM_SYNC_ENABLED_VALUE:-false}" \
+    "INSTAGRAM_CLIENT_ID=${INSTAGRAM_CLIENT_ID_VALUE:-}" \
+    "INSTAGRAM_CLIENT_SECRET=${INSTAGRAM_CLIENT_SECRET_VALUE:-}" \
+    'INSTAGRAM_REDIRECT_URI=https://admin.azonsocial.org.br/admin/integracoes/instagram/retorno' \
+    'INSTAGRAM_USERNAME=azon.social' \
+    "INSTAGRAM_ACCOUNT_ID=${INSTAGRAM_ACCOUNT_ID_VALUE:-}" \
+    "INSTAGRAM_ACCESS_TOKEN=${INSTAGRAM_ACCESS_TOKEN_VALUE:-}" \
+    "INSTAGRAM_TOKEN_EXPIRES_AT=${INSTAGRAM_TOKEN_EXPIRES_AT_VALUE:-}" \
+    'INSTAGRAM_SYNC_MAX_POSTS=25' \
     'VITE_APP_NAME="${APP_NAME}"' \
-    > "$ENV_DIR/production.env"
+    > "$ENV_FILE"
 
 if [[ ! -e "$APP_DIR/.env" ]]; then
-    ln -s "$ENV_DIR/production.env" "$APP_DIR/.env"
+    ln -s "$ENV_FILE" "$APP_DIR/.env"
 fi
 
 chown -R ubuntu:www-data "$APP_DIR"

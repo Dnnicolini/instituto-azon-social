@@ -189,6 +189,8 @@ export type SiteSettings = {
     hero_title: string;
     hero_emphasis: string;
     hero_text: string;
+    founder_name: string;
+    founder_text: string;
 };
 
 export const statusLabels: Record<ContentStatus, string> = {

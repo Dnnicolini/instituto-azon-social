@@ -2,6 +2,7 @@ import { Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FieldError } from '@/components/admin/cms-ui';
+import { AccessibilityTools } from '@/components/accessibility-tools';
 import { SeoHead } from '@/components/seo-head';
 import type { Event, Post, Project, SitePage, SiteSettings } from '@/types/cms';
 import type { SeoData } from '@/types/seo';
@@ -24,6 +25,48 @@ type HomeProps = {
 };
 
 const instagramProfileUrl = 'https://www.instagram.com/azon.social/';
+
+const projectBadges: Record<string, string> = {
+    'lewa-ori': 'Saúde mental',
+    ayidonun: 'Soberania alimentar',
+    aman: 'Agroecologia & saberes',
+    'emi-syo': 'Juventude & direitos',
+    hunto: 'Mestres dos saberes',
+    'ayi-gbe': 'Corpo & saúde integral',
+};
+
+type ValueIconName = 'ancestry' | 'care' | 'transformation';
+
+function ValueIcon({ name }: { name: ValueIconName }) {
+    if (name === 'ancestry') {
+        return (
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+                <path d="M24 41V24" />
+                <path d="M24 27c-7 0-12-5-12-12 7 0 12 5 12 12Z" />
+                <path d="M24 21c0-7 5-12 12-12 0 7-5 12-12 12Z" />
+                <path d="M16 41h16" />
+            </svg>
+        );
+    }
+
+    if (name === 'care') {
+        return (
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+                <path d="M24 34 12.8 23.4a7 7 0 0 1 9.9-9.9L24 15l1.3-1.5a7 7 0 1 1 9.9 9.9L24 34Z" />
+                <path d="M8 35c4.5 0 6.5 4 10 4h12c3.8 0 7-2.2 10-5" />
+            </svg>
+        );
+    }
+
+    return (
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M8 36h32" />
+            <path d="M13 31a12 12 0 0 1 22 0" />
+            <path d="M24 8v6M11 14l4 4M37 14l-4 4" />
+            <path d="m18 36 6-8 6 8" />
+        </svg>
+    );
+}
 
 function instagramEmbedUrl(value?: string | null): string | null {
     if (!value) return null;
@@ -113,69 +156,72 @@ export default function Home({
     return (
         <>
             <SeoHead seo={seo} />
-            <main>
-                <header className="site-header">
-                    <a
-                        className="brand"
-                        href="#inicio"
-                        aria-label="Instituto Azon Social — início"
-                    >
-                        <span className="brand-mark">
-                            <img
-                                src="/azon-social-logo.webp"
-                                alt=""
-                                width="941"
-                                height="1672"
-                            />
-                        </span>
-                        <span>
-                            <strong>Azon Social</strong>
-                            <small>Instituto</small>
-                        </span>
+            <AccessibilityTools />
+            <header className="site-header">
+                <a
+                    className="brand"
+                    href="#inicio"
+                    aria-label="Instituto Azon Social — início"
+                >
+                    <span className="brand-mark">
+                        <img
+                            src="/azon-social-logo.webp"
+                            alt=""
+                            width="941"
+                            height="1672"
+                        />
+                    </span>
+                    <span>
+                        <strong>Azon Social</strong>
+                        <small>Instituto</small>
+                    </span>
+                </a>
+                <button
+                    className="menu-button"
+                    type="button"
+                    onClick={() => setMenuOpen((open) => !open)}
+                    aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
+                    aria-expanded={menuOpen}
+                    aria-controls="main-navigation"
+                >
+                    <span />
+                    <span />
+                    <span />
+                </button>
+                <nav
+                    id="main-navigation"
+                    className={menuOpen ? 'nav open' : 'nav'}
+                    aria-label="Navegação principal"
+                >
+                    <a href="#instituto" onClick={() => setMenuOpen(false)}>
+                        O Instituto
                     </a>
-                    <button
-                        className="menu-button"
-                        type="button"
-                        onClick={() => setMenuOpen((open) => !open)}
-                        aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
-                        aria-expanded={menuOpen}
-                        aria-controls="main-navigation"
-                    >
-                        <span />
-                        <span />
-                        <span />
-                    </button>
-                    <nav
-                        id="main-navigation"
-                        className={menuOpen ? 'nav open' : 'nav'}
-                        aria-label="Navegação principal"
-                    >
-                        <a href="#instituto" onClick={() => setMenuOpen(false)}>
-                            O Instituto
-                        </a>
-                        <a href="#projetos" onClick={() => setMenuOpen(false)}>
-                            Projetos
-                        </a>
-                        <a href="#noticias" onClick={() => setMenuOpen(false)}>
-                            Notícias
-                        </a>
-                        <Link href="/eventos">Eventos</Link>
-                        <Link href="/midia">Mídia</Link>
+                    <a href="#projetos" onClick={() => setMenuOpen(false)}>
+                        Projetos
+                    </a>
+                    <a href="#noticias" onClick={() => setMenuOpen(false)}>
+                        Notícias
+                    </a>
+                    <Link href="/eventos">Eventos</Link>
+                    <Link href="/midia">Mídia</Link>
+                    {documents.length > 0 && (
                         <a
                             href="#transparencia"
                             onClick={() => setMenuOpen(false)}
                         >
                             Transparência
                         </a>
-                        <a
-                            className="button button-small"
-                            href="#participar"
-                            onClick={() => setMenuOpen(false)}
-                        >
-                            Faça parte
-                        </a>
-                    </nav>
-                </header>
+                    )}
+                    <a
+                        className="button button-small"
+                        href="#participar"
+                        onClick={() => setMenuOpen(false)}
+                    >
+                        Faça parte
+                    </a>
+                </nav>
+            </header>
+            <main id="conteudo-principal" tabIndex={-1}>
                 <section className="hero" id="inicio">
                     <div className="hero-pattern" aria-hidden="true" />
                     <div className="hero-copy">
@@ -222,13 +268,11 @@ export default function Home({
                                 fetchPriority="high"
                             />
                         </div>
-                        <p className="hero-note">
-                            {settings.address ?? 'Sepetiba • Rio de Janeiro'}
-                        </p>
+                        <p className="hero-note">Sepetiba • Rio de Janeiro</p>
                     </div>
                 </section>
                 <section className="intro section" id="instituto">
-                    <div>
+                    <div className="intro-heading">
                         <p className="eyebrow">
                             {intro?.eyebrow ?? 'Quem somos'}
                         </p>
@@ -247,33 +291,56 @@ export default function Home({
                             className="text-link"
                             href={intro?.cta_url ?? '#historia'}
                         >
-                            {intro?.cta_label ?? 'Conheça nossa história'} →
+                            {intro?.cta_label ??
+                                'Conheça nossa história completa'}{' '}
+                            →
                         </a>
                     </div>
                     <div className="values-row">
-                        <article>
-                            <b>01</b>
+                        <article className="value-card">
+                            <div className="value-card-top">
+                                <b>01</b>
+                                <span>
+                                    <ValueIcon name="ancestry" />
+                                </span>
+                            </div>
                             <h3>Ancestralidade</h3>
                             <p>
-                                Saberes que atravessam gerações e orientam nosso
-                                caminho.
+                                Saberes que atravessam gerações, mantendo viva a
+                                memória de matriz africana e orientando caminhos
+                                de dignidade para os que virão.
                             </p>
+                            <small>Herança viva</small>
                         </article>
-                        <article>
-                            <b>02</b>
-                            <h3>Cuidado coletivo</h3>
+                        <article className="value-card">
+                            <div className="value-card-top">
+                                <b>02</b>
+                                <span>
+                                    <ValueIcon name="care" />
+                                </span>
+                            </div>
+                            <h3>Cuidado Coletivo</h3>
                             <p>
                                 Acolher, escutar e construir soluções junto à
-                                comunidade.
+                                comunidade. Saúde mental periférica e apoio
+                                mútuo como pilares inegociáveis.
                             </p>
+                            <small>Escuta qualificada</small>
                         </article>
-                        <article>
-                            <b>03</b>
-                            <h3>Transformação social</h3>
+                        <article className="value-card">
+                            <div className="value-card-top">
+                                <b>03</b>
+                                <span>
+                                    <ValueIcon name="transformation" />
+                                </span>
+                            </div>
+                            <h3>Transformação Social</h3>
                             <p>
-                                Defender a vida, a dignidade e novas
-                                possibilidades no território.
+                                Defender a vida, a soberania alimentar e abrir
+                                novos horizontes formativos e culturais para
+                                jovens e famílias de Sepetiba.
                             </p>
+                            <small>Autonomia e direitos</small>
                         </article>
                     </div>
                 </section>
@@ -302,22 +369,26 @@ export default function Home({
                                             {String(index + 1).padStart(2, '0')}
                                         </b>
                                     </div>
-                                    {project.cover_url ? (
-                                        <div className="project-art">
+                                    <div className="project-art">
+                                        {project.cover_url ? (
                                             <img
                                                 src={project.cover_url}
                                                 alt={project.cover_alt ?? ''}
                                                 loading="lazy"
                                             />
-                                        </div>
-                                    ) : (
-                                        <div
-                                            className="project-symbol"
-                                            aria-hidden="true"
-                                        >
-                                            {project.title.charAt(0)}
-                                        </div>
-                                    )}
+                                        ) : (
+                                            <div
+                                                className="project-symbol"
+                                                aria-hidden="true"
+                                            >
+                                                {project.title.charAt(0)}
+                                            </div>
+                                        )}
+                                        <span className="project-badge">
+                                            {projectBadges[project.slug] ??
+                                                'Ação comunitária'}
+                                        </span>
+                                    </div>
                                     <h3>{project.title}</h3>
                                     <p>{project.summary}</p>
                                     <button
@@ -634,9 +705,14 @@ export default function Home({
                                 ×
                             </button>
                             <div className="social-dialog-media">
-                                {instagramEmbedUrl(
-                                    selectedSocialPost.external_url,
-                                ) ? (
+                                {selectedSocialPost.cover_url ? (
+                                    <img
+                                        src={selectedSocialPost.cover_url}
+                                        alt={selectedSocialPost.cover_alt ?? ''}
+                                    />
+                                ) : instagramEmbedUrl(
+                                      selectedSocialPost.external_url,
+                                  ) ? (
                                     <iframe
                                         src={
                                             instagramEmbedUrl(
@@ -647,11 +723,6 @@ export default function Home({
                                         loading="lazy"
                                         allow="encrypted-media; picture-in-picture"
                                         referrerPolicy="strict-origin-when-cross-origin"
-                                    />
-                                ) : selectedSocialPost.cover_url ? (
-                                    <img
-                                        src={selectedSocialPost.cover_url}
-                                        alt={selectedSocialPost.cover_alt ?? ''}
                                     />
                                 ) : (
                                     <div className="social-dialog-placeholder">
@@ -676,7 +747,10 @@ export default function Home({
                                 <h2 id="social-preview-title">
                                     {selectedSocialPost.title}
                                 </h2>
-                                <p>{selectedSocialPost.excerpt}</p>
+                                <p className="social-dialog-caption">
+                                    {selectedSocialPost.body ??
+                                        selectedSocialPost.excerpt}
+                                </p>
                                 {selectedSocialPost.external_url && (
                                     <a
                                         className="button button-gold"
@@ -741,70 +815,91 @@ export default function Home({
                             [
                                 '01',
                                 'Seja voluntário',
-                                'Compartilhe seu tempo e conhecimento com nossos projetos.',
+                                'Compartilhe seu tempo, escuta e conhecimento profissional com nossos projetos comunitários em Sepetiba.',
+                                null,
                             ],
                             [
                                 '02',
                                 'Seja parceiro',
-                                'Construa ações e oportunidades em parceria com o Instituto.',
+                                'Construa ações, editais, programas formativos e oportunidades estratégicas em parceria com o Instituto.',
+                                null,
                             ],
                             [
                                 '03',
                                 'Apoie nossas ações',
-                                'Contribua para a continuidade das iniciativas sociais.',
+                                'Contribua para a sustentabilidade e continuidade das iniciativas sociais e oficinas formativas.',
+                                '/social/instagram-acao-proposito.webp',
                             ],
-                        ].map(([n, t, d]) => (
-                            <a href="#contato" key={t}>
-                                <span>{n}</span>
+                        ].map(([n, t, d, image], index) => (
+                            <a
+                                className={
+                                    index === 2 ? 'participate-featured' : ''
+                                }
+                                href="#contato"
+                                key={t}
+                            >
+                                <span className="participate-number">{n}</span>
+                                {image && (
+                                    <span className="participate-media">
+                                        <img
+                                            src={image}
+                                            alt="Doações reunidas pelas ações solidárias do Instituto Azon Social"
+                                            loading="lazy"
+                                        />
+                                    </span>
+                                )}
                                 <h3>{t}</h3>
                                 <p>{d}</p>
-                                <b>Quero participar ↗</b>
+                                <b>
+                                    {index === 2
+                                        ? 'Doar agora / Apoiar →'
+                                        : 'Quero participar ↗'}
+                                </b>
                             </a>
                         ))}
                     </div>
                 </section>
-                <section className="transparency section" id="transparencia">
-                    <div>
-                        <p className="eyebrow">
-                            {transparency?.eyebrow ?? 'Compromisso público'}
-                        </p>
-                        <h2>
-                            {transparency?.title ??
-                                'Transparência fortalece confiança.'}
-                        </h2>
-                        <p>
-                            {transparency?.text ??
-                                'Este espaço reúne relatórios, políticas e prestação de contas do Instituto.'}
-                        </p>
-                    </div>
-                    {documents.length ? (
-                        <div className="document-list">
-                            {documents.map((document) => (
-                                <div key={document.id}>
-                                    <a
-                                        href={document.file_url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                    >
-                                        {document.title} ↗
-                                    </a>
-                                    <small>
-                                        {document.category ??
-                                            'Documento público'}
-                                    </small>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="public-empty">
-                            <h3>Documentos em preparação</h3>
+                {documents.length > 0 && (
+                    <section
+                        className="transparency section"
+                        id="transparencia"
+                    >
+                        <div className="transparency-copy">
+                            <p className="eyebrow">
+                                {transparency?.eyebrow ?? 'Compromisso público'}
+                            </p>
+                            <h2>
+                                {transparency?.title ??
+                                    'Transparência fortalece confiança.'}
+                            </h2>
                             <p>
-                                Relatórios e políticas publicados pela equipe
-                                aparecerão aqui.
+                                {transparency?.text ??
+                                    'Este espaço reúne relatórios, políticas e prestação de contas do Instituto.'}
                             </p>
                         </div>
-                    )}
-                </section>
+                        <div className="document-list">
+                            {documents.map((document) => (
+                                <article key={document.id}>
+                                    <span aria-hidden="true">▤</span>
+                                    <div>
+                                        <h3>{document.title}</h3>
+                                        <p>
+                                            {document.category ??
+                                                'Documento institucional para consulta pública.'}
+                                        </p>
+                                        <a
+                                            href={document.file_url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
+                                            Consultar documento ↗
+                                        </a>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    </section>
+                )}
                 <section className="contact section" id="contato">
                     <div className="contact-copy">
                         <p className="eyebrow light">Entre em contato</p>
@@ -814,27 +909,61 @@ export default function Home({
                             parcerias, voluntariado e formas de apoio.
                         </p>
                         <div className="contact-details">
+                            <div>
+                                <span aria-hidden="true">☎</span>
+                                <p>
+                                    <small>Telefone / WhatsApp</small>
+                                    <a
+                                        href={`tel:${settings.phone ?? '+5521951015058'}`}
+                                    >
+                                        {settings.phone ?? '(21) 95101-5058'}
+                                    </a>
+                                </p>
+                            </div>
+                            <div>
+                                <span aria-hidden="true">✉</span>
+                                <p>
+                                    <small>E-mail institucional</small>
+                                    <a
+                                        href={`mailto:${settings.email ?? 'instituto.azonsocial@gmail.com'}`}
+                                    >
+                                        {settings.email ??
+                                            'instituto.azonsocial@gmail.com'}
+                                    </a>
+                                </p>
+                            </div>
+                            <div>
+                                <span aria-hidden="true">⌖</span>
+                                <p>
+                                    <small>Território de atuação</small>
+                                    <strong>
+                                        {settings.address ??
+                                            'Rua Shalon, 46 — Sepetiba, Rio de Janeiro — RJ, CEP 23540-140'}
+                                    </strong>
+                                </p>
+                            </div>
+                        </div>
+                        <div className="territory-map">
+                            <iframe
+                                title="Mapa do Hunkpame Azon Legidan"
+                                src="https://www.google.com/maps?q=Rua%20Shalon%2C%2046%2C%20Sepetiba%2C%20Rio%20de%20Janeiro%20-%20RJ%2C%2023540-140&output=embed"
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                            />
                             <a
-                                href={`tel:${settings.phone ?? '+5521951015058'}`}
+                                href="https://www.google.com/maps/search/?api=1&query=Rua%20Shalon%2C%2046%2C%20Sepetiba%2C%20Rio%20de%20Janeiro%20-%20RJ%2C%2023540-140"
+                                target="_blank"
+                                rel="noreferrer"
                             >
-                                {settings.phone ?? '(21) 95101-5058'}
-                            </a>
-                            <a
-                                href={`mailto:${settings.email ?? 'instituto.azonsocial@gmail.com'}`}
-                            >
-                                {settings.email ??
-                                    'instituto.azonsocial@gmail.com'}
+                                Hunkpame Azon Legidan — abrir no mapa ↗
                             </a>
                         </div>
-                        <p className="location">
-                            {settings.address ??
-                                'Sepetiba • Rio de Janeiro — RJ'}
-                        </p>
                     </div>
-                    <form onSubmit={submit} noValidate>
+                    <form className="contact-form" onSubmit={submit} noValidate>
                         <label>
                             Nome
                             <input
+                                placeholder="Como podemos te chamar?"
                                 value={form.data.name}
                                 onChange={(e) =>
                                     form.setData('name', e.target.value)
@@ -847,6 +976,7 @@ export default function Home({
                             E-mail
                             <input
                                 type="email"
+                                placeholder="seuemail@exemplo.com"
                                 value={form.data.email}
                                 onChange={(e) =>
                                     form.setData('email', e.target.value)
@@ -858,6 +988,7 @@ export default function Home({
                         <label>
                             Telefone (opcional)
                             <input
+                                placeholder="(21) 90000-0000"
                                 value={form.data.phone}
                                 onChange={(e) =>
                                     form.setData('phone', e.target.value)
@@ -886,6 +1017,7 @@ export default function Home({
                             Mensagem
                             <textarea
                                 rows={5}
+                                placeholder="Conte um pouco sobre você, sua ideia ou como deseja apoiar..."
                                 value={form.data.message}
                                 onChange={(e) =>
                                     form.setData('message', e.target.value)
@@ -918,52 +1050,77 @@ export default function Home({
                         )}
                     </form>
                 </section>
-                <footer>
-                    <div className="footer-brand">
-                        <span className="brand-mark">
-                            <img
-                                src="/azon-social-logo.webp"
-                                alt=""
-                                width="941"
-                                height="1672"
-                                loading="lazy"
-                            />
-                        </span>
-                        <div>
-                            <strong>Azon Social</strong>
-                            <p>
-                                {settings.tagline ??
-                                    'Ancestralidade, cuidado e transformação social.'}
-                            </p>
-                        </div>
+                <section className="founder section" id="idealizador">
+                    <figure className="founder-portrait">
+                        <img
+                            src="/dote-rodrigo.webp"
+                            alt="Doté Rodrigo D’ Avimaje"
+                            width="150"
+                            height="150"
+                            loading="lazy"
+                        />
+                    </figure>
+                    <div className="founder-heading">
+                        <p className="eyebrow">Idealizador</p>
+                        <h2>
+                            {settings.founder_name ?? 'Doté Rodrigo D’ Avimaje'}
+                        </h2>
                     </div>
-                    <div>
-                        <strong>Navegue</strong>
-                        <a href="#instituto">O Instituto</a>
-                        <a href="#projetos">Projetos</a>
-                        <Link href="/midia">Mídia</Link>
-                        <Link href="/eventos">Eventos</Link>
+                    <div className="founder-copy">
+                        <p>
+                            {settings.founder_text ??
+                                'Doté Rodrigo D’ Avimaje é o idealizador do Instituto Azon Social, atual presidente do Presente de Yamanjá de Sepetiba e sacerdote Jeje Mahi. Sua visão une ancestralidade, cuidado comunitário e transformação social.'}
+                        </p>
+                        <span>Sacerdote Jeje Mahi • Liderança comunitária</span>
                     </div>
-                    <div>
-                        <strong>Contato</strong>
-                        <a
-                            href={`mailto:${settings.email ?? 'instituto.azonsocial@gmail.com'}`}
-                        >
-                            {settings.email ?? 'instituto.azonsocial@gmail.com'}
-                        </a>
-                        <a
-                            href="https://www.instagram.com/azon.social/"
-                            target="_blank"
-                            rel="noreferrer"
-                        >
-                            @azon.social ↗
-                        </a>
-                    </div>
-                    <p className="copyright">
-                        © {new Date().getFullYear()} Instituto Azon Social
-                    </p>
-                </footer>
+                </section>
             </main>
+            <footer>
+                <div className="footer-brand">
+                    <span className="brand-mark">
+                        <img
+                            src="/azon-social-logo.webp"
+                            alt=""
+                            width="941"
+                            height="1672"
+                            loading="lazy"
+                        />
+                    </span>
+                    <div>
+                        <strong>Azon Social</strong>
+                        <p>
+                            {settings.tagline ??
+                                'Ancestralidade, cuidado e transformação social.'}
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <strong>Navegue</strong>
+                    <a href="#instituto">O Instituto</a>
+                    <a href="#projetos">Projetos</a>
+                    <a href="#idealizador">Idealizador</a>
+                    <Link href="/midia">Mídia</Link>
+                    <Link href="/eventos">Eventos</Link>
+                </div>
+                <div>
+                    <strong>Contato</strong>
+                    <a
+                        href={`mailto:${settings.email ?? 'instituto.azonsocial@gmail.com'}`}
+                    >
+                        {settings.email ?? 'instituto.azonsocial@gmail.com'}
+                    </a>
+                    <a
+                        href="https://www.instagram.com/azon.social/"
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        @azon.social ↗
+                    </a>
+                </div>
+                <p className="copyright">
+                    © {new Date().getFullYear()} Instituto Azon Social
+                </p>
+            </footer>
         </>
     );
 }

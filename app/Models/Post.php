@@ -32,7 +32,7 @@ class Post extends Model
 {
     use HasPublicationStatus, SoftDeletes;
 
-    protected $fillable = ['author_id', 'cover_media_id', 'type', 'title', 'slug', 'excerpt', 'body', 'provider', 'external_url', 'duration_seconds', 'is_featured', 'sort_order', 'status', 'published_at', 'seo_title', 'seo_description'];
+    protected $fillable = ['author_id', 'cover_media_id', 'type', 'title', 'slug', 'excerpt', 'body', 'provider', 'provider_media_id', 'provider_media_type', 'external_url', 'duration_seconds', 'is_featured', 'sort_order', 'status', 'published_at', 'seo_title', 'seo_description'];
 
     protected function casts(): array
     {

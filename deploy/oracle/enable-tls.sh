@@ -23,6 +23,6 @@ install -m 0644 /tmp/azon.nginx.tls.conf /etc/nginx/sites-available/azon
 
 nginx -t
 systemctl reload nginx
-certbot renew --dry-run
+certbot renew --dry-run --no-random-sleep-on-renew
 
 echo 'TLS enabled and renewal verified.'

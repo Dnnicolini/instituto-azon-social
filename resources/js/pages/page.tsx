@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { AccessibilityTools } from '@/components/accessibility-tools';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
 import type { SitePage } from '@/types/cms';
@@ -15,8 +16,9 @@ export default function PublicPage({
     return (
         <>
             <SeoHead seo={seo} />
+            <AccessibilityTools />
             <PublicHeader />
-            <main className="public-page">
+            <main className="public-page" id="conteudo-principal" tabIndex={-1}>
                 <header>
                     <p className="eyebrow">Instituto Azon Social</p>
                     <h1>{page.title}</h1>

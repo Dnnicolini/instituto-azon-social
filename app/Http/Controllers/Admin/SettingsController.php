@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Requests\Admin\SettingsRequest;
 use App\Models\AuditLog;
 use App\Models\SiteSetting;
+use App\Models\SocialIntegration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -18,6 +19,7 @@ class SettingsController extends AdminController
 
         return Inertia::render('admin/settings', [
             'settings' => SiteSetting::query()->orderBy('group')->orderBy('key')->get()->mapWithKeys(fn (SiteSetting $setting): array => [$setting->key => $setting->value]),
+            'instagramIntegration' => $this->instagramStatus(),
         ]);
     }
 
@@ -33,5 +35,20 @@ class SettingsController extends AdminController
         });
 
         return back()->with('success', 'Configurações atualizadas.');
+    }
+
+    /** @return array<string, mixed> */
+    private function instagramStatus(): array
+    {
+        $integration = SocialIntegration::query()->where('provider', 'instagram')->first();
+
+        return [
+            'connected' => $integration?->enabled === true && filled($integration->access_token),
+            'can_connect' => filled(config('services.instagram.client_id')) && filled(config('services.instagram.client_secret')),
+            'username' => $integration?->username ?: config('services.instagram.username'),
+            'last_synced_at' => $integration?->last_synced_at?->toIso8601String(),
+            'token_expires_at' => $integration?->token_expires_at?->toIso8601String(),
+            'last_error' => $integration?->last_error,
+        ];
     }
 }
