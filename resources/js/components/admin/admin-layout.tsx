@@ -50,6 +50,7 @@ const navigation = [
         href: '/admin/mensagens',
         icon: '✉',
         permission: 'messages.view',
+        administratorOnly: true,
     },
     {
         label: 'Usuários e grupos',
@@ -115,8 +116,13 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                 </Link>
                 <nav aria-label="Administração do site">
                     {navigation
-                        .filter((item) =>
-                            auth.user.permissions.includes(item.permission),
+                        .filter(
+                            (item) =>
+                                auth.user.permissions.includes(
+                                    item.permission,
+                                ) &&
+                                (!('administratorOnly' in item) ||
+                                    auth.user.roles.includes('administrator')),
                         )
                         .map((item) => {
                             const active =

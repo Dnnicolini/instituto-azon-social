@@ -17,7 +17,10 @@ class RoleController extends AdminController
     {
         $this->authorize('viewAny', Role::class);
         $roles = Role::query()->with('permissions:id,name,slug,group')->withCount('users')->orderBy('name')->get()->map(fn (Role $role): array => $this->serialize($role));
-        $permissions = Permission::query()->orderBy('group')->orderBy('name');
+        $permissions = Permission::query()
+            ->whereNotIn('slug', ['messages.view', 'messages.manage'])
+            ->orderBy('group')
+            ->orderBy('name');
         if (! request()->user()?->hasRole('administrator')) {
             $permissionSlugs = request()->user()?->loadMissing('roles.permissions')->roles
                 ->flatMap->permissions
@@ -76,6 +79,16 @@ class RoleController extends AdminController
     private function authorizePermissionAssignment(RoleRequest $request): void
     {
         $actor = $request->user();
+        $requestedPermissions = Permission::query()
+            ->whereKey($request->validated('permissions'))
+            ->pluck('slug');
+
+        abort_if(
+            $requestedPermissions->intersect(['messages.view', 'messages.manage'])->isNotEmpty(),
+            403,
+            'O CRM é exclusivo do grupo administrador.',
+        );
+
         if ($actor?->hasRole('administrator')) {
             return;
         }
@@ -84,9 +97,6 @@ class RoleController extends AdminController
             ->flatMap->permissions
             ->pluck('slug')
             ->unique() ?? collect();
-        $requestedPermissions = Permission::query()
-            ->whereKey($request->validated('permissions'))
-            ->pluck('slug');
 
         abort_if(
             $requestedPermissions->diff($actorPermissions)->isNotEmpty(),

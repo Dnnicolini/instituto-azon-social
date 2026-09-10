@@ -13,7 +13,7 @@ class ContactMessageController extends AdminController
 {
     public function index(): Response
     {
-        abort_unless(request()->user()?->hasPermission('messages.view'), 403);
+        $this->authorizeAdministrator();
         $messages = ContactMessage::query()->latest()->paginate(20)->withQueryString()->through(fn (ContactMessage $message): array => $this->serialize($message));
 
         return Inertia::render('admin/messages', ['messages' => $messages]);
@@ -21,7 +21,7 @@ class ContactMessageController extends AdminController
 
     public function update(Request $request, ContactMessage $message): RedirectResponse
     {
-        abort_unless($request->user()?->hasPermission('messages.manage'), 403);
+        $this->authorizeAdministrator();
         $data = $request->validate(['status' => ['required', Rule::in(['new', 'read', 'responded', 'archived'])]]);
         $message->update([
             'status' => $data['status'],
@@ -35,7 +35,7 @@ class ContactMessageController extends AdminController
 
     public function destroy(Request $request, ContactMessage $message): RedirectResponse
     {
-        abort_unless($request->user()?->hasPermission('messages.manage'), 403);
+        $this->authorizeAdministrator();
         $this->recordChange('message.deleted', $message);
         $message->delete();
 
@@ -46,5 +46,10 @@ class ContactMessageController extends AdminController
     private function serialize(ContactMessage $message): array
     {
         return ['id' => $message->id, 'name' => $message->name, 'email' => $message->email, 'phone' => $message->phone, 'subject' => $message->subject, 'message' => $message->message, 'body' => $message->message, 'status' => $message->status, 'created_at' => $message->created_at?->toIso8601String()];
+    }
+
+    private function authorizeAdministrator(): void
+    {
+        abort_unless(request()->user()?->hasRole('administrator'), 403);
     }
 }

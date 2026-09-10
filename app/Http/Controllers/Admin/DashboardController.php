@@ -16,7 +16,7 @@ class DashboardController extends AdminController
     {
         $user = request()->user();
         $canViewContent = $user?->hasPermission('content.view') === true;
-        $canViewMessages = $user?->hasPermission('messages.view') === true;
+        $canViewMessages = $user?->hasRole('administrator') === true;
 
         return Inertia::render('admin/dashboard', [
             'stats' => [

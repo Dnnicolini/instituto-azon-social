@@ -27,6 +27,16 @@ it('blocks guests and users without permission from admin content', function ():
 it('keeps the contact CRM exclusive to administrators', function (): void {
     $publisher = $this->cmsUser('publisher');
     $administrator = $this->cmsUser('administrator');
+    $delegatedRole = Role::query()->create([
+        'name' => 'Acesso delegado indevido',
+        'slug' => 'delegated-crm',
+        'is_system' => false,
+    ]);
+    $delegatedRole->permissions()->sync(Permission::query()
+        ->whereIn('slug', ['access-admin', 'messages.view', 'messages.manage'])
+        ->pluck('id'));
+    $delegatedUser = User::factory()->create();
+    $delegatedUser->roles()->attach($delegatedRole);
     ContactMessage::query()->create([
         'name' => 'Contato privado',
         'email' => 'contato@example.org',
@@ -37,7 +47,24 @@ it('keeps the contact CRM exclusive to administrators', function (): void {
     $this->actingAs($publisher)->get(route('admin.dashboard'))->assertInertia(
         fn (Assert $page): Assert => $page->where('stats.unreadMessages', 0),
     );
+    $this->actingAs($delegatedUser)->get(route('admin.messages.index'))->assertForbidden();
+    $this->actingAs($delegatedUser)->get(route('admin.dashboard'))->assertInertia(
+        fn (Assert $page): Assert => $page->where('stats.unreadMessages', 0),
+    );
     $this->actingAs($administrator)->get(route('admin.messages.index'))->assertOk();
+});
+
+it('does not allow CRM permissions in delegated groups', function (): void {
+    $administrator = $this->cmsUser('administrator');
+    $crmPermission = Permission::query()->where('slug', 'messages.view')->firstOrFail();
+
+    $this->actingAs($administrator)->post(route('admin.roles.store'), [
+        'name' => 'Atendimento delegado',
+        'slug' => 'delegated-support',
+        'permissions' => [$crmPermission->id],
+    ])->assertForbidden();
+
+    $this->assertDatabaseMissing('roles', ['slug' => 'delegated-support']);
 });
 
 it('prevents delegated user managers from granting administrator access', function (): void {
