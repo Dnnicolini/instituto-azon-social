@@ -73,7 +73,7 @@ O aplicativo solicita apenas `instagram_business_basic`, suficiente para ler a m
 
 ## Armazenamento de mídias no Cloudflare R2
 
-O bucket privado `azon-social-media` foi criado na conta Cloudflare do Instituto. Imagens, documentos e mídias enviados pelo CMS ou sincronizados do Instagram usam o disco definido por `MEDIA_DISK`. O padrão continua sendo `public`, portanto o desenvolvimento local e uma produção ainda sem credenciais R2 não deixam de funcionar.
+O bucket `azon-social-media` foi criado na conta Cloudflare do Instituto com leitura pública pela URL `r2.dev`. Imagens, documentos e mídias enviados pelo CMS ou sincronizados do Instagram usam o disco definido por `MEDIA_DISK`. O padrão continua sendo `public`, portanto o desenvolvimento local e uma produção ainda sem credenciais R2 não deixam de funcionar.
 
 Para ativar o R2, crie no painel Cloudflare um token de API R2 limitado ao bucket `azon-social-media`, com leitura e gravação de objetos. Guarde a Access Key ID e a Secret Access Key somente no cofre/arquivo de ambiente protegido do servidor; nunca no Git. A configuração esperada é:
 
@@ -85,10 +85,10 @@ R2_SECRET_ACCESS_KEY=preencher-no-servidor
 R2_REGION=auto
 R2_BUCKET=azon-social-media
 R2_ENDPOINT=https://SEU_ACCOUNT_ID.r2.cloudflarestorage.com
-R2_URL=
+R2_URL=https://SEU_SUBDOMINIO_PUBLICO.r2.dev
 ```
 
-O bucket permanece privado e o site gera links temporários para os arquivos. Depois de inserir as credenciais no servidor, valide a conexão e migre as mídias existentes sem apagar a cópia local:
+O bucket permite leitura pública, mas a gravação continua protegida pelas credenciais S3. O site gera links públicos para os arquivos. Depois de inserir as credenciais no servidor, valide a conexão e migre as mídias existentes sem apagar a cópia local:
 
 ```bash
 php artisan config:clear

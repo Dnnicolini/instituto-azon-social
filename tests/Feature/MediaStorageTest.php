@@ -23,6 +23,27 @@ it('stores new CMS uploads on the configured media disk', function (): void {
     Storage::disk('r2')->assertExists($asset->path);
 });
 
+it('serves R2 media through the configured public URL', function (): void {
+    config(['filesystems.disks.r2' => [
+        'driver' => 'local',
+        'root' => storage_path('framework/testing/disks/r2-public-url'),
+        'url' => 'https://media.example.test',
+        'visibility' => 'public',
+    ]]);
+    Storage::forgetDisk('r2');
+
+    $asset = new MediaAsset([
+        'disk' => 'r2',
+        'path' => 'posts/public-image.webp',
+        'original_name' => 'public-image.webp',
+        'mime_type' => 'image/webp',
+        'size' => 123,
+        'alt_text' => 'Imagem pública',
+    ]);
+
+    expect($asset->url)->toBe('https://media.example.test/posts/public-image.webp');
+});
+
 it('migrates local media to R2 idempotently while preserving the source copy', function (): void {
     Storage::fake('public');
     Storage::fake('r2');

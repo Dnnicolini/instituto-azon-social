@@ -69,7 +69,7 @@ printf '%s\n' \
     'R2_REGION=auto' \
     "R2_BUCKET=${R2_BUCKET_VALUE:-azon-social-media}" \
     "R2_ENDPOINT=${R2_ENDPOINT_VALUE:-https://SEU_ACCOUNT_ID.r2.cloudflarestorage.com}" \
-    "R2_URL=${R2_URL_VALUE:-}" \
+    "R2_URL=${R2_URL_VALUE:-https://SEU_SUBDOMINIO_PUBLICO.r2.dev}" \
     'QUEUE_CONNECTION=database' \
     'CACHE_STORE=database' \
     'MAIL_MAILER=log' \
