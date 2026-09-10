@@ -92,11 +92,12 @@ O bucket permite leitura pública, mas a gravação continua protegida pelas cre
 
 ```bash
 php artisan config:clear
+php artisan media:migrate-storage --from=site --to=r2
 php artisan media:migrate-storage --from=public --to=r2
 php artisan config:cache
 ```
 
-O comando é idempotente: arquivos já enviados não são duplicados e o banco só passa a apontar para o R2 após o destino confirmar o objeto. Depois de conferir o site e possuir backup válido, uma segunda execução remove as antigas cópias públicas:
+O primeiro comando leva ao R2 as imagens institucionais que acompanham a aplicação; o segundo leva os uploads feitos pelo CMS. Ambos são idempotentes: arquivos já enviados não são duplicados e o banco só passa a apontar para o R2 após o destino confirmar o objeto. Depois de conferir o site e possuir backup válido, uma segunda execução remove as antigas cópias públicas:
 
 ```bash
 php artisan media:migrate-storage --from=public --to=r2 --delete-source

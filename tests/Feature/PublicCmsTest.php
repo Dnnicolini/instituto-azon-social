@@ -3,6 +3,7 @@
 use App\Enums\ContentStatus;
 use App\Enums\PostType;
 use App\Models\ContactMessage;
+use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\Project;
 use App\Models\SiteSetting;
@@ -116,6 +117,21 @@ it('seeds current content and editable structured home sections idempotently', f
         ->where('projects.5.slug', 'ayi-gbe')
         ->where('projects.5.cover_url', '/projeto-ayi-gbe.webp')
         ->where('projects.5.cover_alt', 'AYI GBÈ — Saúde preventiva e cuidado com o corpo'));
+});
+
+it('preserves seeded media after it is migrated to R2', function (): void {
+    $this->seed(ContentSeeder::class);
+    $asset = MediaAsset::query()->where('path', 'projeto-ayi-gbe.webp')->firstOrFail();
+    $asset->update(['disk' => 'r2']);
+
+    $this->seed(ContentSeeder::class);
+
+    $this->assertDatabaseCount('media_assets', 11);
+    $this->assertDatabaseHas('media_assets', [
+        'id' => $asset->id,
+        'disk' => 'r2',
+        'path' => 'projeto-ayi-gbe.webp',
+    ]);
 });
 
 it('loads the official accessibility widget only on public pages', function (): void {

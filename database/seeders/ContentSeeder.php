@@ -283,8 +283,8 @@ CAPTION,
     private function asset(string $path, string $alt, int $width, int $height, string $mimeType = 'image/png'): MediaAsset
     {
         return MediaAsset::query()->firstOrCreate(
-            ['disk' => 'site', 'path' => $path],
-            ['original_name' => $path, 'mime_type' => $mimeType, 'size' => 0, 'alt_text' => $alt, 'width' => $width, 'height' => $height],
+            ['path' => $path],
+            ['disk' => 'site', 'original_name' => $path, 'mime_type' => $mimeType, 'size' => 0, 'alt_text' => $alt, 'width' => $width, 'height' => $height],
         );
     }
 }
