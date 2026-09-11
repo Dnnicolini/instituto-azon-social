@@ -25,7 +25,7 @@ class SitePageController extends Controller
         return Inertia::render('home', [
             'page' => $page ? $this->serializePage($page) : null,
             'settings' => $this->publicSettings(),
-            'posts' => Post::query()->published()->with('cover')->where('type', PostType::Article)->latest('published_at')->limit(3)->get()->map(fn (Post $post): array => $this->serializePost($post)),
+            'posts' => Post::query()->published()->with('cover')->where('type', PostType::Article)->latest('published_at')->limit(6)->get()->map(fn (Post $post): array => $this->serializePost($post)),
             'socialPosts' => Post::query()->published()->with('cover')->where('type', PostType::Social)->orderByDesc('is_featured')->orderBy('sort_order')->orderByDesc('published_at')->limit(6)->get()->map(fn (Post $post): array => $this->serializePost($post, withBody: true)),
             'projects' => Project::query()->published()->with('cover')->orderBy('sort_order')->limit(8)->get()->map(fn (Project $project): array => $this->serializeProject($project)),
             'events' => Event::query()->published()->with('cover')->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->limit(3)->get()->map(fn (Event $event): array => $this->serializeEvent($event)),
@@ -122,6 +122,32 @@ class SitePageController extends Controller
         ]);
     }
 
+    public function articles(Request $request): InertiaResponse
+    {
+        $search = mb_substr(trim((string) $request->query('search', '')), 0, 100);
+        $query = Post::query()
+            ->published()
+            ->with(['cover', 'author:id,name'])
+            ->where('type', PostType::Article)
+            ->latest('published_at');
+        if ($search !== '') {
+            $query->where(function ($query) use ($search): void {
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('excerpt', 'like', "%{$search}%");
+            });
+        }
+
+        return Inertia::render('news', [
+            'posts' => $query->paginate(12)->withQueryString()->through(fn (Post $post): array => $this->serializePost($post)),
+            'filters' => ['search' => $search],
+            'seo' => $this->seo(
+                'Notícias e histórias | Instituto Azon Social',
+                'Acompanhe notícias, artigos e histórias do território produzidos pelo Instituto Azon Social.',
+                '/noticias',
+            ),
+        ]);
+    }
+
     public function mediaShow(Post $post): InertiaResponse
     {
         abort_unless($post->status->value === 'published' && $post->published_at?->isPast(), 404);
@@ -193,6 +219,7 @@ class SitePageController extends Controller
             '- Projetos: '.$this->absoluteUrl('/').'#projetos',
             '- Eventos: '.$this->absoluteUrl('/eventos'),
             '- Calendário: '.$this->absoluteUrl('/calendario'),
+            '- Notícias: '.$this->absoluteUrl('/noticias'),
             '- Mídia, vlogs e podcasts: '.$this->absoluteUrl('/midia'),
             '- Instagram oficial: '.config('site.social.instagram'),
             '- E-mail: '.config('site.email'),
@@ -219,6 +246,7 @@ class SitePageController extends Controller
             ['loc' => $this->absoluteUrl('/'), 'priority' => '1.0'],
             ['loc' => $this->absoluteUrl('/eventos'), 'priority' => '0.8'],
             ['loc' => $this->absoluteUrl('/calendario'), 'priority' => '0.8'],
+            ['loc' => $this->absoluteUrl('/noticias'), 'priority' => '0.8'],
             ['loc' => $this->absoluteUrl('/midia'), 'priority' => '0.8'],
         ];
         Post::query()->published()->whereIn('type', [PostType::Vlog, PostType::Video, PostType::Podcast])->select(['slug', 'updated_at'])->latest('updated_at')->limit(45000)->each(function (Post $post) use (&$urls): void {

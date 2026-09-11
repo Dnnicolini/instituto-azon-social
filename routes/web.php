@@ -27,9 +27,10 @@ Route::controller(SitePageController::class)->group(function (): void {
         ->where('slug', '[A-Za-z0-9_-]+')
         ->middleware('throttle:60,1')
         ->name('calendar.events.show');
+    Route::get('/noticias', 'articles')->name('articles.index');
+    Route::get('/noticias/{post:slug}', 'articleShow')->name('articles.show');
     Route::get('/midia', 'media')->name('media.index');
     Route::get('/midia/{post:slug}', 'mediaShow')->name('media.show');
-    Route::get('/noticias/{post:slug}', 'articleShow')->name('articles.show');
     Route::get('/pagina/{slug}', 'page')->name('pages.show');
     Route::get('/podcast.xml', 'podcast')->name('podcast');
     Route::get('/robots.txt', 'robots')->name('robots');

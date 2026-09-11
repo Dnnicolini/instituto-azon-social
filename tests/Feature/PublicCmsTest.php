@@ -36,12 +36,40 @@ it('shows only published media and supports type and search filters', function (
     $this->get(route('media.show', 'conversa-privada'))->assertNotFound();
 });
 
+it('lists all published articles and supports searching the news archive', function (): void {
+    Post::query()->create(['type' => PostType::Article, 'title' => 'Memórias do território', 'slug' => 'memorias-territorio', 'excerpt' => 'Histórias de Sepetiba', 'status' => ContentStatus::Published, 'published_at' => now()->subMinute()]);
+    Post::query()->create(['type' => PostType::Article, 'title' => 'Notícia anterior', 'slug' => 'noticia-anterior', 'status' => ContentStatus::Published, 'published_at' => now()->subDay()]);
+    Post::query()->create(['type' => PostType::Article, 'title' => 'Terceira notícia', 'slug' => 'terceira-noticia', 'status' => ContentStatus::Published, 'published_at' => now()->subDays(2)]);
+    Post::query()->create(['type' => PostType::Article, 'title' => 'Quarta notícia', 'slug' => 'quarta-noticia', 'status' => ContentStatus::Published, 'published_at' => now()->subDays(3)]);
+    Post::query()->create(['type' => PostType::Article, 'title' => 'Notícia privada', 'slug' => 'noticia-privada', 'status' => ContentStatus::Draft]);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page->has('posts', 4));
+
+    $this->get(route('articles.index', ['search' => 'território']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('news')
+            ->where('filters.search', 'território')
+            ->has('posts.data', 1)
+            ->where('posts.data.0.slug', 'memorias-territorio'));
+
+    $this->get(route('articles.show', 'memorias-territorio'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('media/show')
+            ->where('post.type', 'article')
+            ->where('related.0.slug', 'noticia-anterior'));
+    $this->get(route('articles.show', 'noticia-privada'))->assertNotFound();
+});
+
 it('keeps draft and future media out of sitemap and RSS', function (): void {
     Post::query()->create(['type' => PostType::Podcast, 'title' => 'Publicado', 'slug' => 'publicado', 'status' => ContentStatus::Published, 'published_at' => now()->subMinute(), 'external_url' => 'https://example.org/podcast']);
     Post::query()->create(['type' => PostType::Podcast, 'title' => 'Futuro', 'slug' => 'futuro', 'status' => ContentStatus::Published, 'published_at' => now()->addDay(), 'external_url' => 'https://example.org/futuro']);
 
     $this->get(route('podcast'))->assertOk()->assertSeeText('Publicado')->assertDontSeeText('Futuro');
-    $this->get(route('sitemap'))->assertOk()->assertSee('/midia/publicado', false)->assertDontSee('/midia/futuro', false)->assertDontSee('/admin', false);
+    $this->get(route('sitemap'))->assertOk()->assertSee('/noticias', false)->assertSee('/midia/publicado', false)->assertDontSee('/midia/futuro', false)->assertDontSee('/admin', false);
 });
 
 it('shows published social highlights before the latest posts', function (): void {

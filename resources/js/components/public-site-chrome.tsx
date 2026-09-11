@@ -40,6 +40,17 @@ export function PublicHeader() {
                 <Link href="/#projetos">Projetos</Link>
                 <Link href="/eventos">Eventos</Link>
                 <Link
+                    href="/noticias"
+                    aria-current={
+                        typeof window !== 'undefined' &&
+                        window.location.pathname.startsWith('/noticias')
+                            ? 'page'
+                            : undefined
+                    }
+                >
+                    Notícias
+                </Link>
+                <Link
                     href="/calendario"
                     aria-current={
                         typeof window !== 'undefined' &&
@@ -88,6 +99,7 @@ export function PublicFooter({ children }: { children?: ReactNode }) {
             </div>
             <div>
                 <strong>Explore</strong>
+                <Link href="/noticias">Notícias</Link>
                 <Link href="/midia">Mídia</Link>
                 <Link href="/eventos">Eventos</Link>
                 <Link href="/calendario">Calendário</Link>

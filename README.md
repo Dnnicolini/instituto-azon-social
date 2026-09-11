@@ -47,9 +47,10 @@ Grupos personalizados podem ser criados pelo administrador. O backend aplica tod
 - `/`: página institucional dinâmica;
 - `/eventos`: agenda e inscrições;
 - `/calendario`: calendário mensal com detalhes e orientações de participação;
+- `/noticias`: arquivo paginado de notícias e artigos;
+- `/noticias/{slug}`: artigo institucional;
 - `/midia`: biblioteca de vlogs, vídeos e podcasts;
 - `/midia/{slug}`: conteúdo audiovisual;
-- `/noticias/{slug}`: artigo institucional;
 - `/podcast.xml`: feed RSS dos episódios publicados;
 - `/pagina/{slug}`: páginas adicionais publicadas;
 - `/robots.txt`, `/sitemap.xml` e `/llms.txt`: descoberta para buscadores e mecanismos de resposta com IA.

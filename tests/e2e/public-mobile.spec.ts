@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-for (const path of ['/', '/eventos', '/calendario', '/midia']) {
+for (const path of ['/', '/eventos', '/calendario', '/noticias', '/midia']) {
     test(`${path} has no horizontal overflow on a phone`, async ({ page }) => {
         await page.goto(path);
         await expect(page.locator('body')).toBeVisible();

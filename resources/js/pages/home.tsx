@@ -199,9 +199,9 @@ export default function Home({
                     <a href="#projetos" onClick={() => setMenuOpen(false)}>
                         Projetos
                     </a>
-                    <a href="#noticias" onClick={() => setMenuOpen(false)}>
+                    <Link href="/noticias" onClick={() => setMenuOpen(false)}>
                         Notícias
-                    </a>
+                    </Link>
                     <Link href="/eventos">Eventos</Link>
                     <Link href="/calendario">Calendário</Link>
                     <Link href="/midia">Mídia</Link>
@@ -553,9 +553,9 @@ export default function Home({
                             </div>
                             <Link
                                 className="text-link home-media-link"
-                                href="/midia"
+                                href="/noticias"
                             >
-                                Ver vlogs, vídeos e podcasts →
+                                Ver todas as notícias →
                             </Link>
                         </>
                     ) : (
@@ -1087,6 +1087,7 @@ export default function Home({
                     <a href="#instituto">O Instituto</a>
                     <a href="#projetos">Projetos</a>
                     <a href="#idealizador">Idealizador</a>
+                    <Link href="/noticias">Notícias</Link>
                     <Link href="/midia">Mídia</Link>
                     <Link href="/eventos">Eventos</Link>
                     <Link href="/calendario">Calendário</Link>

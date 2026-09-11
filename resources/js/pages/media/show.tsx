@@ -16,6 +16,8 @@ export default function MediaShow({
     related?: Post[];
 }) {
     const paragraphs = (post.body ?? '').split(/\n{2,}/).filter(Boolean);
+    const isArticle = post.type === 'article';
+    const indexUrl = isArticle ? '/noticias' : '/midia';
     return (
         <>
             <SeoHead seo={seo} />
@@ -27,7 +29,12 @@ export default function MediaShow({
                 tabIndex={-1}
             >
                 <header>
-                    <Link href="/midia">← Voltar à biblioteca</Link>
+                    <Link href={indexUrl}>
+                        ←{' '}
+                        {isArticle
+                            ? 'Voltar às notícias'
+                            : 'Voltar à biblioteca'}
+                    </Link>
                     <p>
                         {typeLabels[post.type]}
                         {post.duration_seconds
@@ -63,7 +70,11 @@ export default function MediaShow({
                         <div>
                             {related.map((item) => (
                                 <Link
-                                    href={`/midia/${item.slug}`}
+                                    href={
+                                        item.type === 'article'
+                                            ? `/noticias/${item.slug}`
+                                            : `/midia/${item.slug}`
+                                    }
                                     key={item.id}
                                 >
                                     <small>{typeLabels[item.type]}</small>
