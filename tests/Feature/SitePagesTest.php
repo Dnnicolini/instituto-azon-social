@@ -103,9 +103,10 @@ it('serves a sitemap with only public indexable pages', function (): void {
         ->assertSee('https://instituto-azon-social.dnnicolini.chatgpt.site/', false)
         ->assertSee('https://instituto-azon-social.dnnicolini.chatgpt.site/eventos', false)
         ->assertSee('https://instituto-azon-social.dnnicolini.chatgpt.site/calendario', false)
+        ->assertSee('https://instituto-azon-social.dnnicolini.chatgpt.site/noticias', false)
         ->assertDontSee('<lastmod>', false)
         ->assertDontSee('/admin', false);
 
     $response->assertSee('https://instituto-azon-social.dnnicolini.chatgpt.site/midia', false);
-    expect(substr_count($response->getContent(), '<url>'))->toBe(4);
+    expect(substr_count($response->getContent(), '<url>'))->toBe(5);
 });
