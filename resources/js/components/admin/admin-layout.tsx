@@ -16,18 +16,6 @@ const navigation = [
         permission: 'content.view',
     },
     {
-        label: 'Mídia',
-        href: '/admin/posts?type=media',
-        icon: '▷',
-        permission: 'content.view',
-    },
-    {
-        label: 'Redes sociais',
-        href: '/admin/posts?type=social',
-        icon: '⌁',
-        permission: 'content.view',
-    },
-    {
         label: 'Projetos',
         href: '/admin/projetos',
         icon: '◆',
@@ -87,10 +75,6 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
     } = usePage<AdminSharedProps>().props;
     const currentPath =
         typeof window === 'undefined' ? '/admin' : window.location.pathname;
-    const currentType =
-        typeof window === 'undefined'
-            ? null
-            : new URLSearchParams(window.location.search).get('type');
 
     function logout() {
         router.post('/admin/logout');
@@ -135,16 +119,11 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                                     auth.user.roles.includes('administrator')),
                         )
                         .map((item) => {
-                            const [itemPath, itemQuery] = item.href.split('?');
-                            const itemType = itemQuery
-                                ? new URLSearchParams(itemQuery).get('type')
-                                : null;
+                            const [itemPath] = item.href.split('?');
                             const active =
                                 item.href === '/admin'
                                     ? currentPath === '/admin'
-                                    : currentPath.startsWith(itemPath) &&
-                                      (itemPath !== '/admin/posts' ||
-                                          itemType === currentType);
+                                    : currentPath.startsWith(itemPath);
                             return (
                                 <Link
                                     key={item.href}

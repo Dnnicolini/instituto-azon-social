@@ -32,4 +32,12 @@ class EventRequest extends ContentRequest
             'cover_alt' => ['nullable', 'string', 'max:255', 'required_with:cover'],
         ];
     }
+
+    /** @return array<string, string> */
+    public function attributes(): array
+    {
+        return [
+            'registration_url' => 'link externo para inscrição',
+        ];
+    }
 }
