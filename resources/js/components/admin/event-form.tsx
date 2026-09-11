@@ -190,10 +190,11 @@ export function EventForm({ event }: { event?: Event }) {
                     </div>
                     <div className="cms-field">
                         <label>
-                            Link externo para inscrição
+                            Link para inscrição
                             <input
-                                type="url"
-                                placeholder="https://forms.gle/... ou https://sympla.com.br/..."
+                                type="text"
+                                inputMode="url"
+                                placeholder="https://forms.gle/... ou /eventos/inscricao"
                                 value={form.data.registration_url}
                                 onChange={(e) =>
                                     form.setData(
@@ -204,8 +205,8 @@ export function EventForm({ event }: { event?: Event }) {
                             />
                         </label>
                         <small>
-                            Cole o endereço completo do formulário ou da
-                            plataforma onde as inscrições serão realizadas.
+                            Use uma URL completa com http/https ou um caminho
+                            deste site iniciado por /.
                         </small>
                         <FieldError message={form.errors.registration_url} />
                     </div>

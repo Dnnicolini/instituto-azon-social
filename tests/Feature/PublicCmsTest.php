@@ -36,6 +36,41 @@ it('shows only published media and supports type and search filters', function (
     $this->get(route('media.show', 'conversa-privada'))->assertNotFound();
 });
 
+it('shows an empty media library and exposes an uploaded published vlog', function (): void {
+    $this->get(route('media.index'))->assertOk()->assertInertia(
+        fn (Assert $page): Assert => $page->has('posts.data', 0),
+    );
+
+    $video = MediaAsset::query()->create([
+        'disk' => 'public',
+        'path' => 'cms/videos/relato.webm',
+        'original_name' => 'relato.webm',
+        'mime_type' => 'video/webm',
+        'size' => 1024,
+    ]);
+    Post::query()->create([
+        'type' => PostType::Vlog,
+        'title' => 'Relato publicado',
+        'slug' => 'relato-publicado',
+        'status' => ContentStatus::Published,
+        'published_at' => now()->subMinute(),
+        'video_media_id' => $video->id,
+    ]);
+
+    $this->get(route('media.index'))->assertOk()->assertInertia(
+        fn (Assert $page): Assert => $page
+            ->has('posts.data', 1)
+            ->where('posts.data.0.url', '/midia/relato-publicado')
+            ->where('posts.data.0.video_mime_type', 'video/webm')
+            ->where('posts.data.0.video_url', fn (string $url): bool => str_ends_with($url, '/storage/cms/videos/relato.webm')),
+    );
+    $this->get(route('media.show', 'relato-publicado'))->assertOk()->assertInertia(
+        fn (Assert $page): Assert => $page
+            ->where('post.video_name', 'relato.webm')
+            ->where('post.video_mime_type', 'video/webm'),
+    );
+});
+
 it('lists all published articles and supports searching the news archive', function (): void {
     Post::query()->create(['type' => PostType::Article, 'title' => 'Memórias do território', 'slug' => 'memorias-territorio', 'excerpt' => 'Histórias de Sepetiba', 'status' => ContentStatus::Published, 'published_at' => now()->subMinute()]);
     Post::query()->create(['type' => PostType::Article, 'title' => 'Notícia anterior', 'slug' => 'noticia-anterior', 'status' => ContentStatus::Published, 'published_at' => now()->subDay()]);
@@ -45,7 +80,13 @@ it('lists all published articles and supports searching the news archive', funct
 
     $this->get(route('home'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page): Assert => $page->has('posts', 4));
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->has('posts', 4)
+            ->where('posts.0.url', '/noticias/memorias-territorio'));
+
+    $this->get(route('articles.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page->has('posts.data', 4));
 
     $this->get(route('articles.index', ['search' => 'território']))
         ->assertOk()
@@ -60,8 +101,30 @@ it('lists all published articles and supports searching the news archive', funct
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('media/show')
             ->where('post.type', 'article')
-            ->where('related.0.slug', 'noticia-anterior'));
+            ->where('post.url', '/noticias/memorias-territorio')
+            ->where('related.0.slug', 'noticia-anterior')
+            ->where('related.0.url', '/noticias/noticia-anterior'));
+    $this->get(route('media.show', 'memorias-territorio'))
+        ->assertRedirect(route('articles.show', 'memorias-territorio'), 301);
     $this->get(route('articles.show', 'noticia-privada'))->assertNotFound();
+});
+
+it('shows the configured project badge on the public home', function (): void {
+    Project::query()->create([
+        'title' => 'Projeto com categoria própria',
+        'slug' => 'projeto-com-categoria-propria',
+        'summary' => 'Resumo do projeto.',
+        'badge_label' => 'Memória & território',
+        'status' => ContentStatus::Published,
+        'published_at' => now()->subMinute(),
+        'sort_order' => 1,
+    ]);
+
+    $this->get(route('home'))->assertOk()->assertInertia(
+        fn (Assert $page): Assert => $page
+            ->has('projects', 1)
+            ->where('projects.0.badge_label', 'Memória & território'),
+    );
 });
 
 it('keeps draft and future media out of sitemap and RSS', function (): void {

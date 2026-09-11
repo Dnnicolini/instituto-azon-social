@@ -16,6 +16,18 @@ const navigation = [
         permission: 'content.view',
     },
     {
+        label: 'Mídia',
+        href: '/admin/posts?type=media',
+        icon: '▶',
+        permission: 'content.view',
+    },
+    {
+        label: 'Redes sociais',
+        href: '/admin/posts?type=social',
+        icon: '◎',
+        permission: 'content.view',
+    },
+    {
         label: 'Projetos',
         href: '/admin/projetos',
         icon: '◆',
@@ -68,13 +80,16 @@ type AdminLayoutProps = {
 
 export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
     const [menuOpen, setMenuOpen] = useState(false);
-    const {
-        auth,
-        flash,
-        unreadMessages = 0,
-    } = usePage<AdminSharedProps>().props;
-    const currentPath =
-        typeof window === 'undefined' ? '/admin' : window.location.pathname;
+    const page = usePage<AdminSharedProps>();
+    const { auth, flash, unreadMessages = 0 } = page.props;
+    const [currentPath, currentQuery = ''] = page.url.split('?');
+    const query = new URLSearchParams(currentQuery);
+    const currentSection = query.get('section');
+    const currentType =
+        query.get('type') ??
+        (currentSection === 'media' || currentSection === 'social'
+            ? currentSection
+            : null);
 
     function logout() {
         router.post('/admin/logout');
@@ -120,10 +135,26 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                         )
                         .map((item) => {
                             const [itemPath] = item.href.split('?');
-                            const active =
+                            let active =
                                 item.href === '/admin'
                                     ? currentPath === '/admin'
                                     : currentPath.startsWith(itemPath);
+                            if (itemPath === '/admin/posts') {
+                                const itemType = new URLSearchParams(
+                                    item.href.split('?')[1] ?? '',
+                                ).get('type');
+                                const isMedia = [
+                                    'media',
+                                    'vlog',
+                                    'video',
+                                    'podcast',
+                                ].includes(currentType ?? '');
+                                active = itemType
+                                    ? itemType === 'media'
+                                        ? isMedia
+                                        : currentType === itemType
+                                    : !isMedia && currentType !== 'social';
+                            }
                             return (
                                 <Link
                                     key={item.href}

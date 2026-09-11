@@ -141,3 +141,40 @@ it('validates the participation instructions and coherent event dates', function
         'status' => 'draft',
     ])->assertSessionHasErrors(['ends_at', 'participation_details']);
 });
+
+it('accepts and exposes internal and external registration URLs', function (): void {
+    $publisher = $this->cmsUser('publisher');
+    $base = [
+        'location' => 'Sepetiba',
+        'status' => 'published',
+        'published_at' => now()->subMinute()->toDateTimeString(),
+    ];
+
+    $this->actingAs($publisher)->post(route('admin.events.store'), [
+        ...$base,
+        'title' => 'Inscrição interna',
+        'slug' => 'inscricao-interna',
+        'registration_url' => '  /eventos/inscricao-interna  ',
+    ])->assertRedirect();
+    $this->actingAs($publisher)->post(route('admin.events.store'), [
+        ...$base,
+        'title' => 'Inscrição externa',
+        'slug' => 'inscricao-externa',
+        'registration_url' => 'https://forms.example.org/inscricao',
+    ])->assertRedirect();
+
+    $this->assertDatabaseHas('events', ['slug' => 'inscricao-interna', 'registration_url' => '/eventos/inscricao-interna']);
+    $this->assertDatabaseHas('events', ['slug' => 'inscricao-externa', 'registration_url' => 'https://forms.example.org/inscricao']);
+    $this->get(route('events'))->assertInertia(
+        fn (Assert $page): Assert => $page
+            ->where('events.data.0.registration_url', '/eventos/inscricao-interna')
+            ->where('events.data.1.registration_url', 'https://forms.example.org/inscricao'),
+    );
+
+    $this->actingAs($publisher)->post(route('admin.events.store'), [
+        ...$base,
+        'title' => 'Inscrição inválida',
+        'slug' => 'inscricao-invalida',
+        'registration_url' => 'javascript:alert(1)',
+    ])->assertSessionHasErrors('registration_url');
+});

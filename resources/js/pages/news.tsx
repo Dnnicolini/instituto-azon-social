@@ -3,6 +3,7 @@ import { EmptyState, Pagination } from '@/components/admin/cms-ui';
 import { AccessibilityTools } from '@/components/accessibility-tools';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
+import { contentUrl } from '@/lib/content-url';
 import type { Paginated, Post } from '@/types/cms';
 import type { SeoData } from '@/types/seo';
 
@@ -37,7 +38,7 @@ export default function NewsIndex({
                     {featured ? (
                         <Link
                             className="media-feature"
-                            href={`/noticias/${featured.slug}`}
+                            href={contentUrl(featured)}
                         >
                             <div className="media-feature-art">
                                 {featured.cover_url ? (
@@ -112,7 +113,7 @@ export default function NewsIndex({
                                 >
                                     <Link
                                         className="media-card-art"
-                                        href={`/noticias/${post.slug}`}
+                                        href={contentUrl(post)}
                                     >
                                         {post.cover_url ? (
                                             <img
@@ -126,14 +127,14 @@ export default function NewsIndex({
                                     </Link>
                                     <small>Artigo</small>
                                     <h3>
-                                        <Link href={`/noticias/${post.slug}`}>
+                                        <Link href={contentUrl(post)}>
                                             {post.title}
                                         </Link>
                                     </h3>
                                     <p>{post.excerpt}</p>
                                     <Link
                                         className="text-link"
-                                        href={`/noticias/${post.slug}`}
+                                        href={contentUrl(post)}
                                     >
                                         Continuar lendo →
                                     </Link>

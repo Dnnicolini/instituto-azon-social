@@ -19,7 +19,7 @@ class ProjectRequest extends ContentRequest
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'alpha_dash:ascii', 'max:255', Rule::unique('projects', 'slug')->ignore($this->route('project'))],
             'summary' => ['nullable', 'string', 'max:1000'],
-            'badge_label' => ['nullable', 'string', 'max:80'],
+            'badge_label' => ['required', 'string', 'max:80'],
             'body' => ['nullable', 'string', 'max:100000'],
             'status' => $this->statusRules(),
             'published_at' => ['nullable', 'date'],

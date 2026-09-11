@@ -50,12 +50,16 @@ export type Post = {
     id: number;
     title: string;
     slug: string;
+    url?: string;
     type: ContentType;
     status: ContentStatus;
     excerpt?: string | null;
     body?: string | null;
     cover_url?: string | null;
     cover_alt?: string | null;
+    video_url?: string | null;
+    video_name?: string | null;
+    video_mime_type?: string | null;
     provider?:
         | 'youtube'
         | 'vimeo'

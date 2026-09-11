@@ -12,6 +12,7 @@ import ProjectsIndex from '../projects/index';
 import EventsIndex from '../events/index';
 import DocumentsIndex from '../documents/index';
 import PagesIndex from '../pages/index';
+import type { PostSection } from '@/lib/admin-post-section';
 type Resource = 'posts' | 'projects' | 'events' | 'documents' | 'pages';
 export default function ContentIndex(
     props: AdminSharedProps & {
@@ -19,10 +20,17 @@ export default function ContentIndex(
         items: Paginated<
             Post | Project | Event | TransparencyDocument | SitePage
         >;
+        section?: PostSection;
     },
 ) {
     if (props.resource === 'posts')
-        return <PostsIndex {...props} posts={props.items as Paginated<Post>} />;
+        return (
+            <PostsIndex
+                {...props}
+                posts={props.items as Paginated<Post>}
+                section={props.section ?? 'all'}
+            />
+        );
     if (props.resource === 'projects')
         return (
             <ProjectsIndex

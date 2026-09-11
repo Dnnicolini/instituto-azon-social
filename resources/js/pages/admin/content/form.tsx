@@ -16,6 +16,7 @@ import CreateDocument from '../documents/create';
 import EditDocument from '../documents/edit';
 import CreatePage from '../pages/create';
 import EditPage from '../pages/edit';
+import type { PostSection } from '@/lib/admin-post-section';
 type Resource = 'posts' | 'projects' | 'events' | 'documents' | 'pages';
 type DocumentDetail = TransparencyDocument & {
     slug: string;
@@ -25,13 +26,23 @@ export default function ContentForm(
     props: AdminSharedProps & {
         resource: Resource;
         item: Post | Project | Event | DocumentDetail | SitePage | null;
+        section?: PostSection;
+        initialType?: Post['type'];
     },
 ) {
     if (props.resource === 'posts')
         return props.item ? (
-            <EditPost {...props} post={props.item as Post} />
+            <EditPost
+                {...props}
+                post={props.item as Post}
+                section={props.section ?? 'all'}
+            />
         ) : (
-            <CreatePost {...props} />
+            <CreatePost
+                {...props}
+                section={props.section ?? 'all'}
+                initialType={props.initialType ?? 'article'}
+            />
         );
     if (props.resource === 'projects')
         return props.item ? (

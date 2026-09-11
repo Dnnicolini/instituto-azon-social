@@ -11,15 +11,26 @@ import { SeoHead } from '@/components/seo-head';
 import type { AdminSharedProps, Paginated, Post } from '@/types/cms';
 import { typeLabels } from '@/types/cms';
 import { Can } from '@/components/admin/use-can';
+import {
+    postCreateHref,
+    postEditHref,
+    postSectionContent,
+    type PostSection,
+    typesForSection,
+} from '@/lib/admin-post-section';
 
 export default function PostsIndex({
     seo,
     posts,
     filters = {},
+    section,
 }: AdminSharedProps & {
     posts: Paginated<Post>;
     filters?: { search?: string; type?: string; status?: string };
+    section: PostSection;
 }) {
+    const content = postSectionContent[section];
+    const availableTypes = typesForSection(section);
     function filter(name: string, value: string) {
         router.get(
             '/admin/posts',
@@ -30,17 +41,17 @@ export default function PostsIndex({
     return (
         <>
             <SeoHead seo={seo} />
-            <AdminLayout title="Conteúdos">
+            <AdminLayout title={content.title}>
                 <PageHeading
-                    title="Conteúdos"
-                    description="Artigos, vlogs, vídeos, podcasts e publicações sociais em um único fluxo editorial."
+                    title={content.title}
+                    description={content.description}
                 >
                     <Can permission="content.create">
                         <Link
                             className="cms-button primary"
-                            href="/admin/posts/create"
+                            href={postCreateHref(section)}
                         >
-                            ＋ Novo conteúdo
+                            ＋ {content.createLabel}
                         </Link>
                     </Can>
                 </PageHeading>
@@ -57,22 +68,30 @@ export default function PostsIndex({
                             }}
                         />
                     </label>
-                    <label>
-                        <span>Formato</span>
-                        <select
-                            value={filters.type ?? ''}
-                            onChange={(e) => filter('type', e.target.value)}
-                        >
-                            <option value="">Todos</option>
-                            {Object.entries(typeLabels).map(
-                                ([value, label]) => (
+                    {section !== 'social' && (
+                        <label>
+                            <span>Formato</span>
+                            <select
+                                value={
+                                    filters.type === 'media'
+                                        ? 'media'
+                                        : (filters.type ?? '')
+                                }
+                                onChange={(e) => filter('type', e.target.value)}
+                            >
+                                <option
+                                    value={section === 'media' ? 'media' : ''}
+                                >
+                                    Todos
+                                </option>
+                                {availableTypes.map((value) => (
                                     <option value={value} key={value}>
-                                        {label}
+                                        {typeLabels[value]}
                                     </option>
-                                ),
-                            )}
-                        </select>
-                    </label>
+                                ))}
+                            </select>
+                        </label>
+                    )}
                     <label>
                         <span>Status</span>
                         <select
@@ -122,7 +141,10 @@ export default function PostsIndex({
                                                     }
                                                 >
                                                     <Link
-                                                        href={`/admin/posts/${post.id}/edit`}
+                                                        href={postEditHref(
+                                                            post.id,
+                                                            section,
+                                                        )}
                                                     >
                                                         <strong>
                                                             {post.title}
@@ -147,7 +169,10 @@ export default function PostsIndex({
                                             <td className="cms-row-actions">
                                                 <Can permission="content.update">
                                                     <Link
-                                                        href={`/admin/posts/${post.id}/edit`}
+                                                        href={postEditHref(
+                                                            post.id,
+                                                            section,
+                                                        )}
                                                     >
                                                         Editar
                                                     </Link>
@@ -175,15 +200,15 @@ export default function PostsIndex({
                     </>
                 ) : (
                     <EmptyState
-                        title="Nenhum conteúdo encontrado"
-                        description="Ajuste os filtros ou crie o primeiro conteúdo da biblioteca."
+                        title={content.emptyTitle}
+                        description={content.emptyDescription}
                         action={
                             <Can permission="content.create">
                                 <Link
                                     className="cms-button primary"
-                                    href="/admin/posts/create"
+                                    href={postCreateHref(section)}
                                 >
-                                    Criar conteúdo
+                                    {content.createLabel}
                                 </Link>
                             </Can>
                         }

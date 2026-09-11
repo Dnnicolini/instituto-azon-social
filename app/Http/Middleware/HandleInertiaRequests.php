@@ -17,6 +17,14 @@ class HandleInertiaRequests extends Middleware
     protected $rootView = 'app';
 
     /**
+     * Administrative screens do not need indexing or server rendering and
+     * must remain available even when the public SSR process is unavailable.
+     *
+     * @var array<int, string>
+     */
+    protected $withoutSsr = ['admin', 'admin/*'];
+
+    /**
      * Determines the current asset version.
      *
      * @see https://inertiajs.com/asset-versioning

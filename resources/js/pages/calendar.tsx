@@ -4,6 +4,7 @@ import { AccessibilityTools } from '@/components/accessibility-tools';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
 import type { Event } from '@/types/cms';
+import { isExternalRegistrationUrl } from '@/lib/registration-url';
 import type { SeoData } from '@/types/seo';
 
 const siteTimeZone = 'America/Sao_Paulo';
@@ -580,13 +581,19 @@ export default function CalendarPage({
                                             className="button button-event"
                                             href={selected.registration_url}
                                             target={
-                                                selected.registration_url.startsWith(
-                                                    'http',
+                                                isExternalRegistrationUrl(
+                                                    selected.registration_url,
                                                 )
                                                     ? '_blank'
                                                     : undefined
                                             }
-                                            rel="noopener noreferrer"
+                                            rel={
+                                                isExternalRegistrationUrl(
+                                                    selected.registration_url,
+                                                )
+                                                    ? 'noopener noreferrer'
+                                                    : undefined
+                                            }
                                         >
                                             Fazer inscrição ↗
                                         </a>

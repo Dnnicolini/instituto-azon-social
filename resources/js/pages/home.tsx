@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FieldError } from '@/components/admin/cms-ui';
 import { AccessibilityTools } from '@/components/accessibility-tools';
 import { SeoHead } from '@/components/seo-head';
+import { contentUrl } from '@/lib/content-url';
 import type { Event, Post, Project, SitePage, SiteSettings } from '@/types/cms';
 import type { SeoData } from '@/types/seo';
 type PublicDocument = {
@@ -529,13 +530,7 @@ export default function Home({
                                             </small>
                                             <h3>{post.title}</h3>
                                             <p>{post.excerpt}</p>
-                                            <Link
-                                                href={
-                                                    post.type === 'article'
-                                                        ? `/noticias/${post.slug}`
-                                                        : `/midia/${post.slug}`
-                                                }
-                                            >
+                                            <Link href={contentUrl(post)}>
                                                 Continuar lendo →
                                             </Link>
                                         </div>

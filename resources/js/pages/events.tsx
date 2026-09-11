@@ -5,6 +5,7 @@ import { AccessibilityTools } from '@/components/accessibility-tools';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
 import type { Event, Paginated } from '@/types/cms';
+import { isExternalRegistrationUrl } from '@/lib/registration-url';
 import type { SeoData } from '@/types/seo';
 
 type Filter = 'Todos' | 'Inscrições abertas' | 'Próximos' | 'Realizados';
@@ -161,13 +162,19 @@ export default function EventsPage({
                                                 className="button button-event"
                                                 href={event.registration_url}
                                                 target={
-                                                    event.registration_url.startsWith(
-                                                        'http',
+                                                    isExternalRegistrationUrl(
+                                                        event.registration_url,
                                                     )
                                                         ? '_blank'
                                                         : undefined
                                                 }
-                                                rel="noreferrer"
+                                                rel={
+                                                    isExternalRegistrationUrl(
+                                                        event.registration_url,
+                                                    )
+                                                        ? 'noopener noreferrer'
+                                                        : undefined
+                                                }
                                             >
                                                 Participar ↗
                                             </a>

@@ -3,6 +3,7 @@ import { AccessibilityTools } from '@/components/accessibility-tools';
 import { MediaPlayer } from '@/components/media-player';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
+import { contentUrl } from '@/lib/content-url';
 import type { Post } from '@/types/cms';
 import { typeLabels } from '@/types/cms';
 import type { SeoData } from '@/types/seo';
@@ -69,14 +70,7 @@ export default function MediaShow({
                         <h2>Continue explorando</h2>
                         <div>
                             {related.map((item) => (
-                                <Link
-                                    href={
-                                        item.type === 'article'
-                                            ? `/noticias/${item.slug}`
-                                            : `/midia/${item.slug}`
-                                    }
-                                    key={item.id}
-                                >
+                                <Link href={contentUrl(item)} key={item.id}>
                                     <small>{typeLabels[item.type]}</small>
                                     <strong>{item.title}</strong>
                                 </Link>

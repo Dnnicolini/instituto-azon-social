@@ -102,8 +102,8 @@ printf '%s\n' \
     'pm.max_requests = 500' \
     'catch_workers_output = yes' \
     'php_admin_value[memory_limit] = 192M' \
-    'php_admin_value[upload_max_filesize] = 10M' \
-    'php_admin_value[post_max_size] = 12M' \
+    'php_admin_value[upload_max_filesize] = 200M' \
+    'php_admin_value[post_max_size] = 210M' \
     > /etc/php/8.4/fpm/pool.d/azon.conf
 
 install -m 0644 /dev/null /etc/php/8.4/mods-available/99-azon-opcache.ini

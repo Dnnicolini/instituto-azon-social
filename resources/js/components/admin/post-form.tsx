@@ -4,8 +4,21 @@ import { FieldError, FormActions } from './cms-ui';
 import type { ContentStatus, ContentType, Post } from '@/types/cms';
 import { statusLabels, typeLabels } from '@/types/cms';
 import { useCan } from './use-can';
+import {
+    postIndexHref,
+    type PostSection,
+    typesForSection,
+} from '@/lib/admin-post-section';
 
-export function PostForm({ post }: { post?: Post }) {
+export function PostForm({
+    post,
+    section,
+    initialType = 'article',
+}: {
+    post?: Post;
+    section: PostSection;
+    initialType?: ContentType;
+}) {
     const canPublish = useCan('content.publish');
     const form = useForm<{
         title: string;
@@ -31,15 +44,17 @@ export function PostForm({ post }: { post?: Post }) {
         seo_description: string;
         cover_alt: string;
         cover: File | null;
+        video: File | null;
     }>({
         title: post?.title ?? '',
         slug: post?.slug ?? '',
-        type: post?.type ?? 'article',
+        type: post?.type ?? initialType,
         status: post?.status ?? 'draft',
         excerpt: post?.excerpt ?? '',
         body: post?.body ?? '',
         provider:
-            post?.provider ?? (post?.type === 'social' ? 'instagram' : ''),
+            post?.provider ??
+            ((post?.type ?? initialType) === 'social' ? 'instagram' : ''),
         external_url: post?.external_url ?? '',
         duration_seconds: post?.duration_seconds
             ? String(post.duration_seconds)
@@ -51,6 +66,7 @@ export function PostForm({ post }: { post?: Post }) {
         seo_description: post?.seo_description ?? '',
         cover_alt: post?.cover_alt ?? '',
         cover: null,
+        video: null,
     });
     const isSocial = form.data.type === 'social';
     const isMedia = ['vlog', 'video', 'podcast'].includes(form.data.type);
@@ -60,14 +76,16 @@ export function PostForm({ post }: { post?: Post }) {
             : isSocial
               ? 'social/'
               : '/midia/';
+    const availableTypes = typesForSection(section);
+    const sectionQuery = section === 'all' ? '' : `?section=${section}`;
     function submit(event: FormEvent) {
         event.preventDefault();
         if (post)
-            form.post(`/admin/posts/${post.id}`, {
+            form.post(`/admin/posts/${post.id}${sectionQuery}`, {
                 forceFormData: true,
                 headers: { 'X-HTTP-Method-Override': 'PUT' },
             });
-        else form.post('/admin/posts', { forceFormData: true });
+        else form.post(`/admin/posts${sectionQuery}`, { forceFormData: true });
     }
     return (
         <form className="cms-editor" onSubmit={submit} noValidate>
@@ -136,6 +154,41 @@ export function PostForm({ post }: { post?: Post }) {
                 {(isMedia || isSocial) && (
                     <section className="cms-form-section">
                         <h2>{isSocial ? 'Instagram' : 'Reprodução'}</h2>
+                        {['vlog', 'video'].includes(form.data.type) && (
+                            <div className="cms-field">
+                                <label htmlFor="video-file">
+                                    Arquivo de vídeo
+                                </label>
+                                {post?.video_url && (
+                                    <small>
+                                        Arquivo atual:{' '}
+                                        {post.video_name ?? 'vídeo enviado'}
+                                    </small>
+                                )}
+                                <input
+                                    id="video-file"
+                                    type="file"
+                                    accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'video',
+                                            e.target.files?.[0] ?? null,
+                                        )
+                                    }
+                                />
+                                <small>
+                                    MP4, MOV ou WebM, com até 200 MB. Um novo
+                                    envio substitui o vídeo vinculado a este
+                                    conteúdo.
+                                </small>
+                                <FieldError message={form.errors.video} />
+                            </div>
+                        )}
+                        {['vlog', 'video'].includes(form.data.type) && (
+                            <p className="cms-form-separator">
+                                ou informe uma publicação externa
+                            </p>
+                        )}
                         <div className="cms-form-grid two">
                             <div className="cms-field">
                                 <label htmlFor="provider">Plataforma</label>
@@ -200,7 +253,9 @@ export function PostForm({ post }: { post?: Post }) {
                             <label htmlFor="external-url">
                                 {isSocial
                                     ? 'Link direto da publicação'
-                                    : 'URL do vídeo ou episódio'}
+                                    : ['vlog', 'video'].includes(form.data.type)
+                                      ? 'URL externa do vídeo (opcional)'
+                                      : 'URL do episódio'}
                             </label>
                             <input
                                 id="external-url"
@@ -214,7 +269,9 @@ export function PostForm({ post }: { post?: Post }) {
                             <small>
                                 {isSocial
                                     ? 'Use o endereço de um post ou reel público do Instagram.'
-                                    : 'Apenas endereços validados do YouTube, Vimeo ou Spotify serão incorporados.'}
+                                    : ['vlog', 'video'].includes(form.data.type)
+                                      ? 'Opcional quando um arquivo de vídeo for enviado. Aceita YouTube ou Vimeo.'
+                                      : 'Use um endereço validado do Spotify para incorporar o episódio.'}
                             </small>
                             <FieldError message={form.errors.external_url} />
                         </div>
@@ -268,6 +325,9 @@ export function PostForm({ post }: { post?: Post }) {
                             onChange={(e) => {
                                 const type = e.target.value as ContentType;
                                 form.setData('type', type);
+                                if (!['vlog', 'video'].includes(type)) {
+                                    form.setData('video', null);
+                                }
                                 if (type === 'social') {
                                     form.setData('provider', 'instagram');
                                     form.setData('duration_seconds', '');
@@ -278,13 +338,11 @@ export function PostForm({ post }: { post?: Post }) {
                                 }
                             }}
                         >
-                            {Object.entries(typeLabels).map(
-                                ([value, label]) => (
-                                    <option key={value} value={value}>
-                                        {label}
-                                    </option>
-                                ),
-                            )}
+                            {availableTypes.map((value) => (
+                                <option key={value} value={value}>
+                                    {typeLabels[value]}
+                                </option>
+                            ))}
                         </select>
                     </div>
                     <div className="cms-field">
@@ -421,7 +479,7 @@ export function PostForm({ post }: { post?: Post }) {
             <FormActions
                 processing={form.processing}
                 isDirty={form.isDirty}
-                cancelHref="/admin/posts"
+                cancelHref={postIndexHref(section)}
                 submitLabel={post ? 'Salvar alterações' : 'Criar conteúdo'}
             />
         </form>

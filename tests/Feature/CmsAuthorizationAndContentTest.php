@@ -11,6 +11,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\AuthorizationSeeder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -173,6 +174,107 @@ it('validates and stores generated image uploads', function (): void {
         'cover_alt' => 'Descrição alternativa revisada',
     ])->assertRedirect();
     expect($post->cover?->fresh()->alt_text)->toBe('Descrição alternativa revisada');
+});
+
+it('accepts a video upload separately from the cover image', function (): void {
+    Storage::fake('public');
+    $publisher = $this->cmsUser('publisher');
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'vlog',
+        'title' => 'Relato em vídeo',
+        'slug' => 'relato-em-video',
+        'status' => 'draft',
+        'video' => UploadedFile::fake()->create('relato.MOV', 1024, 'video/quicktime'),
+    ])->assertRedirect();
+
+    $post = Post::query()->where('slug', 'relato-em-video')->with(['video', 'cover'])->firstOrFail();
+    expect($post->video?->original_name)->toBe('relato.MOV')
+        ->and($post->video?->mime_type)->toBe('video/quicktime')
+        ->and($post->cover)->toBeNull();
+    Storage::disk('public')->assertExists((string) $post->video?->path);
+});
+
+it('rejects unsupported video files and video uploads on non-video content', function (): void {
+    Storage::fake('public');
+    $publisher = $this->cmsUser('publisher');
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'video',
+        'title' => 'Arquivo incompatível',
+        'slug' => 'arquivo-incompativel',
+        'status' => 'draft',
+        'video' => UploadedFile::fake()->create('arquivo.avi', 100, 'video/x-msvideo'),
+    ])->assertSessionHasErrors('video');
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'article',
+        'title' => 'Artigo com vídeo indevido',
+        'slug' => 'artigo-com-video-indevido',
+        'status' => 'draft',
+        'video' => UploadedFile::fake()->create('arquivo.mp4', 100, 'video/mp4'),
+    ])->assertSessionHasErrors('video');
+});
+
+it('separates content, media and social admin experiences and preserves their context', function (): void {
+    $publisher = $this->cmsUser('publisher');
+    Post::query()->create(['type' => PostType::Article, 'title' => 'Artigo', 'slug' => 'artigo-admin', 'status' => ContentStatus::Draft]);
+    Post::query()->create(['type' => PostType::Video, 'title' => 'Vídeo', 'slug' => 'video-admin', 'status' => ContentStatus::Draft]);
+    Post::query()->create(['type' => PostType::Social, 'title' => 'Instagram', 'slug' => 'instagram-admin', 'status' => ContentStatus::Draft]);
+
+    $this->actingAs($publisher)->get(route('admin.posts.index', ['type' => 'media']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->where('section', 'media')
+            ->where('filters.type', 'media')
+            ->has('items.data', 1)
+            ->where('items.data.0.type', 'video'));
+
+    $this->actingAs($publisher)->get(route('admin.posts.index', ['type' => 'social']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->where('section', 'social')
+            ->has('items.data', 1)
+            ->where('items.data.0.type', 'social'));
+
+    $this->actingAs($publisher)->get(route('admin.posts.create', ['type' => 'media']))
+        ->assertInertia(fn (Assert $page): Assert => $page->where('section', 'media')->where('initialType', 'vlog'));
+    $this->actingAs($publisher)->get(route('admin.posts.create', ['type' => 'social']))
+        ->assertInertia(fn (Assert $page): Assert => $page->where('section', 'social')->where('initialType', 'social'));
+
+    $response = $this->actingAs($publisher)->post(route('admin.posts.store', ['section' => 'media']), [
+        'type' => 'video',
+        'title' => 'Vídeo externo',
+        'slug' => 'video-externo',
+        'status' => 'draft',
+        'provider' => 'youtube',
+        'external_url' => 'https://www.youtube.com/watch?v=abc123',
+    ]);
+    $created = Post::query()->where('slug', 'video-externo')->firstOrFail();
+    $response->assertRedirect(route('admin.posts.edit', ['post' => $created, 'section' => 'media']));
+});
+
+it('serves valid admin routes directly with SSR configured and returns 404 for unknown routes', function (): void {
+    config(['inertia.ssr.enabled' => true, 'inertia.ssr.ensure_bundle_exists' => false]);
+    Http::preventStrayRequests();
+    $publisher = $this->cmsUser('publisher');
+    $paths = [
+        '/admin/posts',
+        '/admin/posts?type=media',
+        '/admin/posts?type=social',
+        '/admin/posts/create',
+        '/admin/projetos',
+        '/admin/projetos/create',
+        '/admin/eventos',
+    ];
+
+    foreach ($paths as $path) {
+        $this->actingAs($publisher)->get($path)->assertOk();
+        $this->actingAs($publisher)->get($path)->assertOk();
+    }
+
+    $this->actingAs($publisher)->get('/admin/rota-inexistente')->assertNotFound();
+    expect(config('inertia.ssr.enabled'))->toBeTrue();
 });
 
 it('requires a coherent platform and secure URL for media', function (): void {
@@ -345,6 +447,13 @@ it('stores the project badge configured in the admin form', function (): void {
 
     expect(Project::query()->where('slug', 'projeto-leitura')->value('badge_label'))
         ->toBe('Educação e cultura');
+
+    $this->actingAs($publisher)->post(route('admin.projects.store'), [
+        'title' => 'Projeto sem categoria',
+        'slug' => 'projeto-sem-categoria',
+        'status' => 'draft',
+        'sort_order' => 11,
+    ])->assertSessionHasErrors('badge_label');
 });
 
 it('publishes scheduled content once when it becomes due', function (): void {

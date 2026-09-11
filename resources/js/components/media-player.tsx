@@ -65,6 +65,24 @@ function safeExternalUrl(value?: string | null): string | null {
     }
 }
 export function MediaPlayer({ post }: { post: Post }) {
+    if (post.video_url) {
+        return (
+            <div className="media-player">
+                <video
+                    controls
+                    preload="metadata"
+                    poster={post.cover_url ?? undefined}
+                    aria-label={`Reproduzir ${post.title}`}
+                >
+                    <source
+                        src={post.video_url}
+                        type={post.video_mime_type ?? undefined}
+                    />
+                    Seu navegador não conseguiu reproduzir este vídeo.
+                </video>
+            </div>
+        );
+    }
     const embed = safeEmbed(post);
     if (!embed) {
         const externalUrl = safeExternalUrl(post.external_url);

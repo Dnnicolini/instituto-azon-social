@@ -10,6 +10,7 @@ use App\Models\Post;
 use App\Models\Project;
 use App\Models\SiteSetting;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -105,7 +106,7 @@ class SitePageController extends Controller
         $allowedTypes = [PostType::Vlog->value, PostType::Video->value, PostType::Podcast->value];
         $type = in_array($request->query('type'), $allowedTypes, true) ? (string) $request->query('type') : null;
         $search = mb_substr(trim((string) $request->query('search', '')), 0, 100);
-        $query = Post::query()->published()->with(['cover', 'author:id,name'])->whereIn('type', $allowedTypes)->latest('published_at');
+        $query = Post::query()->published()->with(['cover', 'video', 'author:id,name'])->whereIn('type', $allowedTypes)->latest('published_at');
         if ($type) {
             $query->where('type', $type);
         }
@@ -148,16 +149,19 @@ class SitePageController extends Controller
         ]);
     }
 
-    public function mediaShow(Post $post): InertiaResponse
+    public function mediaShow(Post $post): InertiaResponse|RedirectResponse
     {
         abort_unless($post->status->value === 'published' && $post->published_at?->isPast(), 404);
+        if ($post->type === PostType::Article) {
+            return redirect()->to($post->publicPath(), 301);
+        }
         abort_unless(in_array($post->type, [PostType::Vlog, PostType::Video, PostType::Podcast], true), 404);
-        $post->load(['cover', 'author:id,name']);
+        $post->load(['cover', 'video', 'author:id,name']);
 
         return Inertia::render('media/show', [
             'post' => $this->serializePost($post, withBody: true),
             'related' => Post::query()->published()->with('cover')->where('type', $post->type)->whereKeyNot($post->id)->latest('published_at')->limit(3)->get()->map(fn (Post $related): array => $this->serializePost($related)),
-            'seo' => $this->seo($post->seo_title ?: $post->title.' | Instituto Azon Social', $post->seo_description ?: ($post->excerpt ?: (string) config('site.description')), '/midia/'.$post->slug, type: $post->type === PostType::Podcast ? 'music.song' : 'video.other'),
+            'seo' => $this->seo($post->seo_title ?: $post->title.' | Instituto Azon Social', $post->seo_description ?: ($post->excerpt ?: (string) config('site.description')), $post->publicPath(), type: $post->type === PostType::Podcast ? 'music.song' : 'video.other'),
         ]);
     }
 
@@ -169,7 +173,7 @@ class SitePageController extends Controller
         return Inertia::render('media/show', [
             'post' => $this->serializePost($post, withBody: true),
             'related' => Post::query()->published()->with('cover')->where('type', PostType::Article)->whereKeyNot($post->id)->latest('published_at')->limit(3)->get()->map(fn (Post $related): array => $this->serializePost($related)),
-            'seo' => $this->seo($post->seo_title ?: $post->title.' | Instituto Azon Social', $post->seo_description ?: ($post->excerpt ?: (string) config('site.description')), '/noticias/'.$post->slug, type: 'article'),
+            'seo' => $this->seo($post->seo_title ?: $post->title.' | Instituto Azon Social', $post->seo_description ?: ($post->excerpt ?: (string) config('site.description')), $post->publicPath(), type: 'article'),
         ]);
     }
 
@@ -187,7 +191,7 @@ class SitePageController extends Controller
     {
         $episodes = Post::query()->published()->where('type', PostType::Podcast)->latest('published_at')->limit(100)->get();
 
-        return response(view('podcast', compact('episodes'))->render())->header('Content-Type', 'application/rss+xml; charset=UTF-8');
+        return response($this->xmlDocument(view('podcast', compact('episodes'))->render()))->header('Content-Type', 'application/rss+xml; charset=UTF-8');
     }
 
     public function robots(): Response
@@ -249,17 +253,17 @@ class SitePageController extends Controller
             ['loc' => $this->absoluteUrl('/noticias'), 'priority' => '0.8'],
             ['loc' => $this->absoluteUrl('/midia'), 'priority' => '0.8'],
         ];
-        Post::query()->published()->whereIn('type', [PostType::Vlog, PostType::Video, PostType::Podcast])->select(['slug', 'updated_at'])->latest('updated_at')->limit(45000)->each(function (Post $post) use (&$urls): void {
-            $urls[] = ['loc' => $this->absoluteUrl('/midia/'.$post->slug), 'priority' => '0.7', 'lastmod' => $post->updated_at?->toAtomString()];
+        Post::query()->published()->whereIn('type', [PostType::Vlog, PostType::Video, PostType::Podcast])->select(['slug', 'type', 'updated_at'])->latest('updated_at')->limit(45000)->each(function (Post $post) use (&$urls): void {
+            $urls[] = ['loc' => $this->absoluteUrl($post->publicPath()), 'priority' => '0.7', 'lastmod' => $post->updated_at?->toAtomString()];
         });
-        Post::query()->published()->where('type', PostType::Article)->select(['slug', 'updated_at'])->latest('updated_at')->limit(45000)->each(function (Post $post) use (&$urls): void {
-            $urls[] = ['loc' => $this->absoluteUrl('/noticias/'.$post->slug), 'priority' => '0.7', 'lastmod' => $post->updated_at?->toAtomString()];
+        Post::query()->published()->where('type', PostType::Article)->select(['slug', 'type', 'updated_at'])->latest('updated_at')->limit(45000)->each(function (Post $post) use (&$urls): void {
+            $urls[] = ['loc' => $this->absoluteUrl($post->publicPath()), 'priority' => '0.7', 'lastmod' => $post->updated_at?->toAtomString()];
         });
         Page::query()->published()->where('slug', '!=', 'inicio')->select(['slug', 'updated_at'])->each(function (Page $page) use (&$urls): void {
             $urls[] = ['loc' => $this->absoluteUrl('/pagina/'.$page->slug), 'priority' => '0.6', 'lastmod' => $page->updated_at?->toAtomString()];
         });
 
-        return response(view('sitemap', compact('urls'))->render())->header('Content-Type', 'application/xml; charset=UTF-8');
+        return response($this->xmlDocument(view('sitemap', compact('urls'))->render()))->header('Content-Type', 'application/xml; charset=UTF-8');
     }
 
     /** @param array<int, array<string, mixed>> $schema
@@ -287,7 +291,7 @@ class SitePageController extends Controller
     /** @return array<string, mixed> */
     private function serializePost(Post $post, bool $withBody = false): array
     {
-        return ['id' => $post->id, 'slug' => $post->slug, 'title' => $post->title, 'type' => $post->type->value, 'excerpt' => $post->excerpt, 'body' => $withBody ? $post->body : null, 'cover_url' => $post->cover?->url, 'cover_alt' => $post->cover?->alt_text, 'provider' => $post->provider, 'external_url' => $post->external_url, 'duration_seconds' => $post->duration_seconds, 'is_featured' => $post->is_featured, 'sort_order' => $post->sort_order, 'published_at' => $post->published_at?->toIso8601String(), 'author' => $post->relationLoaded('author') ? $post->author?->name : null];
+        return ['id' => $post->id, 'slug' => $post->slug, 'url' => $post->publicPath(), 'title' => $post->title, 'type' => $post->type->value, 'excerpt' => $post->excerpt, 'body' => $withBody ? $post->body : null, 'cover_url' => $post->cover?->url, 'cover_alt' => $post->cover?->alt_text, 'video_url' => $post->relationLoaded('video') ? $post->video?->url : null, 'video_name' => $post->relationLoaded('video') ? $post->video?->original_name : null, 'video_mime_type' => $post->relationLoaded('video') ? $post->video?->mime_type : null, 'provider' => $post->provider, 'external_url' => $post->external_url, 'duration_seconds' => $post->duration_seconds, 'is_featured' => $post->is_featured, 'sort_order' => $post->sort_order, 'published_at' => $post->published_at?->toIso8601String(), 'author' => $post->relationLoaded('author') ? $post->author?->name : null];
     }
 
     /** @return array<string, mixed> */
@@ -317,5 +321,10 @@ class SitePageController extends Controller
     private function absoluteUrl(string $path): string
     {
         return rtrim((string) config('app.url'), '/').'/'.ltrim($path, '/');
+    }
+
+    private function xmlDocument(string $body): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>'."\n".$body;
     }
 }

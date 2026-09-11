@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $body
  * @property string|null $provider
  * @property string|null $external_url
+ * @property int|null $video_media_id
  * @property int|null $duration_seconds
  * @property bool $is_featured
  * @property int $sort_order
@@ -32,7 +33,7 @@ class Post extends Model
 {
     use HasPublicationStatus, SoftDeletes;
 
-    protected $fillable = ['author_id', 'cover_media_id', 'type', 'title', 'slug', 'excerpt', 'body', 'provider', 'provider_media_id', 'provider_media_type', 'external_url', 'duration_seconds', 'is_featured', 'sort_order', 'status', 'published_at', 'seo_title', 'seo_description'];
+    protected $fillable = ['author_id', 'cover_media_id', 'video_media_id', 'type', 'title', 'slug', 'excerpt', 'body', 'provider', 'provider_media_id', 'provider_media_type', 'external_url', 'duration_seconds', 'is_featured', 'sort_order', 'status', 'published_at', 'seo_title', 'seo_description'];
 
     protected function casts(): array
     {
@@ -49,5 +50,20 @@ class Post extends Model
     public function cover(): BelongsTo
     {
         return $this->belongsTo(MediaAsset::class, 'cover_media_id');
+    }
+
+    /** @return BelongsTo<MediaAsset, $this> */
+    public function video(): BelongsTo
+    {
+        return $this->belongsTo(MediaAsset::class, 'video_media_id');
+    }
+
+    public function publicPath(): string
+    {
+        return match ($this->type) {
+            PostType::Article => '/noticias/'.$this->slug,
+            PostType::Vlog, PostType::Video, PostType::Podcast => '/midia/'.$this->slug,
+            PostType::Social => $this->external_url ?: '/',
+        };
     }
 }
