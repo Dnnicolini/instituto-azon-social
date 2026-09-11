@@ -143,6 +143,7 @@ it('seeds current content and editable structured home sections idempotently', f
         ->where('socialPosts.0.cover_url', '/social/instagram-lewa-ori.webp')
         ->where('socialPosts.0.body', fn (string $caption): bool => str_contains($caption, 'Contando com a colaboração voluntária'))
         ->where('projects.5.slug', 'ayi-gbe')
+        ->where('projects.5.badge_label', 'Corpo & saúde integral')
         ->where('projects.5.cover_url', '/projeto-ayi-gbe.webp')
         ->where('projects.5.cover_alt', 'AYI GBÈ — Saúde preventiva e cuidado com o corpo'));
 });

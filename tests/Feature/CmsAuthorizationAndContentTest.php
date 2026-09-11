@@ -6,6 +6,7 @@ use App\Models\ContactMessage;
 use App\Models\MediaAsset;
 use App\Models\Permission;
 use App\Models\Post;
+use App\Models\Project;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\AuthorizationSeeder;
@@ -328,6 +329,22 @@ it('rejects oversized image dimensions for projects and events', function (): vo
         'cover' => UploadedFile::fake()->image('evento.png', 20, 5001),
         'cover_alt' => 'Capa muito alta',
     ])->assertSessionHasErrors('cover');
+});
+
+it('stores the project badge configured in the admin form', function (): void {
+    $publisher = $this->cmsUser('publisher');
+
+    $this->actingAs($publisher)->post(route('admin.projects.store'), [
+        'title' => 'Projeto de leitura',
+        'slug' => 'projeto-leitura',
+        'summary' => 'Encontros comunitários de leitura.',
+        'badge_label' => 'Educação e cultura',
+        'status' => 'draft',
+        'sort_order' => 10,
+    ])->assertRedirect();
+
+    expect(Project::query()->where('slug', 'projeto-leitura')->value('badge_label'))
+        ->toBe('Educação e cultura');
 });
 
 it('publishes scheduled content once when it becomes due', function (): void {

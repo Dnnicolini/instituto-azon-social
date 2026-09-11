@@ -11,6 +11,7 @@ export function ProjectForm({ project }: { project?: Project }) {
         title: string;
         slug: string;
         summary: string;
+        badge_label: string;
         body: string;
         status: ContentStatus;
         published_at: string;
@@ -21,6 +22,7 @@ export function ProjectForm({ project }: { project?: Project }) {
         title: project?.title ?? '',
         slug: project?.slug ?? '',
         summary: project?.summary ?? '',
+        badge_label: project?.badge_label ?? 'Ação comunitária',
         body: project?.body ?? '',
         status: project?.status ?? 'draft',
         published_at: project?.published_at?.slice(0, 16) ?? '',
@@ -66,6 +68,24 @@ export function ProjectForm({ project }: { project?: Project }) {
                             />
                         </label>
                         <FieldError message={form.errors.slug} />
+                    </div>
+                    <div className="cms-field">
+                        <label>
+                            Badge do projeto
+                            <input
+                                maxLength={80}
+                                placeholder="Ex.: Saúde mental"
+                                value={form.data.badge_label}
+                                onChange={(e) =>
+                                    form.setData('badge_label', e.target.value)
+                                }
+                            />
+                        </label>
+                        <small>
+                            Texto curto exibido sobre a imagem do projeto no
+                            site.
+                        </small>
+                        <FieldError message={form.errors.badge_label} />
                     </div>
                     <div className="cms-field">
                         <label>

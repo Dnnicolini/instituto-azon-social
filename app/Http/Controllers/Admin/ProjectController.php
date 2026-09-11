@@ -81,6 +81,6 @@ class ProjectController extends AdminController
     /** @return array<string, mixed> */
     private function serialize(Project $project): array
     {
-        return ['id' => $project->id, 'name' => $project->title, 'title' => $project->title, 'slug' => $project->slug, 'summary' => $project->summary, 'body' => $project->body, 'status' => $project->status->value, 'cover_url' => $project->cover?->url, 'cover_alt' => $project->cover?->alt_text, 'published_at' => $project->published_at?->toIso8601String(), 'sort_order' => $project->sort_order, 'updated_at' => $project->updated_at?->toIso8601String()];
+        return ['id' => $project->id, 'name' => $project->title, 'title' => $project->title, 'slug' => $project->slug, 'summary' => $project->summary, 'badge_label' => $project->badge_label, 'body' => $project->body, 'status' => $project->status->value, 'cover_url' => $project->cover?->url, 'cover_alt' => $project->cover?->alt_text, 'published_at' => $project->published_at?->toIso8601String(), 'sort_order' => $project->sort_order, 'updated_at' => $project->updated_at?->toIso8601String()];
     }
 }

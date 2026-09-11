@@ -293,7 +293,7 @@ class SitePageController extends Controller
     /** @return array<string, mixed> */
     private function serializeProject(Project $project): array
     {
-        return ['id' => $project->id, 'name' => $project->title, 'title' => $project->title, 'slug' => $project->slug, 'summary' => $project->summary, 'body' => $project->body, 'status' => $project->status->value, 'cover_url' => $project->cover?->url, 'cover_alt' => $project->cover?->alt_text, 'sort_order' => $project->sort_order, 'published_at' => $project->published_at?->toIso8601String(), 'updated_at' => $project->updated_at?->toIso8601String()];
+        return ['id' => $project->id, 'name' => $project->title, 'title' => $project->title, 'slug' => $project->slug, 'summary' => $project->summary, 'body' => $project->body, 'badge_label' => $project->badge_label, 'status' => $project->status->value, 'cover_url' => $project->cover?->url, 'cover_alt' => $project->cover?->alt_text, 'sort_order' => $project->sort_order, 'published_at' => $project->published_at?->toIso8601String(), 'updated_at' => $project->updated_at?->toIso8601String()];
     }
 
     /** @return array<string, mixed> */

@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
  * @property string $title
  * @property string $slug
  * @property string|null $summary
+ * @property string|null $badge_label
  * @property string|null $body
  * @property ContentStatus $status
  * @property Carbon|null $published_at
@@ -24,7 +25,7 @@ class Project extends Model
 {
     use HasPublicationStatus, SoftDeletes;
 
-    protected $fillable = ['cover_media_id', 'title', 'slug', 'summary', 'body', 'status', 'published_at', 'sort_order'];
+    protected $fillable = ['cover_media_id', 'title', 'slug', 'summary', 'badge_label', 'body', 'status', 'published_at', 'sort_order'];
 
     protected function casts(): array
     {

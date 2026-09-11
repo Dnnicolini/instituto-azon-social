@@ -79,6 +79,7 @@ export type Project = {
     title: string;
     slug: string;
     summary: string;
+    badge_label?: string | null;
     body?: string | null;
     status: ContentStatus;
     cover_url?: string | null;

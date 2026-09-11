@@ -31,24 +31,26 @@ class ContentSeeder extends Seeder
         ];
 
         $projects = [
-            ['Lewa Orí', 'lewa-ori', 'Acolhimento, escuta qualificada e cuidado emocional como um direito para todas as pessoas.', null, 10, $assets['lewa']->id],
-            ['Ayidonun', 'ayidonun', 'Alimento como sustento, memória, afeto, dignidade e fortalecimento comunitário.', null, 20, $assets['social_proposito']->id],
-            ['Aman', 'aman', 'Valorização das folhas, dos saberes tradicionais e da relação ancestral com a natureza.', null, 30, $assets['aman']->id],
-            ['Emi Syó', 'emi-syo', 'Mobilização, defesa de direitos e fortalecimento das vozes do nosso território.', null, 40, $assets['social_resistencia']->id],
-            ['Huntó', 'hunto', 'Mestres dos saberes: valorização, transmissão e continuidade dos conhecimentos ancestrais.', null, 50, $assets['hunto']->id],
+            ['Lewa Orí', 'lewa-ori', 'Saúde mental', 'Acolhimento, escuta qualificada e cuidado emocional como um direito para todas as pessoas.', null, 10, $assets['lewa']->id],
+            ['Ayidonun', 'ayidonun', 'Soberania alimentar', 'Alimento como sustento, memória, afeto, dignidade e fortalecimento comunitário.', null, 20, $assets['social_proposito']->id],
+            ['Aman', 'aman', 'Agroecologia & saberes', 'Valorização das folhas, dos saberes tradicionais e da relação ancestral com a natureza.', null, 30, $assets['aman']->id],
+            ['Emi Syó', 'emi-syo', 'Juventude & direitos', 'Mobilização, defesa de direitos e fortalecimento das vozes do nosso território.', null, 40, $assets['social_resistencia']->id],
+            ['Huntó', 'hunto', 'Mestres dos saberes', 'Mestres dos saberes: valorização, transmissão e continuidade dos conhecimentos ancestrais.', null, 50, $assets['hunto']->id],
             [
                 'AYI GBÈ',
                 'ayi-gbe',
+                'Corpo & saúde integral',
                 'Vida na Terra, cuidado com o corpo e saúde preventiva para valorizar a vida e promover o bem-estar.',
                 "AYI GBÈ — Saúde que começa no cuidado com a vida.\n\nAyi representa a dimensão da terra, do mundo e do lugar onde vivemos. Gbè está ligado à ideia de vida, existência e vivência. Assim, AYI GBÈ é um projeto do Instituto Azon Social voltado para a valorização da vida por meio do cuidado com o corpo, da prevenção, da educação em saúde e da promoção do bem-estar.\n\nA proposta trabalha a saúde de maneira preventiva e integral, aproximando conhecimento, comunidade e ancestralidade. O projeto pode desenvolver ações de orientação sobre prevenção de doenças, alimentação, atividade física, saúde do corpo, hábitos saudáveis, acompanhamento e encaminhamento para serviços de saúde quando necessário.\n\nCuidar da vida começa cuidando do corpo e do ambiente em que essa vida existe.",
                 60,
                 $assets['ayi_gbe']->id,
             ],
         ];
-        foreach ($projects as [$title, $slug, $summary, $body, $order, $coverMediaId]) {
+        foreach ($projects as [$title, $slug, $badgeLabel, $summary, $body, $order, $coverMediaId]) {
             Project::query()->firstOrCreate(['slug' => $slug], [
                 'title' => $title,
                 'summary' => $summary,
+                'badge_label' => $badgeLabel,
                 'body' => $body ?: $summary,
                 'status' => ContentStatus::Published,
                 'published_at' => '2026-01-01 12:00:00',

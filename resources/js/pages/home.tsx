@@ -26,15 +26,6 @@ type HomeProps = {
 
 const instagramProfileUrl = 'https://www.instagram.com/azon.social/';
 
-const projectBadges: Record<string, string> = {
-    'lewa-ori': 'Saúde mental',
-    ayidonun: 'Soberania alimentar',
-    aman: 'Agroecologia & saberes',
-    'emi-syo': 'Juventude & direitos',
-    hunto: 'Mestres dos saberes',
-    'ayi-gbe': 'Corpo & saúde integral',
-};
-
 type ValueIconName = 'ancestry' | 'care' | 'transformation';
 
 function ValueIcon({ name }: { name: ValueIconName }) {
@@ -385,7 +376,7 @@ export default function Home({
                                             </div>
                                         )}
                                         <span className="project-badge">
-                                            {projectBadges[project.slug] ??
+                                            {project.badge_label ||
                                                 'Ação comunitária'}
                                         </span>
                                     </div>
