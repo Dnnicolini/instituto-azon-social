@@ -31,7 +31,7 @@
             <meta data-inertia="og:image:height" property="og:image:height" content="{{ $seo['imageHeight'] ?? 630 }}">
             <meta data-inertia="og:image:type" property="og:image:type" content="{{ $seo['imageType'] ?? 'image/png' }}">
             <meta data-inertia="og:image:alt" property="og:image:alt" content="{{ $seo['imageAlt'] ?? 'Logomarca do Instituto Azon Social' }}">
-            <meta data-inertia="twitter:card" name="twitter:card" content="summary">
+            <meta data-inertia="twitter:card" name="twitter:card" content="{{ $seo['twitterCard'] ?? 'summary' }}">
             <meta data-inertia="twitter:title" name="twitter:title" content="{{ $seo['title'] ?? config('app.name') }}">
             <meta data-inertia="twitter:description" name="twitter:description" content="{{ $seo['description'] ?? config('site.description') }}">
             <meta data-inertia="twitter:image" name="twitter:image" content="{{ $seo['image'] ?? url('/azon-social-share-v2.png') }}">

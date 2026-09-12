@@ -1,5 +1,9 @@
 <?php
 
+use App\Enums\ContentStatus;
+use App\Enums\PostType;
+use App\Models\MediaAsset;
+use App\Models\Post;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
@@ -62,6 +66,87 @@ it('renders the public calendar with indexable metadata', function (): void {
             ->where('seo.canonical', 'https://instituto-azon-social.dnnicolini.chatgpt.site/calendario')
             ->has('events', 0)
             ->has('seo.schema', 2));
+});
+
+it('describes published articles with their real cover and structured data', function (): void {
+    $cover = MediaAsset::query()->create([
+        'disk' => 'site',
+        'path' => 'seo/noticia.webp',
+        'original_name' => 'noticia.webp',
+        'mime_type' => 'image/webp',
+        'size' => 2048,
+        'alt_text' => 'Ação comunitária do Instituto Azon Social',
+        'width' => 1200,
+        'height' => 800,
+    ]);
+    $post = Post::query()->create([
+        'cover_media_id' => $cover->id,
+        'type' => PostType::Article,
+        'title' => 'Ação comunitária em Sepetiba',
+        'slug' => 'acao-comunitaria-sepetiba',
+        'excerpt' => 'O Instituto Azon Social promove uma nova ação no território.',
+        'status' => ContentStatus::Published,
+        'published_at' => now()->subHour(),
+    ]);
+
+    $response = $this->get(route('articles.show', $post));
+
+    $response->assertOk()->assertInertia(fn (Assert $page): Assert => $page
+        ->where('seo.image', 'https://instituto-azon-social.dnnicolini.chatgpt.site/seo/noticia.webp')
+        ->where('seo.imageAlt', 'Ação comunitária do Instituto Azon Social')
+        ->where('seo.imageWidth', 1200)
+        ->where('seo.imageHeight', 800)
+        ->where('seo.imageType', 'image/webp')
+        ->where('seo.twitterCard', 'summary_large_image')
+        ->where('seo.schema.1.@type', 'Article')
+        ->where('seo.schema.1.headline', 'Ação comunitária em Sepetiba')
+        ->where('seo.schema.2.@type', 'BreadcrumbList')
+        ->has('seo.schema', 3));
+
+    $response
+        ->assertSee('<meta data-inertia="og:image" property="og:image" content="https://instituto-azon-social.dnnicolini.chatgpt.site/seo/noticia.webp">', false)
+        ->assertSee('<meta data-inertia="twitter:card" name="twitter:card" content="summary_large_image">', false)
+        ->assertSee('"@type":"Article"', false)
+        ->assertSee('"@type":"BreadcrumbList"', false);
+});
+
+it('describes hosted videos with discoverable video metadata', function (): void {
+    $cover = MediaAsset::query()->create([
+        'disk' => 'site',
+        'path' => 'seo/video.webp',
+        'original_name' => 'video.webp',
+        'mime_type' => 'image/webp',
+        'size' => 2048,
+        'width' => 1280,
+        'height' => 720,
+    ]);
+    $video = MediaAsset::query()->create([
+        'disk' => 'site',
+        'path' => 'seo/video.mp4',
+        'original_name' => 'video.mp4',
+        'mime_type' => 'video/mp4',
+        'size' => 4096,
+    ]);
+    $post = Post::query()->create([
+        'cover_media_id' => $cover->id,
+        'video_media_id' => $video->id,
+        'type' => PostType::Video,
+        'title' => 'Memórias do território',
+        'slug' => 'memorias-do-territorio',
+        'excerpt' => 'Um registro audiovisual das histórias de Sepetiba.',
+        'duration_seconds' => 3723,
+        'status' => ContentStatus::Published,
+        'published_at' => now()->subHour(),
+    ]);
+
+    $this->get(route('media.show', $post))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->where('seo.schema.1.@type', 'VideoObject')
+            ->where('seo.schema.1.contentUrl', 'https://instituto-azon-social.dnnicolini.chatgpt.site/seo/video.mp4')
+            ->where('seo.schema.1.thumbnailUrl.0', 'https://instituto-azon-social.dnnicolini.chatgpt.site/seo/video.webp')
+            ->where('seo.schema.1.duration', 'PT1H2M3S')
+            ->has('seo.schema', 3));
 });
 
 it('keeps authentication out of search indexes and blocks the admin dashboard', function (): void {

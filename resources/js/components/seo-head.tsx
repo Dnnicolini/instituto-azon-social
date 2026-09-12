@@ -60,7 +60,7 @@ export function SeoHead({ seo }: SeoHeadProps) {
             <meta
                 head-key="twitter:card"
                 name="twitter:card"
-                content="summary"
+                content={seo.twitterCard}
             />
             <meta
                 head-key="twitter:title"

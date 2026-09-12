@@ -10,6 +10,7 @@ export type SeoData = {
     imageWidth: number;
     imageHeight: number;
     imageType: string;
+    twitterCard: 'summary' | 'summary_large_image';
     keywords: string;
     type: string;
     locale: string;

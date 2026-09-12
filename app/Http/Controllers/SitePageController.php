@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\PostType;
 use App\Models\Document;
 use App\Models\Event;
+use App\Models\MediaAsset;
 use App\Models\Page;
 use App\Models\Post;
 use App\Models\Project;
@@ -12,6 +13,7 @@ use App\Models\SiteSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -161,7 +163,7 @@ class SitePageController extends Controller
         return Inertia::render('media/show', [
             'post' => $this->serializePost($post, withBody: true),
             'related' => Post::query()->published()->with('cover')->where('type', $post->type)->whereKeyNot($post->id)->latest('published_at')->limit(3)->get()->map(fn (Post $related): array => $this->serializePost($related)),
-            'seo' => $this->seo($post->seo_title ?: $post->title.' | Instituto Azon Social', $post->seo_description ?: ($post->excerpt ?: (string) config('site.description')), $post->publicPath(), type: $post->type === PostType::Podcast ? 'music.song' : 'video.other'),
+            'seo' => $this->postSeo($post),
         ]);
     }
 
@@ -173,7 +175,7 @@ class SitePageController extends Controller
         return Inertia::render('media/show', [
             'post' => $this->serializePost($post, withBody: true),
             'related' => Post::query()->published()->with('cover')->where('type', PostType::Article)->whereKeyNot($post->id)->latest('published_at')->limit(3)->get()->map(fn (Post $related): array => $this->serializePost($related)),
-            'seo' => $this->seo($post->seo_title ?: $post->title.' | Instituto Azon Social', $post->seo_description ?: ($post->excerpt ?: (string) config('site.description')), $post->publicPath(), type: 'article'),
+            'seo' => $this->postSeo($post),
         ]);
     }
 
@@ -246,12 +248,22 @@ class SitePageController extends Controller
 
     public function sitemap(): Response
     {
+        $latestHomeUpdate = collect([
+            Page::query()->published()->where('slug', 'inicio')->max('updated_at'),
+            Post::query()->published()->max('updated_at'),
+            Project::query()->published()->max('updated_at'),
+            Event::query()->published()->max('updated_at'),
+        ])->filter()->max();
+        $latestEventUpdate = Event::query()->published()->max('updated_at');
+        $latestArticleUpdate = Post::query()->published()->where('type', PostType::Article)->max('updated_at');
+        $latestMediaUpdate = Post::query()->published()->whereIn('type', [PostType::Vlog, PostType::Video, PostType::Podcast])->max('updated_at');
+
         $urls = [
-            ['loc' => $this->absoluteUrl('/'), 'priority' => '1.0'],
-            ['loc' => $this->absoluteUrl('/eventos'), 'priority' => '0.8'],
-            ['loc' => $this->absoluteUrl('/calendario'), 'priority' => '0.8'],
-            ['loc' => $this->absoluteUrl('/noticias'), 'priority' => '0.8'],
-            ['loc' => $this->absoluteUrl('/midia'), 'priority' => '0.8'],
+            ['loc' => $this->absoluteUrl('/'), 'priority' => '1.0', 'lastmod' => $this->atomDate($latestHomeUpdate)],
+            ['loc' => $this->absoluteUrl('/eventos'), 'priority' => '0.8', 'lastmod' => $this->atomDate($latestEventUpdate)],
+            ['loc' => $this->absoluteUrl('/calendario'), 'priority' => '0.8', 'lastmod' => $this->atomDate($latestEventUpdate)],
+            ['loc' => $this->absoluteUrl('/noticias'), 'priority' => '0.8', 'lastmod' => $this->atomDate($latestArticleUpdate)],
+            ['loc' => $this->absoluteUrl('/midia'), 'priority' => '0.8', 'lastmod' => $this->atomDate($latestMediaUpdate)],
         ];
         Post::query()->published()->whereIn('type', [PostType::Vlog, PostType::Video, PostType::Podcast])->select(['slug', 'type', 'updated_at'])->latest('updated_at')->limit(45000)->each(function (Post $post) use (&$urls): void {
             $urls[] = ['loc' => $this->absoluteUrl($post->publicPath()), 'priority' => '0.7', 'lastmod' => $post->updated_at?->toAtomString()];
@@ -269,9 +281,96 @@ class SitePageController extends Controller
     /** @param array<int, array<string, mixed>> $schema
      * @return array<string, mixed>
      */
-    private function seo(string $title, string $description, string $path, string $robots = 'index, follow, max-image-preview:large', array $schema = [], string $type = 'website'): array
+    private function seo(string $title, string $description, string $path, string $robots = 'index, follow, max-image-preview:large', array $schema = [], string $type = 'website', ?MediaAsset $image = null, ?string $imageAlt = null): array
     {
-        return ['title' => $title, 'description' => $description, 'canonical' => $this->absoluteUrl($path), 'robots' => $robots, 'image' => $this->absoluteUrl('/azon-social-share-v2.png'), 'imageAlt' => 'Logomarca do Instituto Azon Social', 'imageWidth' => 1200, 'imageHeight' => 630, 'imageType' => 'image/png', 'keywords' => implode(', ', (array) config('site.keywords')), 'type' => $type, 'locale' => 'pt_BR', 'siteName' => config('site.name'), 'schema' => $schema];
+        $fallbackImage = $this->absoluteUrl('/azon-social-share-v2.png');
+        $imageUrl = $image ? $this->absoluteAssetUrl($image->url) : $fallbackImage;
+
+        return ['title' => $title, 'description' => $description, 'canonical' => $this->absoluteUrl($path), 'robots' => $robots, 'image' => $imageUrl, 'imageAlt' => $imageAlt ?: ($image?->alt_text ?: 'Logomarca do Instituto Azon Social'), 'imageWidth' => $image?->width ?: 1200, 'imageHeight' => $image?->height ?: 630, 'imageType' => $image?->mime_type ?: 'image/png', 'twitterCard' => $image ? 'summary_large_image' : 'summary', 'keywords' => implode(', ', (array) config('site.keywords')), 'type' => $type, 'locale' => 'pt_BR', 'siteName' => config('site.name'), 'schema' => $schema];
+    }
+
+    /** @return array<string, mixed> */
+    private function postSeo(Post $post): array
+    {
+        $organization = $this->organizationSchema();
+        $description = $post->seo_description ?: ($post->excerpt ?: (string) config('site.description'));
+        $section = $post->type === PostType::Article ? 'Notícias' : 'Mídia';
+        $sectionPath = $post->type === PostType::Article ? '/noticias' : '/midia';
+
+        return $this->seo(
+            title: $post->seo_title ?: $post->title.' | Instituto Azon Social',
+            description: $description,
+            path: $post->publicPath(),
+            schema: [
+                $organization,
+                $this->postSchema($post, $description, $organization['@id']),
+                [
+                    '@context' => 'https://schema.org',
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Início', 'item' => $this->absoluteUrl('/')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => $section, 'item' => $this->absoluteUrl($sectionPath)],
+                        ['@type' => 'ListItem', 'position' => 3, 'name' => $post->title, 'item' => $this->absoluteUrl($post->publicPath())],
+                    ],
+                ],
+            ],
+            type: $post->type === PostType::Article ? 'article' : ($post->type === PostType::Podcast ? 'music.song' : 'video.other'),
+            image: $post->cover,
+            imageAlt: $post->cover?->alt_text ?: $post->title,
+        );
+    }
+
+    /** @return array<string, mixed> */
+    private function postSchema(Post $post, string $description, string $organizationId): array
+    {
+        $url = $this->absoluteUrl($post->publicPath());
+        $image = $post->cover ? $this->absoluteAssetUrl($post->cover->url) : $this->absoluteUrl('/azon-social-share-v2.png');
+        $author = $post->author
+            ? ['@type' => 'Person', 'name' => $post->author->name]
+            : ['@id' => $organizationId];
+        $common = [
+            '@context' => 'https://schema.org',
+            '@id' => $url.'#content',
+            'url' => $url,
+            'name' => $post->title,
+            'description' => $description,
+            'image' => $image,
+            'datePublished' => $post->published_at?->toIso8601String(),
+            'dateModified' => $post->updated_at?->toIso8601String(),
+            'inLanguage' => 'pt-BR',
+            'author' => $author,
+            'publisher' => ['@id' => $organizationId],
+            'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $url],
+        ];
+
+        if ($post->type === PostType::Article) {
+            return ['@type' => 'Article', 'headline' => mb_substr($post->title, 0, 110)] + $common;
+        }
+
+        if ($post->type === PostType::Podcast) {
+            $schema = ['@type' => 'PodcastEpisode'] + $common;
+            if ($post->duration_seconds) {
+                $schema['duration'] = $this->isoDuration($post->duration_seconds);
+            }
+            if ($post->video) {
+                $schema['associatedMedia'] = ['@type' => 'MediaObject', 'contentUrl' => $this->absoluteAssetUrl($post->video->url), 'encodingFormat' => $post->video->mime_type];
+            }
+            if ($post->external_url) {
+                $schema['sameAs'] = $post->external_url;
+            }
+
+            return $schema;
+        }
+
+        $schema = ['@type' => 'VideoObject', 'thumbnailUrl' => [$image], 'uploadDate' => $post->published_at?->toIso8601String()] + $common;
+        if ($post->duration_seconds) {
+            $schema['duration'] = $this->isoDuration($post->duration_seconds);
+        }
+        if ($post->video) {
+            $schema['contentUrl'] = $this->absoluteAssetUrl($post->video->url);
+        }
+
+        return $schema;
     }
 
     /** @return array<string, mixed> */
@@ -321,6 +420,27 @@ class SitePageController extends Controller
     private function absoluteUrl(string $path): string
     {
         return rtrim((string) config('app.url'), '/').'/'.ltrim($path, '/');
+    }
+
+    private function absoluteAssetUrl(string $url): string
+    {
+        return str_starts_with($url, 'http://') || str_starts_with($url, 'https://')
+            ? $url
+            : $this->absoluteUrl($url);
+    }
+
+    private function atomDate(mixed $date): ?string
+    {
+        return $date ? Carbon::parse($date)->toAtomString() : null;
+    }
+
+    private function isoDuration(int $seconds): string
+    {
+        $hours = intdiv($seconds, 3600);
+        $minutes = intdiv($seconds % 3600, 60);
+        $remainingSeconds = $seconds % 60;
+
+        return 'PT'.($hours > 0 ? $hours.'H' : '').($minutes > 0 ? $minutes.'M' : '').($remainingSeconds > 0 || ($hours === 0 && $minutes === 0) ? $remainingSeconds.'S' : '');
     }
 
     private function xmlDocument(string $body): string
