@@ -36,6 +36,19 @@ fi
 if [[ -z "${APP_KEY_VALUE:-}" ]]; then
     APP_KEY_VALUE="base64:$(openssl rand -base64 32 | tr -d '\n')"
 fi
+if [[ "${MEDIA_DISK_VALUE:-public}" == 'r2' ]]; then
+    for REQUIRED_R2_VARIABLE in \
+        R2_ACCESS_KEY_ID_VALUE \
+        R2_SECRET_ACCESS_KEY_VALUE \
+        R2_BUCKET_VALUE \
+        R2_ENDPOINT_VALUE \
+        R2_URL_VALUE; do
+        if [[ -z "${!REQUIRED_R2_VARIABLE:-}" ]]; then
+            echo "${REQUIRED_R2_VARIABLE%_VALUE} must be set when MEDIA_DISK=r2." >&2
+            exit 64
+        fi
+    done
+fi
 install -m 0640 -o root -g www-data /dev/null "$ENV_FILE"
 printf '%s\n' \
     'APP_NAME="Instituto Azon Social"' \
@@ -68,8 +81,8 @@ printf '%s\n' \
     "R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY_VALUE:-}" \
     'R2_REGION=auto' \
     "R2_BUCKET=${R2_BUCKET_VALUE:-azon-social-media}" \
-    "R2_ENDPOINT=${R2_ENDPOINT_VALUE:-https://SEU_ACCOUNT_ID.r2.cloudflarestorage.com}" \
-    "R2_URL=${R2_URL_VALUE:-https://SEU_SUBDOMINIO_PUBLICO.r2.dev}" \
+    "R2_ENDPOINT=${R2_ENDPOINT_VALUE:-}" \
+    "R2_URL=${R2_URL_VALUE:-}" \
     'QUEUE_CONNECTION=database' \
     'CACHE_STORE=database' \
     'MAIL_MAILER=log' \

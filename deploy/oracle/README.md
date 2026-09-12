@@ -15,7 +15,15 @@ certificate with `enable-tls.sh` only after the DNS A record points to the VM.
 The TLS step installs `azon.nginx.tls.conf`, redirects HTTP and `www` to the
 canonical HTTPS domain, redirects `admin.azonsocial.org.br` to the protected
 `/admin` area, and verifies automatic certificate renewal. Configure the root,
-`www` and `admin` DNS records before running it.
+`www` and `admin` DNS records before running it. Provide the expected server
+address and the certificate notification email at runtime instead of storing
+them in the repository:
+
+```bash
+EXPECTED_IP=203.0.113.10 \
+CONTACT_EMAIL=certificates@example.org \
+./enable-tls.sh
+```
 
 The daily backup timer keeps seven days of SQLite and upload snapshots under
 `/var/backups/azon`. These local copies protect against accidental application
