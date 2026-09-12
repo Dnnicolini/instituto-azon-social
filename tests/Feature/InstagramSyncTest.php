@@ -3,8 +3,17 @@
 use App\Models\Post;
 use App\Models\SocialIntegration;
 use App\Services\InstagramFeedSynchronizer;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+
+it('schedules the automatic Instagram sync every four hours', function (): void {
+    $event = collect(app(Schedule::class)->events())
+        ->first(fn ($event): bool => str_contains($event->command ?? '', 'instagram:sync'));
+
+    expect($event)->not->toBeNull()
+        ->and($event->expression)->toBe('0 */4 * * *');
+});
 
 it('skips the automatic Instagram sync cleanly while the integration is inactive', function (): void {
     config([

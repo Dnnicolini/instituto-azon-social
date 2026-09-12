@@ -59,7 +59,7 @@ Grupos personalizados podem ser criados pelo administrador. O backend aplica tod
 
 ## Sincronização do Instagram
 
-O feed oficial [@azon.social](https://www.instagram.com/azon.social/) pode ser conectado por um administrador em **Configurações → Instagram**. A integração usa a API oficial da Meta, salva o token criptografado, copia as imagens para o disco de mídia configurado e preserva o conteúdo anterior se a API estiver indisponível. O scheduler verifica novas publicações a cada dez minutos e renova semanalmente o token de longa duração.
+O feed oficial [@azon.social](https://www.instagram.com/azon.social/) pode ser conectado por um administrador em **Configurações → Instagram**. A integração usa a API oficial da Meta, salva o token criptografado, copia as imagens para o disco de mídia configurado e preserva o conteúdo anterior se a API estiver indisponível. O scheduler verifica novas publicações diariamente a cada quatro horas (`00:00`, `04:00`, `08:00`, `12:00`, `16:00` e `20:00`, no fuso da aplicação) e renova semanalmente o token de longa duração.
 
 Configuração inicial na Meta:
 
