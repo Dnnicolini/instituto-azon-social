@@ -74,7 +74,9 @@ O aplicativo solicita apenas `instagram_business_basic`, suficiente para ler a m
 
 ## Armazenamento de mídias no Cloudflare R2
 
-O bucket `azon-social-media` foi criado na conta Cloudflare pessoal destinada ao projeto, com leitura pública pela URL `r2.dev`. Imagens, documentos e mídias enviados pelo CMS ou sincronizados do Instagram usam o disco definido por `MEDIA_DISK`. O padrão continua sendo `public`, portanto o desenvolvimento local e uma produção ainda sem credenciais R2 não deixam de funcionar.
+O bucket `azon-social-media` foi criado na conta Cloudflare pessoal destinada ao projeto, com leitura pública pela URL `r2.dev`. Imagens e mídias enviadas pelo CMS ou sincronizadas do Instagram usam o disco definido por `MEDIA_DISK`. O padrão continua sendo `public`, portanto o desenvolvimento local e uma produção ainda sem credenciais R2 não deixam de funcionar.
+
+PDFs de documentos são uma exceção: ficam sempre no disco `local` privado (`storage/app/private/cms/documents`, dentro do armazenamento compartilhado entre releases na Azure), independentemente de `MEDIA_DISK`. O site só entrega o arquivo por `/documentos/{id}/arquivo` se o documento estiver publicado e sua data já tiver chegado. A prévia em `/admin/documentos/{id}/arquivo` exige autenticação e permissão de visualização. Não crie links diretos para `/storage/cms/documents` nem envie documentos ao bucket público.
 
 Para ativar o R2, crie no painel Cloudflare um token de API R2 limitado ao bucket `azon-social-media`, com leitura e gravação de objetos. Guarde a Access Key ID e a Secret Access Key somente no cofre/arquivo de ambiente protegido do servidor; nunca no Git. A configuração esperada é:
 
@@ -98,7 +100,7 @@ php artisan media:migrate-storage --from=public --to=r2
 php artisan config:cache
 ```
 
-O primeiro comando leva ao R2 as imagens institucionais que acompanham a aplicação; o segundo leva os uploads feitos pelo CMS. Ambos são idempotentes: arquivos já enviados não são duplicados e o banco só passa a apontar para o R2 após o destino confirmar o objeto. Depois de conferir o site e possuir backup válido, uma segunda execução remove as antigas cópias públicas:
+O primeiro comando leva ao R2 as imagens institucionais que acompanham a aplicação; o segundo leva os uploads públicos feitos pelo CMS, **exceto documentos**. Ambos são idempotentes: arquivos já enviados não são duplicados e o banco só passa a apontar para o R2 após o destino confirmar o objeto. Se houver documentos no disco de origem, o comando falha antes de copiar qualquer arquivo; migre os PDFs legados para o disco privado e confira banco, checksums e URLs antes de repetir. A produção tinha zero documentos na auditoria de segurança, mas essa contagem deve ser verificada novamente imediatamente antes de cada implantação. Depois de conferir o site e possuir backup válido, uma segunda execução remove as antigas cópias públicas:
 
 ```bash
 php artisan media:migrate-storage --from=public --to=r2 --delete-source
@@ -114,7 +116,7 @@ O Laravel Scheduler executa `cms:publish-scheduled` a cada minuto, com proteçã
 * * * * * cd /caminho/do/projeto && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Mantenha também os processos de fila e `php artisan inertia:start-ssr` sob um supervisor. Em produção, use `APP_ENV=production`, `APP_DEBUG=false`, HTTPS, cookies seguros, backup do banco e armazenamento persistente. Enquanto `MEDIA_DISK=public`, preserve `storage/app/public`; com `MEDIA_DISK=r2`, mantenha backup e política de retenção também para o bucket. `APP_URL` deve apontar para o domínio canônico e `APP_TIMEZONE` para `America/Sao_Paulo`.
+Mantenha também os processos de fila e `php artisan inertia:start-ssr` sob um supervisor. Em produção, use `APP_ENV=production`, `APP_DEBUG=false`, HTTPS, cookies seguros, backup do banco e armazenamento persistente. Faça backup de `storage/app/private` para preservar os PDFs em qualquer configuração de `MEDIA_DISK`. Enquanto `MEDIA_DISK=public`, preserve também `storage/app/public`; com `MEDIA_DISK=r2`, mantenha backup e política de retenção também para o bucket. `APP_URL` deve apontar para o domínio canônico e `APP_TIMEZONE` para `America/Sao_Paulo`.
 
 ## Verificações
 

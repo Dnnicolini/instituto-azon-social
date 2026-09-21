@@ -5,6 +5,7 @@ on:
     branches:
       - main
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
@@ -31,11 +32,30 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Setup Application
-        run: composer setup
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --no-progress --prefer-dist
+          npm ci
+
+      - name: Prepare application
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+          php artisan migrate --force
+          php artisan storage:link
+
+      - name: Build application
+        run: npm run build:ssr
 
       - name: Run CI Checks
         run: composer ci:check
+
+      - name: Run frontend unit tests
+        run: npm exec vp test -- resources/js/components/seo-head.test.ts
+
+      - name: Validate Azure deploy script syntax
+        run: bash -n deploy/azure/deploy-from-github.sh deploy/azure/deploy-release.sh
 
       - name: Prepare browser tests
         run: |

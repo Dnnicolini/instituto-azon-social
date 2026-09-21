@@ -25,7 +25,7 @@ it('renders the institutional home with complete SEO data', function (): void {
         ->has('seo.schema', 2));
 
     $response
-        ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'")
+        ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'; object-src 'none'")
         ->assertHeader('X-Content-Type-Options', 'nosniff')
         ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
         ->assertSee('<html lang="pt-BR">', false)

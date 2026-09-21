@@ -31,7 +31,7 @@ class DocumentController extends AdminController
     {
         $document = DB::transaction(function () use ($request): Document {
             $data = $this->normalizePublication(Arr::except($request->validated(), 'file'));
-            $data['media_asset_id'] = $this->createAsset($request->file('file'), 'cms/documents')->id;
+            $data['media_asset_id'] = $this->createAsset($request->file('file'), 'cms/documents', disk: 'local')->id;
             $document = Document::query()->create($data);
             $this->recordChange('document.created', $document);
 
@@ -54,7 +54,7 @@ class DocumentController extends AdminController
             $before = $document->attributesToArray();
             $data = $this->normalizePublication(Arr::except($request->validated(), 'file'));
             if ($request->hasFile('file')) {
-                $data['media_asset_id'] = $this->createAsset($request->file('file'), 'cms/documents')->id;
+                $data['media_asset_id'] = $this->createAsset($request->file('file'), 'cms/documents', disk: 'local')->id;
             }
             $document->update($data);
             $this->recordChange('document.updated', $document, $before);
@@ -77,6 +77,6 @@ class DocumentController extends AdminController
     /** @return array<string, mixed> */
     private function serialize(Document $document): array
     {
-        return ['id' => $document->id, 'title' => $document->title, 'slug' => $document->slug, 'description' => $document->description, 'category' => $document->category, 'status' => $document->status->value, 'file_url' => $document->media?->url, 'published_at' => $document->published_at?->toIso8601String(), 'updated_at' => $document->updated_at?->toIso8601String()];
+        return ['id' => $document->id, 'title' => $document->title, 'slug' => $document->slug, 'description' => $document->description, 'category' => $document->category, 'status' => $document->status->value, 'file_url' => $document->media?->disk === 'local' ? route('admin.documents.file', $document) : null, 'published_at' => $document->published_at?->toIso8601String(), 'updated_at' => $document->updated_at?->toIso8601String()];
     }
 }

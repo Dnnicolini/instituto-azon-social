@@ -16,6 +16,7 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\DocumentFileController;
 use App\Http\Controllers\SitePageController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +39,7 @@ Route::controller(SitePageController::class)->group(function (): void {
     Route::get('/sitemap.xml', 'sitemap')->name('sitemap');
 });
 Route::post('/contato', [ContactController::class, 'store'])->middleware('throttle:5,10')->name('contact.store');
+Route::get('/documentos/{document}/arquivo', [DocumentFileController::class, 'show'])->name('documents.file');
 
 Route::prefix('admin')->middleware('noindex')->group(function (): void {
     Route::middleware('guest')->group(function (): void {
@@ -49,7 +51,7 @@ Route::prefix('admin')->middleware('noindex')->group(function (): void {
         Route::post('/redefinir-senha', [NewPasswordController::class, 'store'])->middleware('throttle:5,1')->name('password.store');
     });
 
-    Route::get('/verificar-email/{id}/{hash}', [EmailVerificationController::class, 'verify'])->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
+    Route::get('/verificar-email/{id}/{hash}', [EmailVerificationController::class, 'verify'])->middleware(['signed:relative', 'throttle:6,1'])->name('verification.verify');
 
     Route::middleware(['auth', 'auth.session'])->group(function (): void {
         Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('admin.logout');
@@ -63,6 +65,7 @@ Route::prefix('admin')->middleware('noindex')->group(function (): void {
         Route::resource('projetos', ProjectController::class)->except('show')->parameters(['projetos' => 'project'])->names('projects');
         Route::resource('eventos', EventController::class)->except('show')->parameters(['eventos' => 'event'])->names('events');
         Route::resource('documentos', DocumentController::class)->except('show')->parameters(['documentos' => 'document'])->names('documents');
+        Route::get('/documentos/{document}/arquivo', [DocumentFileController::class, 'preview'])->name('documents.file');
         Route::resource('paginas', PageController::class)->except('show')->parameters(['paginas' => 'page'])->names('pages');
         Route::get('/configuracoes', [SettingsController::class, 'edit'])->name('settings.edit');
         Route::put('/configuracoes', [SettingsController::class, 'update'])->name('settings.update');

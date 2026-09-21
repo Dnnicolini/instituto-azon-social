@@ -1,0 +1,86 @@
+name: Deploy Azure VM
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/tests.yml
+    permissions:
+      contents: read
+
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    concurrency:
+      group: azon-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_CORE_OUTPUT: none
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AZURE_VM_NAME: ${{ vars.AZURE_VM_NAME }}
+
+    steps:
+      - name: Checkout approved commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate target and commit
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          if [[ -z "$AZURE_CLIENT_ID" || -z "$AZURE_TENANT_ID" || -z "$AZURE_SUBSCRIPTION_ID" ]]; then
+            echo 'Identidade OIDC Azure não configurada no ambiente production.' >&2
+            exit 78
+          fi
+          if [[ "$AZURE_RESOURCE_GROUP" != 'rg-azon-crm-prod-eastus2' || "$AZURE_VM_NAME" != 'vm-azon-crm-prod-01' ]]; then
+            echo 'O destino Azure não corresponde à VM Azon de produção.' >&2
+            exit 78
+          fi
+          test -f deploy/azure/deploy-from-github.sh
+
+      - name: Authenticate to Azure using OIDC
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy the verified commit to the VM
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          set -Eeuo pipefail
+          result=$(az vm run-command invoke \
+            --subscription "$AZURE_SUBSCRIPTION_ID" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_VM_NAME" \
+            --command-id RunShellScript \
+            --scripts @deploy/azure/deploy-from-github.sh \
+            --parameters "$GITHUB_SHA" "$GITHUB_RUN_ID" \
+            --output json)
+          if ! jq -e --arg sha "$GITHUB_SHA" \
+            '[.value[]?.message // ""] | join("\n") | contains("AZON_DEPLOY_OK=" + $sha)' \
+            >/dev/null <<< "$result"; then
+            echo 'A VM não confirmou o deploy. Verifique o Run Command no Azure antes de tentar novamente.' >&2
+            exit 1
+          fi
+          echo "Deploy confirmado para o commit $GITHUB_SHA"
+
+      - name: Check the public health endpoint
+        run: curl --fail --silent --show-error --output /dev/null --retry 3 --retry-delay 2 https://azonsocial.org.br/up

@@ -1,9 +1,13 @@
 import { Head } from '@inertiajs/react';
-import type { SeoData } from '@/types/seo';
+import type { SeoData, StructuredData } from '@/types/seo';
 
 type SeoHeadProps = {
     seo: SeoData;
 };
+
+export function serializeJsonLd(schema: StructuredData): string {
+    return JSON.stringify(schema).replace(/</g, '\\u003c');
+}
 
 export function SeoHead({ seo }: SeoHeadProps) {
     return (
@@ -87,7 +91,9 @@ export function SeoHead({ seo }: SeoHeadProps) {
                     head-key={`structured-data-${index}`}
                     key={`structured-data-${index}`}
                     type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+                    dangerouslySetInnerHTML={{
+                        __html: serializeJsonLd(schema),
+                    }}
                 />
             ))}
         </Head>
