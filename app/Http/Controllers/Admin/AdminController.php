@@ -12,11 +12,11 @@ use Illuminate\Http\UploadedFile;
 
 abstract class AdminController extends Controller
 {
-    protected function createAsset(UploadedFile $file, string $folder, ?string $altText = null): MediaAsset
+    protected function createAsset(UploadedFile $file, string $folder, ?string $altText = null, ?string $disk = null): MediaAsset
     {
         abort_unless(request()->user()->hasPermission('media.manage'), 403);
 
-        $disk = (string) config('filesystems.media_disk', 'public');
+        $disk ??= (string) config('filesystems.media_disk', 'public');
         $path = $file->store($folder, $disk);
         abort_unless(is_string($path), 500, 'Não foi possível armazenar o arquivo.');
 

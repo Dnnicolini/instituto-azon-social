@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Document;
 use App\Models\MediaAsset;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
@@ -33,6 +34,15 @@ class MigrateMediaStorageCommand extends Command
             $this->error('O disco de origem ou destino não está configurado.');
 
             return self::INVALID;
+        }
+
+        // Documentos são servidos somente pelo disco privado e precisam de uma
+        // migração própria antes de qualquer movimentação de mídias públicas.
+        $documentDisks = $deleteSource ? [$sourceDisk, $targetDisk] : [$sourceDisk];
+        if (Document::withTrashed()->whereHas('media', fn ($query) => $query->whereIn('disk', $documentDisks))->exists()) {
+            $this->error('Há documentos entre os arquivos selecionados. Migre-os para o disco privado antes de executar este comando.');
+
+            return self::FAILURE;
         }
 
         $migrated = 0;

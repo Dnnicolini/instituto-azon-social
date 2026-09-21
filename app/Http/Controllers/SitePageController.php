@@ -32,7 +32,7 @@ class SitePageController extends Controller
             'socialPosts' => Post::query()->published()->with('cover')->where('type', PostType::Social)->orderByDesc('is_featured')->orderBy('sort_order')->orderByDesc('published_at')->limit(6)->get()->map(fn (Post $post): array => $this->serializePost($post, withBody: true)),
             'projects' => Project::query()->published()->with('cover')->orderBy('sort_order')->limit(8)->get()->map(fn (Project $project): array => $this->serializeProject($project)),
             'events' => Event::query()->published()->with('cover')->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->limit(3)->get()->map(fn (Event $event): array => $this->serializeEvent($event)),
-            'documents' => Document::query()->published()->with('media')->latest('published_at')->limit(10)->get()->map(fn (Document $document): array => ['id' => $document->id, 'title' => $document->title, 'category' => $document->category, 'file_url' => $document->media->url, 'published_at' => $document->published_at?->toIso8601String()]),
+            'documents' => Document::query()->published()->whereHas('media', fn ($query) => $query->where('disk', 'local'))->latest('published_at')->limit(10)->get()->map(fn (Document $document): array => ['id' => $document->id, 'title' => $document->title, 'category' => $document->category, 'file_url' => route('documents.file', $document), 'published_at' => $document->published_at?->toIso8601String()]),
             'seo' => $this->seo(
                 title: $page?->seo_title ?: 'Instituto Azon Social | Projetos sociais em Sepetiba, RJ',
                 description: $page?->seo_description ?: (string) config('site.description'),
