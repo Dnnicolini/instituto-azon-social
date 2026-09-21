@@ -53,6 +53,8 @@ jobs:
 
       - name: Run frontend unit tests
         run: npm exec vp test -- resources/js/components/seo-head.test.ts
+        env:
+          LARAVEL_BYPASS_ENV_CHECK: '1'
 
       - name: Validate Azure deploy script syntax
         run: bash -n deploy/azure/deploy-from-github.sh deploy/azure/deploy-release.sh
