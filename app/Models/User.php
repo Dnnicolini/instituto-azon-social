@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
+ * @property Carbon|null $disabled_at
  * @property string $password
  * @property string|null $remember_token
  * @property Carbon|null $created_at
@@ -38,6 +39,10 @@ class User extends Authenticatable implements MustVerifyEmailContract
 
     public function hasRole(string $role): bool
     {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains('slug', $role);
+        }
+
         return $this->roles()->where('slug', $role)->exists();
     }
 
@@ -63,6 +68,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     {
         return [
             'email_verified_at' => 'datetime',
+            'disabled_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

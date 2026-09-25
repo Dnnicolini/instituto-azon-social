@@ -28,4 +28,9 @@ class StoreUserRequest extends FormRequest
     {
         $this->merge(['email' => strtolower(trim((string) $this->input('email')))]);
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return route('admin.users.index');
+    }
 }

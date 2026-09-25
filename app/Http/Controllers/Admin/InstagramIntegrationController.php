@@ -121,10 +121,10 @@ class InstagramIntegrationController extends AdminController
         } catch (Throwable $exception) {
             report(new RuntimeException('Falha segura na sincronização manual do Instagram: '.class_basename($exception)));
 
-            return back()->withErrors(['instagram' => 'A sincronização falhou. A última versão salva continuará no site.']);
+            return redirect()->route('admin.settings.edit')->withErrors(['instagram' => 'A sincronização falhou. A última versão salva continuará no site.']);
         }
 
-        return back()->with('success', "Instagram sincronizado: {$result['created']} nova(s) e {$result['updated']} atualizada(s).");
+        return redirect()->route('admin.settings.edit')->with('success', "Instagram sincronizado: {$result['created']} nova(s) e {$result['updated']} atualizada(s).");
     }
 
     public function disconnect(Request $request): RedirectResponse
@@ -142,7 +142,7 @@ class InstagramIntegrationController extends AdminController
             'ip_hash' => $this->ipHash(),
         ]);
 
-        return back()->with('success', 'Integração do Instagram desconectada. As publicações já salvas foram preservadas.');
+        return redirect()->route('admin.settings.edit')->with('success', 'Integração do Instagram desconectada. As publicações já salvas foram preservadas.');
     }
 
     private function redirectUri(): string

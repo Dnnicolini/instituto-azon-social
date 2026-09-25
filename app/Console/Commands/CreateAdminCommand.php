@@ -50,6 +50,10 @@ class CreateAdminCommand extends Command
         }
 
         $role = Role::query()->where('slug', 'administrator')->firstOrFail();
+        $user->forceFill([
+            'disabled_at' => null,
+            'email_verified_at' => $user->email_verified_at ?? now(),
+        ])->save();
         $user->roles()->syncWithoutDetaching([$role->id]);
 
         $this->info("Administrador pronto: {$email}");

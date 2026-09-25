@@ -30,7 +30,7 @@ class ContactMessageController extends AdminController
         ]);
         $this->recordChange('message.updated', $message);
 
-        return back()->with('success', 'Mensagem atualizada.');
+        return redirect()->route('admin.messages.index')->with('success', 'Mensagem atualizada.');
     }
 
     public function destroy(Request $request, ContactMessage $message): RedirectResponse
@@ -39,7 +39,7 @@ class ContactMessageController extends AdminController
         $this->recordChange('message.deleted', $message);
         $message->delete();
 
-        return back()->with('success', 'Mensagem excluída.');
+        return redirect()->route('admin.messages.index')->with('success', 'Mensagem excluída.');
     }
 
     /** @return array<string, mixed> */

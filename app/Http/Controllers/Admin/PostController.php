@@ -104,7 +104,12 @@ class PostController extends AdminController
             $this->recordChange('post.updated', $post, $before);
         });
 
-        return back()->with('success', 'Conteúdo atualizado.');
+        $routeParameters = ['post' => $post, 'section' => $this->section($request)];
+        if (in_array($request->query('type'), ['article', 'vlog', 'video', 'podcast', 'social', 'media'], true)) {
+            $routeParameters['type'] = $request->query('type');
+        }
+
+        return redirect()->route('admin.posts.edit', $routeParameters)->with('success', 'Conteúdo atualizado.');
     }
 
     public function destroy(Post $post): RedirectResponse

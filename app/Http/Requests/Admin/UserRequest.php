@@ -26,4 +26,14 @@ class UserRequest extends FormRequest
             'roles.*' => ['integer', Rule::exists('roles', 'id')],
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['email' => strtolower(trim((string) $this->input('email')))]);
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return route('admin.users.index');
+    }
 }

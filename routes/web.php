@@ -53,13 +53,13 @@ Route::prefix('admin')->middleware('noindex')->group(function (): void {
 
     Route::get('/verificar-email/{id}/{hash}', [EmailVerificationController::class, 'verify'])->middleware(['signed:relative', 'throttle:6,1'])->name('verification.verify');
 
-    Route::middleware(['auth', 'auth.session'])->group(function (): void {
+    Route::middleware(['auth', 'auth.session', 'active'])->group(function (): void {
         Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('admin.logout');
         Route::get('/verificar-email', [EmailVerificationController::class, 'notice'])->name('verification.notice');
         Route::post('/verificar-email/enviar', [EmailVerificationController::class, 'send'])->middleware('throttle:6,1')->name('verification.send');
     });
 
-    Route::middleware(['auth', 'auth.session', 'verified', 'permission:access-admin'])->name('admin.')->group(function (): void {
+    Route::middleware(['auth', 'auth.session', 'active', 'verified', 'permission:access-admin'])->name('admin.')->group(function (): void {
         Route::get('/', DashboardController::class)->name('dashboard');
         Route::resource('posts', PostController::class)->except('show');
         Route::resource('projetos', ProjectController::class)->except('show')->parameters(['projetos' => 'project'])->names('projects');
@@ -75,6 +75,8 @@ Route::prefix('admin')->middleware('noindex')->group(function (): void {
         Route::delete('/integracoes/instagram', [InstagramIntegrationController::class, 'disconnect'])->name('instagram.disconnect');
         Route::resource('mensagens', AdminContactMessageController::class)->only(['index', 'update', 'destroy'])->parameters(['mensagens' => 'message'])->names('messages');
         Route::resource('usuarios', UserController::class)->only(['index', 'store', 'update', 'destroy'])->parameters(['usuarios' => 'user'])->names('users');
+        Route::patch('/usuarios/{user}/status', [UserController::class, 'updateStatus'])->middleware('throttle:10,1')->name('users.status');
+        Route::post('/usuarios/{user}/redefinir-senha', [UserController::class, 'sendPasswordReset'])->middleware('throttle:5,1')->name('users.password-reset');
         Route::resource('grupos', RoleController::class)->only(['index', 'store', 'update', 'destroy'])->parameters(['grupos' => 'role'])->names('roles');
     });
 });

@@ -53,7 +53,7 @@ class PageController extends AdminController
             $this->recordChange('page.updated', $page, $before);
         });
 
-        return back()->with('success', 'Página atualizada.');
+        return redirect()->route('admin.pages.edit', $page)->with('success', 'Página atualizada.');
     }
 
     public function destroy(Page $page): RedirectResponse

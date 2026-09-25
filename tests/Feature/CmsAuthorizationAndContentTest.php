@@ -77,11 +77,12 @@ it('keeps Instagram account connection exclusive to administrators', function ()
 it('does not allow CRM permissions in delegated groups', function (): void {
     $administrator = $this->cmsUser('administrator');
     $crmPermission = Permission::query()->where('slug', 'messages.view')->firstOrFail();
+    $accessAdminPermission = Permission::query()->where('slug', 'access-admin')->firstOrFail();
 
     $this->actingAs($administrator)->post(route('admin.roles.store'), [
         'name' => 'Atendimento delegado',
         'slug' => 'delegated-support',
-        'permissions' => [$crmPermission->id],
+        'permissions' => [$accessAdminPermission->id, $crmPermission->id],
     ])->assertForbidden();
 
     $this->assertDatabaseMissing('roles', ['slug' => 'delegated-support']);
@@ -123,11 +124,12 @@ it('prevents delegated role managers from granting permissions they do not have'
     $manager = User::factory()->create();
     $manager->roles()->attach($roleManager);
     $settingsPermission = Permission::query()->where('slug', 'settings.manage')->firstOrFail();
+    $accessAdminPermission = Permission::query()->where('slug', 'access-admin')->firstOrFail();
 
     $this->actingAs($manager)->post(route('admin.roles.store'), [
         'name' => 'Grupo indevido',
         'slug' => 'improper-group',
-        'permissions' => [$settingsPermission->id],
+        'permissions' => [$accessAdminPermission->id, $settingsPermission->id],
     ])->assertForbidden();
 
     $this->assertDatabaseMissing('roles', ['slug' => 'improper-group']);
@@ -471,6 +473,8 @@ it('protects system groups, self demotion and the last administrator', function 
     $administrator = Role::query()->where('slug', 'administrator')->firstOrFail();
 
     $this->actingAs($admin)->delete(route('admin.roles.destroy', $administrator))->assertForbidden();
-    $this->actingAs($admin)->put(route('admin.users.update', $admin), ['name' => $admin->name, 'email' => $admin->email, 'roles' => [Role::query()->where('slug', 'editor')->value('id')]])->assertUnprocessable();
+    $this->actingAs($admin)->put(route('admin.users.update', $admin), ['name' => $admin->name, 'email' => $admin->email, 'roles' => [Role::query()->where('slug', 'editor')->value('id')]])
+        ->assertRedirect(route('admin.users.index'))
+        ->assertSessionHasErrors('roles');
     $this->actingAs($admin)->delete(route('admin.users.destroy', $admin))->assertForbidden();
 });
