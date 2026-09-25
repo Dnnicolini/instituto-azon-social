@@ -37,7 +37,6 @@ export default function PostsIndex({
     const hasFilters = Boolean(
         filters.search ||
         filters.status ||
-        (section === 'all' && filters.type) ||
         (section === 'media' && filters.type && filters.type !== 'media'),
     );
     function filter(name: string, value: string) {
@@ -91,7 +90,7 @@ export default function PostsIndex({
                             </button>
                         </span>
                     </label>
-                    {section !== 'social' && (
+                    {section === 'media' && (
                         <label>
                             <span>Formato</span>
                             <select

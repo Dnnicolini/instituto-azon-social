@@ -17,7 +17,7 @@ const navigation: ReadonlyArray<{
         permission: 'access-admin',
     },
     {
-        label: 'Conteúdos',
+        label: 'Artigos',
         href: '/admin/posts',
         icon: 'file-text',
         permission: 'content.view',
@@ -76,6 +76,13 @@ const navigation: ReadonlyArray<{
         href: '/admin/configuracoes',
         icon: 'settings',
         permission: 'settings.manage',
+    },
+    {
+        label: 'Atividades e falhas',
+        href: '/admin/logs',
+        icon: 'activity',
+        permission: 'access-admin',
+        administratorOnly: true,
     },
 ] as const;
 

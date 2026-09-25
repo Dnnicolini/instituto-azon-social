@@ -65,6 +65,24 @@ export default function MediaShow({
                         </p>
                     )}
                 </article>
+                {post.gallery_images && post.gallery_images.length > 0 && (
+                    <section
+                        className="content-gallery"
+                        aria-labelledby="content-gallery-title"
+                    >
+                        <h2 id="content-gallery-title">Galeria de fotos</h2>
+                        <div>
+                            {post.gallery_images.map((image) => (
+                                <img
+                                    key={image.id}
+                                    src={image.url}
+                                    alt={image.alt ?? ''}
+                                    loading="lazy"
+                                />
+                            ))}
+                        </div>
+                    </section>
+                )}
                 {related.length > 0 && (
                     <aside className="media-related">
                         <h2>Continue explorando</h2>

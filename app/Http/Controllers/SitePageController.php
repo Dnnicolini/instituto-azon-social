@@ -94,7 +94,7 @@ class SitePageController extends Controller
     {
         $event = Event::query()
             ->published()
-            ->with('cover')
+            ->with(['cover', 'galleryImages.media'])
             ->where('slug', $slug)
             ->firstOrFail();
 
@@ -158,7 +158,7 @@ class SitePageController extends Controller
             return redirect()->to($post->publicPath(), 301);
         }
         abort_unless(in_array($post->type, [PostType::Vlog, PostType::Video, PostType::Podcast], true), 404);
-        $post->load(['cover', 'video', 'author:id,name']);
+        $post->load(['cover', 'video', 'author:id,name', 'galleryImages.media']);
 
         return Inertia::render('media/show', [
             'post' => $this->serializePost($post, withBody: true),
@@ -170,7 +170,7 @@ class SitePageController extends Controller
     public function articleShow(Post $post): InertiaResponse
     {
         abort_unless($post->status->value === 'published' && $post->published_at?->isPast() && $post->type === PostType::Article, 404);
-        $post->load(['cover', 'author:id,name']);
+        $post->load(['cover', 'author:id,name', 'galleryImages.media']);
 
         return Inertia::render('media/show', [
             'post' => $this->serializePost($post, withBody: true),
@@ -390,19 +390,19 @@ class SitePageController extends Controller
     /** @return array<string, mixed> */
     private function serializePost(Post $post, bool $withBody = false): array
     {
-        return ['id' => $post->id, 'slug' => $post->slug, 'url' => $post->publicPath(), 'title' => $post->title, 'type' => $post->type->value, 'excerpt' => $post->excerpt, 'body' => $withBody ? $post->body : null, 'cover_url' => $post->cover?->url, 'cover_alt' => $post->cover?->alt_text, 'video_url' => $post->relationLoaded('video') ? $post->video?->url : null, 'video_name' => $post->relationLoaded('video') ? $post->video?->original_name : null, 'video_mime_type' => $post->relationLoaded('video') ? $post->video?->mime_type : null, 'provider' => $post->provider, 'external_url' => $post->external_url, 'duration_seconds' => $post->duration_seconds, 'is_featured' => $post->is_featured, 'sort_order' => $post->sort_order, 'published_at' => $post->published_at?->toIso8601String(), 'author' => $post->relationLoaded('author') ? $post->author?->name : null];
+        return ['id' => $post->id, 'slug' => $post->slug, 'url' => $post->publicPath(), 'title' => $post->title, 'type' => $post->type->value, 'excerpt' => $post->excerpt, 'body' => $withBody ? $post->body : null, 'cover_url' => $post->cover?->url, 'cover_alt' => $post->cover?->alt_text, 'gallery_images' => $post->relationLoaded('galleryImages') ? $post->galleryImages->map(fn ($image): array => ['id' => $image->id, 'url' => $image->media->url, 'alt' => $image->media->alt_text])->values() : [], 'video_url' => $post->relationLoaded('video') ? $post->video?->url : null, 'video_name' => $post->relationLoaded('video') ? $post->video?->original_name : null, 'video_mime_type' => $post->relationLoaded('video') ? $post->video?->mime_type : null, 'provider' => $post->provider, 'external_url' => $post->external_url, 'duration_seconds' => $post->duration_seconds, 'is_featured' => $post->is_featured, 'sort_order' => $post->sort_order, 'published_at' => $post->published_at?->toIso8601String(), 'author' => $post->relationLoaded('author') ? $post->author?->name : null];
     }
 
     /** @return array<string, mixed> */
     private function serializeProject(Project $project): array
     {
-        return ['id' => $project->id, 'name' => $project->title, 'title' => $project->title, 'slug' => $project->slug, 'summary' => $project->summary, 'body' => $project->body, 'badge_label' => $project->badge_label, 'status' => $project->status->value, 'cover_url' => $project->cover?->url, 'cover_alt' => $project->cover?->alt_text, 'sort_order' => $project->sort_order, 'published_at' => $project->published_at?->toIso8601String(), 'updated_at' => $project->updated_at?->toIso8601String()];
+        return ['id' => $project->id, 'name' => $project->title, 'title' => $project->title, 'slug' => $project->slug, 'summary' => $project->summary, 'body' => $project->body, 'badge_label' => $project->badge_label, 'status' => $project->status->value, 'cover_url' => $project->cover?->url, 'cover_alt' => $project->cover?->alt_text, 'gallery_images' => $project->relationLoaded('galleryImages') ? $project->galleryImages->map(fn ($image): array => ['id' => $image->id, 'url' => $image->media->url, 'alt' => $image->media->alt_text])->values() : [], 'sort_order' => $project->sort_order, 'published_at' => $project->published_at?->toIso8601String(), 'updated_at' => $project->updated_at?->toIso8601String()];
     }
 
     /** @return array<string, mixed> */
     private function serializeEvent(Event $event): array
     {
-        return ['id' => $event->id, 'title' => $event->title, 'slug' => $event->slug, 'summary' => $event->summary, 'body' => $event->body, 'starts_at' => $event->starts_at?->toIso8601String(), 'ends_at' => $event->ends_at?->toIso8601String(), 'date_label' => $event->date_label, 'location' => $event->location, 'registration_url' => $event->registration_url, 'participation_details' => $event->participation_details, 'cover_url' => $event->cover?->url, 'cover_alt' => $event->cover?->alt_text];
+        return ['id' => $event->id, 'title' => $event->title, 'slug' => $event->slug, 'summary' => $event->summary, 'body' => $event->body, 'starts_at' => $event->starts_at?->toIso8601String(), 'ends_at' => $event->ends_at?->toIso8601String(), 'date_label' => $event->date_label, 'location' => $event->location, 'registration_url' => $event->registration_url, 'participation_details' => $event->participation_details, 'cover_url' => $event->cover?->url, 'cover_alt' => $event->cover?->alt_text, 'gallery_images' => $event->relationLoaded('galleryImages') ? $event->galleryImages->map(fn ($image): array => ['id' => $image->id, 'url' => $image->media->url, 'alt' => $image->media->alt_text])->values() : []];
     }
 
     /** @return array<string, mixed> */

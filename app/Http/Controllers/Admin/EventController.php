@@ -46,17 +46,19 @@ class EventController extends AdminController
     {
         $this->authorize('create', Event::class);
 
-        return Inertia::render('admin/content/form', ['resource' => 'events', 'item' => null]);
+        return Inertia::render('admin/content/form', ['resource' => 'events', 'item' => null, 'projectOptions' => $this->projectOptions()]);
     }
 
     public function store(EventRequest $request): RedirectResponse
     {
         $event = DB::transaction(function () use ($request): Event {
-            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt']));
+            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'gallery', 'remove_gallery_ids', 'project_ids']));
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
             }
             $event = Event::query()->create($data);
+            $this->updateGallery($request, $event, $event->title);
+            $event->projects()->sync($request->validated('project_ids', []));
             $this->recordChange('event.created', $event);
 
             return $event;
@@ -69,20 +71,22 @@ class EventController extends AdminController
     {
         $this->authorize('update', $event);
 
-        return Inertia::render('admin/content/form', ['resource' => 'events', 'item' => $this->serialize($event->load('cover'))]);
+        return Inertia::render('admin/content/form', ['resource' => 'events', 'item' => $this->serialize($event->load(['cover', 'galleryImages.media', 'projects:id'])), 'projectOptions' => $this->projectOptions()]);
     }
 
     public function update(EventRequest $request, Event $event): RedirectResponse
     {
         DB::transaction(function () use ($request, $event): void {
             $before = $event->attributesToArray();
-            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt']));
+            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'gallery', 'remove_gallery_ids', 'project_ids']));
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
             } elseif ($request->has('cover_alt') && $event->cover) {
                 $this->updateAssetAlt($event->cover, $request->validated('cover_alt'));
             }
             $event->update($data);
+            $this->updateGallery($request, $event, $event->title);
+            $event->projects()->sync($request->validated('project_ids', []));
             $this->recordChange('event.updated', $event, $before);
         });
 
@@ -103,6 +107,6 @@ class EventController extends AdminController
     /** @return array<string, mixed> */
     private function serialize(Event $event): array
     {
-        return ['id' => $event->id, 'title' => $event->title, 'slug' => $event->slug, 'summary' => $event->summary, 'body' => $event->body, 'status' => $event->status->value, 'starts_at' => $event->starts_at?->toIso8601String(), 'ends_at' => $event->ends_at?->toIso8601String(), 'date_label' => $event->date_label, 'location' => $event->location, 'registration_url' => $event->registration_url, 'participation_details' => $event->participation_details, 'cover_url' => $event->cover?->url, 'cover_alt' => $event->cover?->alt_text, 'published_at' => $event->published_at?->toIso8601String(), 'updated_at' => $event->updated_at?->toIso8601String()];
+        return ['id' => $event->id, 'title' => $event->title, 'slug' => $event->slug, 'summary' => $event->summary, 'body' => $event->body, 'status' => $event->status->value, 'starts_at' => $event->starts_at?->toIso8601String(), 'ends_at' => $event->ends_at?->toIso8601String(), 'date_label' => $event->date_label, 'location' => $event->location, 'registration_url' => $event->registration_url, 'participation_details' => $event->participation_details, 'cover_url' => $event->cover?->url, 'cover_alt' => $event->cover?->alt_text, 'gallery_images' => $event->relationLoaded('galleryImages') ? $event->galleryImages->map(fn ($image): array => ['id' => $image->id, 'url' => $image->media->url, 'alt' => $image->media->alt_text])->values() : [], 'project_ids' => $event->relationLoaded('projects') ? $event->projects->pluck('id')->values() : [], 'published_at' => $event->published_at?->toIso8601String(), 'updated_at' => $event->updated_at?->toIso8601String()];
     }
 }

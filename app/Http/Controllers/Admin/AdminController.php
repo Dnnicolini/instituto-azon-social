@@ -6,8 +6,12 @@ use App\Enums\ContentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\ContentRevision;
+use App\Models\Event;
 use App\Models\MediaAsset;
+use App\Models\Post;
+use App\Models\Project;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 
@@ -49,6 +53,43 @@ abstract class AdminController extends Controller
 
         abort_unless(request()->user()?->hasPermission('media.manage'), 403);
         $asset->update(['alt_text' => $altText]);
+    }
+
+    protected function updateGallery(FormRequest $request, Post|Project|Event $model, string $title): void
+    {
+        $files = (array) $request->file('gallery', []);
+        $removeIds = array_map('intval', (array) $request->validated('remove_gallery_ids', []));
+        if ($files === [] && $removeIds === []) {
+            return;
+        }
+
+        abort_unless($request->user()?->hasPermission('media.manage'), 403);
+
+        if ($removeIds !== []) {
+            $model->galleryImages()->whereKey($removeIds)->delete();
+        }
+
+        $nextOrder = (int) $model->galleryImages()->max('sort_order') + 1;
+        foreach ($files as $file) {
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+            $asset = $this->createAsset($file, 'cms/images', 'Foto da galeria de '.$title);
+            $model->galleryImages()->create([
+                'media_asset_id' => $asset->id,
+                'sort_order' => $nextOrder++,
+            ]);
+        }
+    }
+
+    /** @return array<int, array{value: string, label: string}> */
+    protected function projectOptions(): array
+    {
+        return Project::query()
+            ->orderBy('title')
+            ->get(['id', 'title'])
+            ->map(fn (Project $project): array => ['value' => (string) $project->id, 'label' => $project->title])
+            ->all();
     }
 
     /** @param array<string, mixed> $data

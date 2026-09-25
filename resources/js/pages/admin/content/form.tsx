@@ -4,6 +4,7 @@ import type {
     Post,
     Project,
     SitePage,
+    SelectOption,
     TransparencyDocument,
 } from '@/types/cms';
 import CreatePost from '../posts/create';
@@ -28,6 +29,7 @@ export default function ContentForm(
         item: Post | Project | Event | DocumentDetail | SitePage | null;
         section?: PostSection;
         initialType?: Post['type'];
+        projectOptions?: SelectOption[];
     },
 ) {
     if (props.resource === 'posts')
@@ -35,12 +37,12 @@ export default function ContentForm(
             <EditPost
                 {...props}
                 post={props.item as Post}
-                section={props.section ?? 'all'}
+                section={props.section ?? 'article'}
             />
         ) : (
             <CreatePost
                 {...props}
-                section={props.section ?? 'all'}
+                section={props.section ?? 'article'}
                 initialType={props.initialType ?? 'article'}
             />
         );

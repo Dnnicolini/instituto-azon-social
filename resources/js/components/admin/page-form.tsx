@@ -32,8 +32,6 @@ export function PageForm({ page }: { page?: SitePage }) {
         sections: Section[];
         status: ContentStatus;
         published_at: string;
-        seo_title: string;
-        seo_description: string;
     }>({
         title: page?.title ?? '',
         slug: page?.slug ?? '',
@@ -41,8 +39,6 @@ export function PageForm({ page }: { page?: SitePage }) {
         sections: page?.sections ?? [],
         status: page?.status ?? 'draft',
         published_at: page?.published_at?.slice(0, 16) ?? '',
-        seo_title: page?.seo_title ?? '',
-        seo_description: page?.seo_description ?? '',
     });
     function setSection(index: number, key: keyof Section, value: string) {
         form.setData(
@@ -83,8 +79,6 @@ export function PageForm({ page }: { page?: SitePage }) {
                     sections: 'Seções estruturadas',
                     status: 'Status',
                     published_at: 'Data de publicação',
-                    seo_title: 'Título para busca',
-                    seo_description: 'Descrição para busca',
                 }}
                 fieldIds={{
                     title: 'page-title',
@@ -93,8 +87,6 @@ export function PageForm({ page }: { page?: SitePage }) {
                     sections: 'page-sections',
                     status: 'page-status',
                     published_at: 'page-published-at',
-                    seo_title: 'page-seo-title',
-                    seo_description: 'page-seo-description',
                 }}
             />
             <div className="cms-editor-main">
@@ -365,40 +357,6 @@ export function PageForm({ page }: { page?: SitePage }) {
                             Preencha somente se quiser usar o botão Agendar.
                         </small>
                         <FieldError message={form.errors.published_at} />
-                    </div>
-                </section>
-                <section className="cms-form-section">
-                    <h2>SEO</h2>
-                    <div className="cms-field">
-                        <label htmlFor="page-seo-title">
-                            Título para busca
-                        </label>
-                        <input
-                            id="page-seo-title"
-                            maxLength={70}
-                            value={form.data.seo_title}
-                            onChange={(e) =>
-                                form.setData('seo_title', e.target.value)
-                            }
-                            aria-invalid={Boolean(form.errors.seo_title)}
-                        />
-                        <small>{form.data.seo_title.length}/70</small>
-                    </div>
-                    <div className="cms-field">
-                        <label htmlFor="page-seo-description">
-                            Descrição para busca
-                        </label>
-                        <textarea
-                            id="page-seo-description"
-                            rows={4}
-                            maxLength={170}
-                            value={form.data.seo_description}
-                            onChange={(e) =>
-                                form.setData('seo_description', e.target.value)
-                            }
-                            aria-invalid={Boolean(form.errors.seo_description)}
-                        />
-                        <small>{form.data.seo_description.length}/170</small>
                     </div>
                 </section>
             </aside>

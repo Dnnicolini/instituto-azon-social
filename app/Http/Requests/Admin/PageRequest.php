@@ -30,8 +30,6 @@ class PageRequest extends ContentRequest
             'sections.*.cta_url' => ['nullable', 'string', 'max:2048', 'regex:/^(\/|#|https:\/\/)/'],
             'status' => $this->statusRules(),
             'published_at' => ['nullable', 'date'],
-            'seo_title' => ['nullable', 'string', 'max:70'],
-            'seo_description' => ['nullable', 'string', 'max:170'],
         ];
     }
 }

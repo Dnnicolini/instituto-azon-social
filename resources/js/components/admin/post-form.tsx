@@ -3,11 +3,14 @@ import type { FormEvent } from 'react';
 import { useRef } from 'react';
 import { FieldError, FormActions, StatusBadge } from './cms-ui';
 import { FormErrorSummary } from './form-error-summary';
+import { ImageGalleryFields } from './image-gallery-fields';
+import { ProjectLinkField } from './project-link-field';
 import type {
     ContentStatus,
     ContentType,
     MediaProvider,
     Post,
+    SelectOption,
 } from '@/types/cms';
 import { typeLabels } from '@/types/cms';
 import { useCan } from './use-can';
@@ -26,10 +29,12 @@ export function PostForm({
     post,
     section,
     initialType = 'article',
+    projectOptions = [],
 }: {
     post?: Post;
     section: PostSection;
     initialType?: ContentType;
+    projectOptions?: SelectOption[];
 }) {
     const canPublish = useCan('content.publish');
     const formId = post ? `post-${post.id}` : 'create-post';
@@ -49,11 +54,12 @@ export function PostForm({
         is_featured: boolean;
         sort_order: string;
         published_at: string;
-        seo_title: string;
-        seo_description: string;
         cover_alt: string;
         cover: File | null;
         video: File | null;
+        gallery: File[];
+        remove_gallery_ids: number[];
+        project_ids: number[];
     }>({
         title: post?.title ?? '',
         slug: post?.slug ?? '',
@@ -80,11 +86,12 @@ export function PostForm({
         is_featured: post?.is_featured ?? false,
         sort_order: String(post?.sort_order ?? 0),
         published_at: post?.published_at?.slice(0, 16) ?? '',
-        seo_title: post?.seo_title ?? '',
-        seo_description: post?.seo_description ?? '',
         cover_alt: post?.cover_alt ?? '',
         cover: null,
         video: null,
+        gallery: [],
+        remove_gallery_ids: [],
+        project_ids: post?.project_ids ?? [],
     });
     const isSocial = form.data.type === 'social';
     const isMedia = ['vlog', 'video', 'podcast'].includes(form.data.type);
@@ -95,7 +102,7 @@ export function PostForm({
               ? 'social/'
               : '/midia/';
     const availableTypes = typesForSection(section);
-    const sectionQuery = section === 'all' ? '' : `?section=${section}`;
+    const sectionQuery = section === 'article' ? '' : `?section=${section}`;
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         if (form.processing) return;
@@ -141,8 +148,6 @@ export function PostForm({
                     duration_seconds: 'Duração',
                     is_featured: 'Destaque',
                     sort_order: 'Ordem entre destaques',
-                    seo_title: 'Título para busca',
-                    seo_description: 'Descrição para busca',
                     cover: 'Imagem de capa',
                     cover_alt: 'Descrição da imagem',
                     video: 'Arquivo de vídeo',
@@ -160,8 +165,6 @@ export function PostForm({
                     external_url: 'external-url',
                     is_featured: 'is_featured',
                     sort_order: 'social-sort-order',
-                    seo_title: 'seo-title',
-                    seo_description: 'seo-description',
                     cover_alt: 'cover-alt',
                     video: 'video-file',
                 }}
@@ -316,8 +319,8 @@ export function PostForm({
                                     <span>
                                         <strong>Usar um link</strong>
                                         <small>
-                                            YouTube, Vimeo, Spotify ou outra
-                                            plataforma segura.
+                                            YouTube, Facebook, Instagram, Vimeo,
+                                            Spotify ou outra plataforma.
                                         </small>
                                     </span>
                                 </label>
@@ -399,6 +402,12 @@ export function PostForm({
                                                 <option value="youtube">
                                                     YouTube
                                                 </option>
+                                                <option value="instagram">
+                                                    Instagram
+                                                </option>
+                                                <option value="facebook">
+                                                    Facebook
+                                                </option>
                                                 <option value="vimeo">
                                                     Vimeo
                                                 </option>
@@ -478,44 +487,21 @@ export function PostForm({
                         )}
                     </section>
                 )}
-                <section className="cms-form-section">
-                    <h2>SEO</h2>
-                    <div className="cms-field">
-                        <label htmlFor="seo-title">Título para busca</label>
-                        <input
-                            id="seo-title"
-                            maxLength={70}
-                            value={form.data.seo_title}
-                            onChange={(e) =>
-                                form.setData('seo_title', e.target.value)
-                            }
-                            aria-invalid={Boolean(form.errors.seo_title)}
-                        />
-                        <small>
-                            {form.data.seo_title.length}/70 caracteres
-                        </small>
-                        <FieldError message={form.errors.seo_title} />
-                    </div>
-                    <div className="cms-field">
-                        <label htmlFor="seo-description">
-                            Descrição para busca
-                        </label>
-                        <textarea
-                            id="seo-description"
-                            rows={3}
-                            maxLength={160}
-                            value={form.data.seo_description}
-                            onChange={(e) =>
-                                form.setData('seo_description', e.target.value)
-                            }
-                            aria-invalid={Boolean(form.errors.seo_description)}
-                        />
-                        <small>
-                            {form.data.seo_description.length}/160 caracteres
-                        </small>
-                        <FieldError message={form.errors.seo_description} />
-                    </div>
-                </section>
+                <ImageGalleryFields
+                    images={post?.gallery_images}
+                    files={form.data.gallery}
+                    removedIds={form.data.remove_gallery_ids}
+                    error={form.errors.gallery}
+                    onFilesChange={(files) => form.setData('gallery', files)}
+                    onRemovedIdsChange={(ids) =>
+                        form.setData('remove_gallery_ids', ids)
+                    }
+                />
+                <ProjectLinkField
+                    options={projectOptions}
+                    selected={form.data.project_ids}
+                    onChange={(ids) => form.setData('project_ids', ids)}
+                />
             </div>
             <aside className="cms-editor-side">
                 <section className="cms-form-section">

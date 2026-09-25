@@ -518,6 +518,26 @@ export default function CalendarPage({
                                 alt={selected.cover_alt ?? selected.title}
                             />
                         )}
+                        {selected.gallery_images &&
+                            selected.gallery_images.length > 0 && (
+                                <div
+                                    className="content-gallery compact"
+                                    aria-label="Galeria do evento"
+                                >
+                                    <div>
+                                        {selected.gallery_images.map(
+                                            (image) => (
+                                                <img
+                                                    key={image.id}
+                                                    src={image.url}
+                                                    alt={image.alt ?? ''}
+                                                    loading="lazy"
+                                                />
+                                            ),
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         <div className="calendar-dialog-content">
                             <p className="eyebrow">Evento Azon Social</p>
                             <h2 id="calendar-dialog-title">{selected.title}</h2>
