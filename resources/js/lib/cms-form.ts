@@ -1,3 +1,5 @@
+import type { ContentStatus } from '@/types/cms';
+
 export function slugifyTitle(value: string): string {
     return value
         .normalize('NFD')
@@ -25,4 +27,30 @@ export function focusFirstFormError(formId: string): void {
         target?.focus();
         target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
+}
+
+const publicationIntents: ContentStatus[] = [
+    'draft',
+    'review',
+    'scheduled',
+    'published',
+    'archived',
+];
+
+export function normalizePublicationIntent(
+    value: string | undefined,
+    fallback: ContentStatus,
+    canPublish: boolean,
+): ContentStatus {
+    const intent = value as ContentStatus | undefined;
+
+    if (!intent || !publicationIntents.includes(intent)) {
+        return fallback;
+    }
+
+    if (!canPublish && ['scheduled', 'published'].includes(intent)) {
+        return 'review';
+    }
+
+    return intent;
 }

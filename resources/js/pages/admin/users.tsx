@@ -1,256 +1,14 @@
-import { Link, router, useForm } from '@inertiajs/react';
-import type { FormEvent, KeyboardEvent, ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { Link, router } from '@inertiajs/react';
+import type { FormEvent } from 'react';
+import { useState } from 'react';
 import { AdminLayout } from '@/components/admin/admin-layout';
-import {
-    EmptyState,
-    FieldError,
-    PageHeading,
-    Pagination,
-} from '@/components/admin/cms-ui';
-import { FormErrorSummary } from '@/components/admin/form-error-summary';
+import { EmptyState, PageHeading, Pagination } from '@/components/admin/cms-ui';
 import { useCan } from '@/components/admin/use-can';
 import { SeoHead } from '@/components/seo-head';
-import { focusFirstFormError } from '@/lib/cms-form';
 import { managedUserStatuses } from '@/lib/managed-user';
 import type { AdminSharedProps, ManagedUser, Paginated } from '@/types/cms';
 
-type Role = { id: number; name: string; slug: string };
-type DialogMode = { kind: 'invite' } | { kind: 'edit'; user: ManagedUser };
-
-function UserDialog({
-    title,
-    description,
-    onClose,
-    children,
-}: {
-    title: string;
-    description: string;
-    onClose: () => void;
-    children: ReactNode;
-}) {
-    const dialogRef = useRef<HTMLElement>(null);
-
-    useEffect(() => {
-        const previouslyFocused = document.activeElement as HTMLElement | null;
-        const dialog = dialogRef.current;
-        const focusable =
-            dialog?.querySelector<HTMLElement>('[data-dialog-initial-focus]') ??
-            dialog?.querySelector<HTMLElement>(
-                'input:not([disabled]), select:not([disabled]), button:not([disabled]), a[href]',
-            );
-
-        focusable?.focus();
-
-        function handleEscape(event: globalThis.KeyboardEvent) {
-            if (event.key === 'Escape') onClose();
-        }
-
-        document.addEventListener('keydown', handleEscape);
-
-        return () => {
-            document.removeEventListener('keydown', handleEscape);
-            previouslyFocused?.focus();
-        };
-    }, [onClose]);
-
-    function keepFocusInside(event: KeyboardEvent<HTMLElement>) {
-        if (event.key !== 'Tab') return;
-
-        const focusable = Array.from(
-            event.currentTarget.querySelectorAll<HTMLElement>(
-                'input:not([disabled]), select:not([disabled]), button:not([disabled]), a[href]',
-            ),
-        );
-        const first = focusable[0];
-        const last = focusable.at(-1);
-
-        if (!first || !last) return;
-        if (event.shiftKey && document.activeElement === first) {
-            event.preventDefault();
-            last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault();
-            first.focus();
-        }
-    }
-
-    return (
-        <div
-            className="admin-modal-backdrop"
-            role="presentation"
-            onMouseDown={(event) => {
-                if (event.currentTarget === event.target) onClose();
-            }}
-        >
-            <section
-                ref={dialogRef}
-                className="admin-modal cms-access-modal"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="user-dialog-title"
-                aria-describedby="user-dialog-description"
-                onKeyDown={keepFocusInside}
-            >
-                <button
-                    className="admin-modal-close"
-                    type="button"
-                    onClick={onClose}
-                    aria-label="Fechar"
-                >
-                    ×
-                </button>
-                <header className="cms-access-modal-heading">
-                    <h2 id="user-dialog-title">{title}</h2>
-                    <p id="user-dialog-description">{description}</p>
-                </header>
-                {children}
-            </section>
-        </div>
-    );
-}
-
-function UserForm({
-    roles,
-    user,
-    onDone,
-}: {
-    roles: Role[];
-    user?: ManagedUser;
-    onDone: () => void;
-}) {
-    const formId = user ? `edit-user-${user.id}` : 'invite-user';
-    const form = useForm({
-        name: user?.name ?? '',
-        email: user?.email ?? '',
-        roles: user?.roles.map((role) => role.id) ?? ([] as number[]),
-    });
-
-    function toggleRole(id: number) {
-        form.setData(
-            'roles',
-            form.data.roles.includes(id)
-                ? form.data.roles.filter((item) => item !== id)
-                : [...form.data.roles, id],
-        );
-    }
-
-    function submit(event: FormEvent) {
-        event.preventDefault();
-        if (form.processing) return;
-
-        const options = {
-            preserveScroll: true,
-            onSuccess: onDone,
-            onError: () => focusFirstFormError(formId),
-        };
-
-        if (user) form.put(`/admin/usuarios/${user.id}`, options);
-        else form.post('/admin/usuarios', options);
-    }
-
-    return (
-        <form
-            id={formId}
-            className="cms-user-form"
-            onSubmit={submit}
-            noValidate
-            aria-busy={form.processing}
-        >
-            <FormErrorSummary
-                errors={form.errors}
-                labels={{
-                    name: 'Nome',
-                    email: 'E-mail',
-                    roles: 'Grupos de acesso',
-                }}
-                fieldIds={{
-                    name: `${formId}-name`,
-                    email: `${formId}-email`,
-                    roles: `${formId}-roles`,
-                }}
-            />
-            <fieldset disabled={form.processing}>
-                <div className="cms-form-grid two">
-                    <div className="cms-field">
-                        <label htmlFor={`${formId}-name`}>Nome</label>
-                        <input
-                            id={`${formId}-name`}
-                            name="name"
-                            autoComplete="name"
-                            data-dialog-initial-focus
-                            value={form.data.name}
-                            onChange={(event) =>
-                                form.setData('name', event.target.value)
-                            }
-                            aria-invalid={Boolean(form.errors.name)}
-                        />
-                        <FieldError message={form.errors.name} />
-                    </div>
-                    <div className="cms-field">
-                        <label htmlFor={`${formId}-email`}>E-mail</label>
-                        <input
-                            id={`${formId}-email`}
-                            name="email"
-                            type="email"
-                            autoComplete="email"
-                            value={form.data.email}
-                            onChange={(event) =>
-                                form.setData('email', event.target.value)
-                            }
-                            aria-invalid={Boolean(form.errors.email)}
-                        />
-                        <FieldError message={form.errors.email} />
-                    </div>
-                </div>
-                <fieldset
-                    id={`${formId}-roles`}
-                    className="cms-checkbox-group"
-                    aria-invalid={Boolean(form.errors.roles)}
-                >
-                    <legend>Grupos de acesso</legend>
-                    <p>
-                        Selecione somente os grupos necessários para a função.
-                    </p>
-                    <div className="cms-role-options">
-                        {roles.map((role) => (
-                            <label key={role.id}>
-                                <input
-                                    type="checkbox"
-                                    checked={form.data.roles.includes(role.id)}
-                                    onChange={() => toggleRole(role.id)}
-                                />
-                                <span>{role.name}</span>
-                            </label>
-                        ))}
-                    </div>
-                </fieldset>
-                <FieldError message={form.errors.roles} />
-            </fieldset>
-            <div className="cms-inline-actions cms-user-form-actions">
-                <button
-                    type="button"
-                    className="cms-button secondary"
-                    onClick={onDone}
-                    disabled={form.processing}
-                >
-                    Cancelar
-                </button>
-                <button
-                    className="cms-button primary"
-                    type="submit"
-                    disabled={form.processing}
-                >
-                    {form.processing
-                        ? 'Salvando…'
-                        : user
-                          ? 'Salvar alterações'
-                          : 'Enviar convite'}
-                </button>
-            </div>
-        </form>
-    );
-}
+type UserStatusFilter = '' | ManagedUser['status'];
 
 function UserStatus({ status }: { status: ManagedUser['status'] }) {
     const content = managedUserStatuses[status];
@@ -269,14 +27,12 @@ function UserStatus({ status }: { status: ManagedUser['status'] }) {
 function UserActions({
     user,
     busyAction,
-    onEdit,
     onDelete,
     onResetPassword,
     onToggleStatus,
 }: {
     user: ManagedUser;
     busyAction: string | null;
-    onEdit: () => void;
     onDelete: () => void;
     onResetPassword: () => void;
     onToggleStatus: () => void;
@@ -287,9 +43,12 @@ function UserActions({
     return (
         <div className="cms-user-actions" aria-busy={isBusy}>
             {user.capabilities.update && (
-                <button type="button" onClick={onEdit} disabled={isBusy}>
+                <Link
+                    className="cms-text-action"
+                    href={`/admin/usuarios/${user.id}/edit`}
+                >
                     Editar acesso
-                </button>
+                </Link>
             )}
             {user.capabilities.reset_password && (
                 <button
@@ -335,34 +94,38 @@ function UserActions({
 export default function Users({
     seo,
     users,
-    roles,
     filters,
 }: AdminSharedProps & {
     users: Paginated<ManagedUser>;
-    roles: Role[];
-    filters: { q: string };
+    filters: { q: string; status: UserStatusFilter };
 }) {
     const canManageRoles = useCan('roles.manage');
     const [query, setQuery] = useState(filters.q);
-    const [dialog, setDialog] = useState<DialogMode | null>(null);
     const [busyAction, setBusyAction] = useState<string | null>(null);
+
+    function visitFilters(q: string, status: UserStatusFilter) {
+        router.get(
+            '/admin/usuarios',
+            {
+                ...(q.trim() ? { q: q.trim() } : {}),
+                ...(status ? { status } : {}),
+            },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    }
 
     function searchUsers(event: FormEvent) {
         event.preventDefault();
-        router.get('/admin/usuarios', query.trim() ? { q: query.trim() } : {}, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
+        visitFilters(query, filters.status);
     }
 
-    function clearSearch() {
+    function filterByStatus(status: UserStatusFilter) {
+        visitFilters(query, status);
+    }
+
+    function clearFilters() {
         setQuery('');
-        router.get(
-            '/admin/usuarios',
-            {},
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
+        visitFilters('', '');
     }
 
     function resetPassword(user: ManagedUser) {
@@ -424,6 +187,8 @@ export default function Users({
         });
     }
 
+    const hasFilters = Boolean(filters.q || filters.status);
+
     return (
         <>
             <SeoHead seo={seo} />
@@ -447,8 +212,8 @@ export default function Users({
                         <div>
                             <h2>Pessoas com acesso</h2>
                             <p>
-                                {filters.q
-                                    ? `${users.total} resultado(s) para “${filters.q}”.`
+                                {hasFilters
+                                    ? `${users.total} resultado(s) com os filtros atuais.`
                                     : `${users.total} usuário(s) cadastrado(s).`}
                             </p>
                         </div>
@@ -471,19 +236,42 @@ export default function Users({
                                     onChange={(event) =>
                                         setQuery(event.target.value)
                                     }
-                                    placeholder="Buscar por nome, e-mail ou grupo"
+                                    placeholder="Nome, e-mail ou grupo"
                                 />
                                 <button type="submit" aria-label="Buscar">
                                     <span aria-hidden="true">⌕</span>
                                 </button>
                             </form>
-                            <button
-                                type="button"
+                            <label className="cms-field">
+                                <span className="sr-only">
+                                    Filtrar por status
+                                </span>
+                                <select
+                                    aria-label="Filtrar usuários por status"
+                                    value={filters.status}
+                                    onChange={(event) =>
+                                        filterByStatus(
+                                            event.target
+                                                .value as UserStatusFilter,
+                                        )
+                                    }
+                                >
+                                    <option value="">Todos os status</option>
+                                    <option value="active">Ativos</option>
+                                    <option value="pending">
+                                        Convite pendente
+                                    </option>
+                                    <option value="disabled">
+                                        Desativados
+                                    </option>
+                                </select>
+                            </label>
+                            <Link
                                 className="cms-button primary"
-                                onClick={() => setDialog({ kind: 'invite' })}
+                                href="/admin/usuarios/create"
                             >
                                 Convidar usuário
-                            </button>
+                            </Link>
                         </div>
                     </header>
 
@@ -540,9 +328,6 @@ export default function Users({
                                         user={user}
                                         busyAction={busyAction}
                                         onDelete={() => deleteUser(user)}
-                                        onEdit={() =>
-                                            setDialog({ kind: 'edit', user })
-                                        }
                                         onResetPassword={() =>
                                             resetPassword(user)
                                         }
@@ -553,17 +338,17 @@ export default function Users({
                                 </article>
                             ))}
                         </div>
-                    ) : filters.q ? (
+                    ) : hasFilters ? (
                         <EmptyState
                             title="Nenhum resultado"
-                            description="Tente buscar por outro nome, e-mail ou grupo de acesso."
+                            description="Ajuste a busca ou o status para encontrar a pessoa."
                             action={
                                 <button
                                     type="button"
                                     className="cms-button secondary"
-                                    onClick={clearSearch}
+                                    onClick={clearFilters}
                                 >
-                                    Limpar busca
+                                    Limpar filtros
                                 </button>
                             }
                         />
@@ -572,46 +357,17 @@ export default function Users({
                             title="Nenhum usuário"
                             description="Convide a primeira pessoa para colaborar."
                             action={
-                                <button
-                                    type="button"
+                                <Link
                                     className="cms-button primary"
-                                    onClick={() =>
-                                        setDialog({ kind: 'invite' })
-                                    }
+                                    href="/admin/usuarios/create"
                                 >
                                     Convidar usuário
-                                </button>
+                                </Link>
                             }
                         />
                     )}
                     <Pagination page={users} />
                 </section>
-
-                {dialog?.kind === 'invite' && (
-                    <UserDialog
-                        title="Convidar usuário"
-                        description="A pessoa receberá um link seguro para definir a senha."
-                        onClose={() => setDialog(null)}
-                    >
-                        <UserForm
-                            roles={roles}
-                            onDone={() => setDialog(null)}
-                        />
-                    </UserDialog>
-                )}
-                {dialog?.kind === 'edit' && (
-                    <UserDialog
-                        title="Editar acesso"
-                        description={`Revise os dados e grupos de ${dialog.user.name}.`}
-                        onClose={() => setDialog(null)}
-                    >
-                        <UserForm
-                            user={dialog.user}
-                            roles={roles}
-                            onDone={() => setDialog(null)}
-                        />
-                    </UserDialog>
-                )}
             </AdminLayout>
         </>
     );

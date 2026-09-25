@@ -46,7 +46,7 @@ return [
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'require_tls' => env('MAIL_REQUIRE_TLS', false),
-            'timeout' => null,
+            'timeout' => (int) env('MAIL_TIMEOUT', 10),
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
@@ -114,6 +114,22 @@ return [
     'from' => [
         'address' => strtolower((string) env('MAIL_FROM_ADDRESS', 'hello@example.com')),
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Contact Form Notifications
+    |--------------------------------------------------------------------------
+    |
+    | Public contact submissions are always persisted before these internal
+    | notifications are attempted. Both defaults belong to the organization;
+    | deployments may override either address without changing application code.
+    |
+    */
+
+    'contact_recipients' => [
+        strtolower((string) env('CONTACT_MAIL_PRIMARY', 'contato@azonsocial.org.br')),
+        strtolower((string) env('CONTACT_MAIL_COPY', 'sistema@azonsocial.org.br')),
     ],
 
 ];

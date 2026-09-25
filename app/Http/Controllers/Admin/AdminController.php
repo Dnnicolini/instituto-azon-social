@@ -9,6 +9,7 @@ use App\Models\ContentRevision;
 use App\Models\MediaAsset;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 
 abstract class AdminController extends Controller
 {
@@ -55,8 +56,11 @@ abstract class AdminController extends Controller
      */
     protected function normalizePublication(array $data): array
     {
-        if ($data['status'] === ContentStatus::Published->value && empty($data['published_at'])) {
-            $data['published_at'] = now();
+        if ($data['status'] === ContentStatus::Published->value) {
+            $publishedAt = $data['published_at'] ?? null;
+            if (empty($publishedAt) || Carbon::parse($publishedAt)->isFuture()) {
+                $data['published_at'] = now();
+            }
         } elseif (! in_array($data['status'], [ContentStatus::Published->value, ContentStatus::Scheduled->value], true)) {
             $data['published_at'] = null;
         }

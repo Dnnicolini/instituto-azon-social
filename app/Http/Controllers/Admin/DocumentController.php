@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Requests\Admin\DocumentRequest;
 use App\Models\Document;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -12,12 +13,32 @@ use Inertia\Response;
 
 class DocumentController extends AdminController
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->authorize('viewAny', Document::class);
-        $items = Document::query()->with('media')->latest('updated_at')->paginate(15)->withQueryString()->through(fn (Document $document): array => $this->serialize($document));
+        $filters = [
+            'search' => mb_substr(trim((string) $request->query('search', '')), 0, 100),
+            'status' => in_array($request->query('status'), ['draft', 'review', 'scheduled', 'published', 'archived'], true) ? $request->query('status') : null,
+            'category' => mb_substr(trim((string) $request->query('category', '')), 0, 120),
+        ];
+        $categories = Document::query()->whereNotNull('category')->where('category', '!=', '')->distinct()->orderBy('category')->pluck('category')->values();
+        if ($filters['category'] !== '' && ! $categories->containsStrict($filters['category'])) {
+            $filters['category'] = '';
+        }
+        $query = Document::query()->with('media')->latest('updated_at');
+        if ($filters['search'] !== '') {
+            $query->where(fn ($query) => $query->whereLike('title', "%{$filters['search']}%", caseSensitive: false)
+                ->orWhereLike('description', "%{$filters['search']}%", caseSensitive: false));
+        }
+        if ($filters['status']) {
+            $query->where('status', $filters['status']);
+        }
+        if ($filters['category'] !== '') {
+            $query->where('category', $filters['category']);
+        }
+        $items = $query->paginate(15)->withQueryString()->through(fn (Document $document): array => $this->serialize($document));
 
-        return Inertia::render('admin/content/index', ['resource' => 'documents', 'items' => $items]);
+        return Inertia::render('admin/content/index', ['resource' => 'documents', 'items' => $items, 'filters' => $filters, 'categories' => $categories]);
     }
 
     public function create(): Response

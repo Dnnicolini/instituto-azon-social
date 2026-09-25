@@ -74,9 +74,9 @@ Route::prefix('admin')->middleware('noindex')->group(function (): void {
         Route::post('/integracoes/instagram/sincronizar', [InstagramIntegrationController::class, 'sync'])->middleware('throttle:3,1')->name('instagram.sync');
         Route::delete('/integracoes/instagram', [InstagramIntegrationController::class, 'disconnect'])->name('instagram.disconnect');
         Route::resource('mensagens', AdminContactMessageController::class)->only(['index', 'update', 'destroy'])->parameters(['mensagens' => 'message'])->names('messages');
-        Route::resource('usuarios', UserController::class)->only(['index', 'store', 'update', 'destroy'])->parameters(['usuarios' => 'user'])->names('users');
+        Route::resource('usuarios', UserController::class)->except('show')->parameters(['usuarios' => 'user'])->names('users');
         Route::patch('/usuarios/{user}/status', [UserController::class, 'updateStatus'])->middleware('throttle:10,1')->name('users.status');
         Route::post('/usuarios/{user}/redefinir-senha', [UserController::class, 'sendPasswordReset'])->middleware('throttle:5,1')->name('users.password-reset');
-        Route::resource('grupos', RoleController::class)->only(['index', 'store', 'update', 'destroy'])->parameters(['grupos' => 'role'])->names('roles');
+        Route::resource('grupos', RoleController::class)->except('show')->parameters(['grupos' => 'role'])->names('roles');
     });
 });

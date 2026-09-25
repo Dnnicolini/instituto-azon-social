@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Requests\Admin\ProjectRequest;
 use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -12,12 +13,22 @@ use Inertia\Response;
 
 class ProjectController extends AdminController
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->authorize('viewAny', Project::class);
-        $items = Project::query()->with('cover')->orderBy('sort_order')->paginate(15)->withQueryString()->through(fn (Project $project): array => $this->serialize($project));
+        $filters = $this->contentFilters($request);
+        $query = Project::query()->with('cover')->orderBy('sort_order');
+        if ($filters['search'] !== '') {
+            $query->where(fn ($query) => $query->whereLike('title', "%{$filters['search']}%", caseSensitive: false)
+                ->orWhereLike('summary', "%{$filters['search']}%", caseSensitive: false)
+                ->orWhereLike('badge_label', "%{$filters['search']}%", caseSensitive: false));
+        }
+        if ($filters['status']) {
+            $query->where('status', $filters['status']);
+        }
+        $items = $query->paginate(15)->withQueryString()->through(fn (Project $project): array => $this->serialize($project));
 
-        return Inertia::render('admin/content/index', ['resource' => 'projects', 'items' => $items]);
+        return Inertia::render('admin/content/index', ['resource' => 'projects', 'items' => $items, 'filters' => $filters]);
     }
 
     public function create(): Response
@@ -82,5 +93,14 @@ class ProjectController extends AdminController
     private function serialize(Project $project): array
     {
         return ['id' => $project->id, 'name' => $project->title, 'title' => $project->title, 'slug' => $project->slug, 'summary' => $project->summary, 'badge_label' => $project->badge_label, 'body' => $project->body, 'status' => $project->status->value, 'cover_url' => $project->cover?->url, 'cover_alt' => $project->cover?->alt_text, 'published_at' => $project->published_at?->toIso8601String(), 'sort_order' => $project->sort_order, 'updated_at' => $project->updated_at?->toIso8601String()];
+    }
+
+    /** @return array{search: string, status: string|null} */
+    private function contentFilters(Request $request): array
+    {
+        return [
+            'search' => mb_substr(trim((string) $request->query('search', '')), 0, 100),
+            'status' => in_array($request->query('status'), ['draft', 'review', 'scheduled', 'published', 'archived'], true) ? $request->query('status') : null,
+        ];
     }
 }

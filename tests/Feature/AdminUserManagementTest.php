@@ -33,9 +33,9 @@ it('redirects invalid admin forms deterministically without a referer', function
     $this->actingAs($admin)->put(route('admin.projects.update', $project), [])
         ->assertRedirect(route('admin.projects.edit', $project));
     $this->actingAs($admin)->post(route('admin.users.store'), [])
-        ->assertRedirect(route('admin.users.index'));
+        ->assertRedirect(route('admin.users.create'));
     $this->actingAs($admin)->post(route('admin.roles.store'), [])
-        ->assertRedirect(route('admin.roles.index'));
+        ->assertRedirect(route('admin.roles.create'));
     $this->actingAs($admin)->put(route('admin.settings.update'), [])
         ->assertRedirect(route('admin.settings.edit'));
     $this->actingAs($admin)->post(route('admin.posts.store', ['section' => 'social']), [])
@@ -48,6 +48,82 @@ it('redirects invalid admin forms deterministically without a referer', function
         'status' => 'draft',
         'sort_order' => 1,
     ])->assertRedirect(route('admin.projects.edit', $project));
+});
+
+it('serves user forms on separate authorized pages', function (): void {
+    $admin = $this->cmsUser();
+    $target = $this->cmsUser('editor');
+
+    $this->actingAs($admin)->get(route('admin.users.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/users')
+            ->missing('roles'));
+
+    $this->actingAs($admin)->get(route('admin.users.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/users/create')
+            ->has('roles'));
+
+    $this->actingAs($admin)->get(route('admin.users.edit', $target))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/users/edit')
+            ->where('managedUser.id', $target->id)
+            ->has('roles'));
+
+    $publisher = $this->cmsUser('publisher');
+    $this->actingAs($publisher)->get(route('admin.users.create'))->assertForbidden();
+});
+
+it('serves only editable groups on separate form pages', function (): void {
+    $admin = $this->cmsUser();
+    $customRole = Role::query()->create([
+        'name' => 'Comunicação',
+        'slug' => 'comunicacao',
+        'is_system' => false,
+    ]);
+    $systemRole = Role::query()->where('slug', 'editor')->firstOrFail();
+
+    $this->actingAs($admin)->get(route('admin.roles.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/roles')
+            ->missing('permissions'));
+
+    $this->actingAs($admin)->get(route('admin.roles.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/roles/create')
+            ->has('permissions'));
+
+    $this->actingAs($admin)->get(route('admin.roles.edit', $customRole))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/roles/edit')
+            ->where('group.id', $customRole->id)
+            ->has('permissions'));
+
+    $this->actingAs($admin)->get(route('admin.roles.edit', $systemRole))->assertForbidden();
+
+    $publisher = $this->cmsUser('publisher');
+    $this->actingAs($publisher)->get(route('admin.roles.create'))->assertForbidden();
+});
+
+it('returns invalid access forms to their own pages', function (): void {
+    $admin = $this->cmsUser();
+    $target = $this->cmsUser('editor');
+    $role = Role::query()->create([
+        'name' => 'Comunicação',
+        'slug' => 'comunicacao',
+        'is_system' => false,
+    ]);
+
+    $this->actingAs($admin)->put(route('admin.users.update', $target), [])
+        ->assertRedirect(route('admin.users.edit', $target));
+    $this->actingAs($admin)->put(route('admin.roles.update', $role), [])
+        ->assertRedirect(route('admin.roles.edit', $role));
 });
 
 it('requires panel access explicitly when a group receives another permission', function (): void {
@@ -162,6 +238,37 @@ it('searches the complete user directory without case sensitivity', function ():
             ->where('users.data.0.id', $target->id));
 });
 
+it('filters the complete user directory by account status', function (): void {
+    $admin = $this->cmsUser();
+    $active = $this->cmsUser('editor');
+    $pending = User::factory()->unverified()->create();
+    $disabled = $this->cmsUser('editor');
+    $disabled->forceFill(['disabled_at' => now()])->save();
+
+    $this->actingAs($admin)->get(route('admin.users.index', ['status' => 'pending']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('filters.status', 'pending')
+            ->where('users.total', 1)
+            ->where('users.data.0.id', $pending->id));
+
+    $this->actingAs($admin)->get(route('admin.users.index', ['status' => 'disabled']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('filters.status', 'disabled')
+            ->where('users.total', 1)
+            ->where('users.data.0.id', $disabled->id));
+
+    $this->actingAs($admin)->get(route('admin.users.index', [
+        'q' => $active->email,
+        'status' => 'active',
+    ]))->assertOk()->assertInertia(fn ($page) => $page
+        ->where('filters.q', $active->email)
+        ->where('filters.status', 'active')
+        ->where('users.total', 1)
+        ->where('users.data.0.id', $active->id));
+});
+
 it('disables and activates a user while invalidating remembered access and auditing the change', function (): void {
     config(['session.driver' => 'database']);
     $admin = $this->cmsUser();
@@ -222,13 +329,13 @@ it('prevents self disable and protects the last active administrator', function 
         'name' => $admin->name,
         'email' => $admin->email,
         'roles' => [Role::query()->where('slug', 'editor')->value('id')],
-    ])->assertRedirect(route('admin.users.index'))->assertSessionHasErrors('roles');
+    ])->assertRedirect(route('admin.users.edit', $admin))->assertSessionHasErrors('roles');
 
     $this->actingAs($admin)->put(route('admin.users.update', $admin), [
         'name' => $admin->name,
         'email' => 'novo-admin@example.org',
         'roles' => [Role::query()->where('slug', 'administrator')->value('id')],
-    ])->assertRedirect(route('admin.users.index'))->assertSessionHasErrors('email');
+    ])->assertRedirect(route('admin.users.edit', $admin))->assertSessionHasErrors('email');
     expect($admin->fresh()->email)->not->toBe('novo-admin@example.org');
 
     $otherAdmin = $this->cmsUser();
@@ -247,6 +354,7 @@ it('does not let a delegated user manager act on administrators', function (): v
     $manager = User::factory()->create();
     $manager->roles()->attach($managerRole);
 
+    $this->actingAs($manager)->get(route('admin.users.edit', $administrator))->assertForbidden();
     $this->actingAs($manager)->put(route('admin.users.update', $administrator), [
         'name' => $administrator->name,
         'email' => $administrator->email,

@@ -9,6 +9,17 @@ export type ContentStatus =
 
 export type ContentType = 'article' | 'vlog' | 'video' | 'podcast' | 'social';
 
+export type MediaProvider =
+    | 'instagram'
+    | 'facebook'
+    | 'youtube'
+    | 'vimeo'
+    | 'spotify'
+    | 'tiktok'
+    | 'linkedin'
+    | 'anchor'
+    | 'other';
+
 export type SelectOption = {
     value: string;
     label: string;
@@ -60,14 +71,8 @@ export type Post = {
     video_url?: string | null;
     video_name?: string | null;
     video_mime_type?: string | null;
-    provider?:
-        | 'youtube'
-        | 'vimeo'
-        | 'spotify'
-        | 'anchor'
-        | 'instagram'
-        | 'other'
-        | null;
+    source_mode?: 'upload' | 'link' | null;
+    provider?: MediaProvider | null;
     external_url?: string | null;
     duration_seconds?: number | null;
     is_featured?: boolean;

@@ -2,12 +2,14 @@
 
 use App\Enums\ContentStatus;
 use App\Enums\PostType;
+use App\Mail\ContactMessageReceived;
 use App\Models\ContactMessage;
 use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\Project;
 use App\Models\SiteSetting;
 use Database\Seeders\ContentSeeder;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
@@ -16,13 +18,50 @@ beforeEach(function (): void {
 });
 
 it('persists a valid contact message but rejects the honeypot and invalid input', function (): void {
-    $this->post(route('contact.store'), ['name' => 'Maria', 'email' => 'maria@example.org', 'subject' => 'Parceria', 'message' => 'Gostaria de conhecer melhor o projeto.', 'website' => ''])
+    Mail::fake();
+
+    $this->post(route('contact.store'), ['name' => 'Maria', 'email' => 'maria@example.org', 'phone' => '(21) 99999-0000', 'subject' => 'Parceria', 'message' => 'Gostaria de conhecer melhor o projeto.', 'website' => ''])
         ->assertRedirect()->assertSessionHas('success');
     expect(ContactMessage::query()->first()?->ip_hash)->not->toBeNull();
+    Mail::assertQueued(ContactMessageReceived::class, function (ContactMessageReceived $mail): bool {
+        $mail->assertSeeInHtml('Maria')
+            ->assertSeeInHtml('maria@example.org')
+            ->assertSeeInHtml('(21) 99999-0000')
+            ->assertSeeInHtml('Parceria')
+            ->assertSeeInHtml('Gostaria de conhecer melhor o projeto.');
+
+        return $mail->hasTo('contato@azonsocial.org.br')
+            && $mail->hasTo('sistema@azonsocial.org.br')
+            && $mail->hasReplyTo('maria@example.org', 'Maria')
+            && $mail->hasSubject('Nova mensagem pelo site: Parceria')
+            && $mail->contactMessage->phone === '(21) 99999-0000';
+    });
 
     $this->post(route('contact.store'), ['name' => 'Robô', 'email' => 'bot@example.org', 'message' => 'Mensagem automatizada de spam', 'website' => 'https://spam.invalid'])
         ->assertSessionHasErrors('website');
     $this->assertDatabaseCount('contact_messages', 1);
+});
+
+it('keeps one CRM record and a public success response when contact email delivery fails', function (): void {
+    Mail::shouldReceive('to')
+        ->once()
+        ->with(['contato@azonsocial.org.br', 'sistema@azonsocial.org.br'])
+        ->andThrow(new RuntimeException('Falha simulada do transporte'));
+
+    $this->post(route('contact.store'), [
+        'name' => 'Joana',
+        'email' => 'joana@example.org',
+        'phone' => '(21) 98888-0000',
+        'subject' => 'Voluntariado',
+        'message' => 'Tenho interesse em participar como voluntária.',
+        'website' => '',
+    ])->assertRedirect()->assertSessionHas('success');
+
+    $this->assertDatabaseCount('contact_messages', 1);
+    $this->assertDatabaseHas('contact_messages', [
+        'email' => 'joana@example.org',
+        'subject' => 'Voluntariado',
+    ]);
 });
 
 it('shows only published media and supports type and search filters', function (): void {

@@ -57,6 +57,10 @@ class RoleRequest extends FormRequest
 
     protected function getRedirectUrl(): string
     {
-        return route('admin.roles.index');
+        $role = $this->route('role');
+
+        return $role
+            ? route('admin.roles.edit', $role)
+            : route('admin.roles.create');
     }
 }

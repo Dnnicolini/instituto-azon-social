@@ -1,4 +1,5 @@
 import { Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import { AdminLayout } from '@/components/admin/admin-layout';
 import {
     ConfirmDeleteButton,
@@ -14,6 +15,7 @@ import { Can } from '@/components/admin/use-can';
 import {
     postCreateHref,
     postEditHref,
+    postIndexHref,
     postSectionContent,
     type PostSection,
     typesForSection,
@@ -31,6 +33,13 @@ export default function PostsIndex({
 }) {
     const content = postSectionContent[section];
     const availableTypes = typesForSection(section);
+    const [search, setSearch] = useState(filters.search ?? '');
+    const hasFilters = Boolean(
+        filters.search ||
+        filters.status ||
+        (section === 'all' && filters.type) ||
+        (section === 'media' && filters.type && filters.type !== 'media'),
+    );
     function filter(name: string, value: string) {
         router.get(
             '/admin/posts',
@@ -55,18 +64,32 @@ export default function PostsIndex({
                         </Link>
                     </Can>
                 </PageHeading>
-                <div className="cms-toolbar">
+                <form
+                    className="cms-toolbar"
+                    role="search"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        filter('search', search.trim());
+                    }}
+                >
                     <label>
                         <span>Buscar</span>
-                        <input
-                            type="search"
-                            defaultValue={filters.search ?? ''}
-                            placeholder="Título ou palavra-chave"
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter')
-                                    filter('search', e.currentTarget.value);
-                            }}
-                        />
+                        <span className="cms-search-control">
+                            <input
+                                type="search"
+                                value={search}
+                                placeholder="Título ou palavra-chave"
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
+                            />
+                            <button
+                                type="submit"
+                                className="cms-button secondary"
+                            >
+                                Buscar
+                            </button>
+                        </span>
                     </label>
                     {section !== 'social' && (
                         <label>
@@ -103,9 +126,18 @@ export default function PostsIndex({
                             <option value="review">Em revisão</option>
                             <option value="scheduled">Agendado</option>
                             <option value="published">Publicado</option>
+                            <option value="archived">Arquivado</option>
                         </select>
                     </label>
-                </div>
+                    {hasFilters && (
+                        <Link
+                            className="cms-toolbar-clear"
+                            href={postIndexHref(section)}
+                        >
+                            Limpar filtros
+                        </Link>
+                    )}
+                </form>
                 {posts.data.length ? (
                     <>
                         <div className="cms-table-wrap">

@@ -3,6 +3,7 @@ import { AdminLayout } from '@/components/admin/admin-layout';
 import {
     ConfirmDeleteButton,
     EmptyState,
+    ListingFilters,
     PageHeading,
     Pagination,
     StatusBadge,
@@ -13,7 +14,11 @@ import type { AdminSharedProps, Paginated, Project } from '@/types/cms';
 export default function ProjectsIndex({
     seo,
     projects,
-}: AdminSharedProps & { projects: Paginated<Project> }) {
+    filters = {},
+}: AdminSharedProps & {
+    projects: Paginated<Project>;
+    filters?: Record<string, string | null | undefined>;
+}) {
     return (
         <>
             <SeoHead seo={seo} />
@@ -31,6 +36,11 @@ export default function ProjectsIndex({
                         </Link>
                     </Can>
                 </PageHeading>
+                <ListingFilters
+                    basePath="/admin/projetos"
+                    filters={filters}
+                    searchPlaceholder="Título, resumo ou identificação"
+                />
                 {projects.data.length ? (
                     <>
                         <div className="cms-table-wrap">

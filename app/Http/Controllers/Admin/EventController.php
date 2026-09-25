@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Requests\Admin\EventRequest;
 use App\Models\Event;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -12,12 +13,33 @@ use Inertia\Response;
 
 class EventController extends AdminController
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->authorize('viewAny', Event::class);
-        $items = Event::query()->with('cover')->orderByDesc('starts_at')->paginate(15)->withQueryString()->through(fn (Event $event): array => $this->serialize($event));
+        $filters = [
+            'search' => mb_substr(trim((string) $request->query('search', '')), 0, 100),
+            'status' => in_array($request->query('status'), ['draft', 'review', 'scheduled', 'published', 'archived'], true) ? $request->query('status') : null,
+            'period' => in_array($request->query('period'), ['upcoming', 'past'], true) ? $request->query('period') : null,
+        ];
+        $query = Event::query()->with('cover')->orderByDesc('starts_at');
+        if ($filters['search'] !== '') {
+            $query->where(fn ($query) => $query->whereLike('title', "%{$filters['search']}%", caseSensitive: false)
+                ->orWhereLike('summary', "%{$filters['search']}%", caseSensitive: false)
+                ->orWhereLike('location', "%{$filters['search']}%", caseSensitive: false));
+        }
+        if ($filters['status']) {
+            $query->where('status', $filters['status']);
+        }
+        if ($filters['period'] === 'upcoming') {
+            $query->where(fn ($query) => $query->whereNull('ends_at')->where('starts_at', '>=', now())
+                ->orWhere('ends_at', '>=', now()));
+        } elseif ($filters['period'] === 'past') {
+            $query->where(fn ($query) => $query->whereNotNull('ends_at')->where('ends_at', '<', now())
+                ->orWhere(fn ($query) => $query->whereNull('ends_at')->where('starts_at', '<', now())));
+        }
+        $items = $query->paginate(15)->withQueryString()->through(fn (Event $event): array => $this->serialize($event));
 
-        return Inertia::render('admin/content/index', ['resource' => 'events', 'items' => $items]);
+        return Inertia::render('admin/content/index', ['resource' => 'events', 'items' => $items, 'filters' => $filters]);
     }
 
     public function create(): Response

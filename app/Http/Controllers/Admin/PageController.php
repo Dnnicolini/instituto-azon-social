@@ -5,18 +5,31 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Requests\Admin\PageRequest;
 use App\Models\Page;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PageController extends AdminController
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->authorize('viewAny', Page::class);
-        $items = Page::query()->latest('updated_at')->paginate(15)->withQueryString()->through(fn (Page $page): array => $this->serialize($page));
+        $filters = [
+            'search' => mb_substr(trim((string) $request->query('search', '')), 0, 100),
+            'status' => in_array($request->query('status'), ['draft', 'review', 'scheduled', 'published', 'archived'], true) ? $request->query('status') : null,
+        ];
+        $query = Page::query()->latest('updated_at');
+        if ($filters['search'] !== '') {
+            $query->where(fn ($query) => $query->whereLike('title', "%{$filters['search']}%", caseSensitive: false)
+                ->orWhereLike('slug', "%{$filters['search']}%", caseSensitive: false));
+        }
+        if ($filters['status']) {
+            $query->where('status', $filters['status']);
+        }
+        $items = $query->paginate(15)->withQueryString()->through(fn (Page $page): array => $this->serialize($page));
 
-        return Inertia::render('admin/content/index', ['resource' => 'pages', 'items' => $items]);
+        return Inertia::render('admin/content/index', ['resource' => 'pages', 'items' => $items, 'filters' => $filters]);
     }
 
     public function create(): Response

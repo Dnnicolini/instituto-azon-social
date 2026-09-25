@@ -26,6 +26,12 @@ type HomeProps = {
 };
 
 const instagramProfileUrl = 'https://www.instagram.com/azon.social/';
+const socialProviderLabels: Record<string, string> = {
+    instagram: 'Instagram',
+    facebook: 'Facebook',
+    tiktok: 'TikTok',
+    linkedin: 'LinkedIn',
+};
 
 type ValueIconName = 'ancestry' | 'care' | 'transformation';
 
@@ -520,6 +526,10 @@ export default function Home({
                                         )}
                                         <div className="news-body">
                                             <small>
+                                                {socialProviderLabels[
+                                                    post.provider ?? ''
+                                                ] ?? 'Rede social'}{' '}
+                                                ·{' '}
                                                 {post.published_at
                                                     ? new Date(
                                                           post.published_at,
@@ -696,7 +706,9 @@ export default function Home({
                                         src={selectedSocialPost.cover_url}
                                         alt={selectedSocialPost.cover_alt ?? ''}
                                     />
-                                ) : instagramEmbedUrl(
+                                ) : selectedSocialPost.provider ===
+                                      'instagram' &&
+                                  instagramEmbedUrl(
                                       selectedSocialPost.external_url,
                                   ) ? (
                                     <iframe
@@ -722,7 +734,11 @@ export default function Home({
                                 )}
                             </div>
                             <div className="social-dialog-copy">
-                                <p className="eyebrow">@azon.social</p>
+                                <p className="eyebrow">
+                                    {socialProviderLabels[
+                                        selectedSocialPost.provider ?? ''
+                                    ] ?? 'Rede social'}
+                                </p>
                                 <small>
                                     {selectedSocialPost.published_at
                                         ? new Date(
@@ -744,7 +760,11 @@ export default function Home({
                                         target="_blank"
                                         rel="noreferrer"
                                     >
-                                        Ver no Instagram ↗
+                                        Ver no{' '}
+                                        {socialProviderLabels[
+                                            selectedSocialPost.provider ?? ''
+                                        ] ?? 'site de origem'}{' '}
+                                        ↗
                                     </a>
                                 )}
                             </div>

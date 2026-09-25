@@ -31,6 +31,6 @@ class StoreUserRequest extends FormRequest
 
     protected function getRedirectUrl(): string
     {
-        return route('admin.users.index');
+        return route('admin.users.create');
     }
 }

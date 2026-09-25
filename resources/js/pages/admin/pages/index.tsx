@@ -3,6 +3,7 @@ import { AdminLayout } from '@/components/admin/admin-layout';
 import {
     ConfirmDeleteButton,
     EmptyState,
+    ListingFilters,
     PageHeading,
     Pagination,
     StatusBadge,
@@ -13,7 +14,11 @@ import type { AdminSharedProps, Paginated, SitePage } from '@/types/cms';
 export default function Pages({
     seo,
     pages,
-}: AdminSharedProps & { pages: Paginated<SitePage> }) {
+    filters = {},
+}: AdminSharedProps & {
+    pages: Paginated<SitePage>;
+    filters?: Record<string, string | null | undefined>;
+}) {
     return (
         <>
             <SeoHead seo={seo} />
@@ -31,6 +36,11 @@ export default function Pages({
                         </Link>
                     </Can>
                 </PageHeading>
+                <ListingFilters
+                    basePath="/admin/paginas"
+                    filters={filters}
+                    searchPlaceholder="Título ou endereço da página"
+                />
                 {pages.data.length ? (
                     <>
                         <div className="cms-table-wrap">

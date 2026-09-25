@@ -5,9 +5,12 @@ function safeEmbed(post: Post): string | null {
         const url = new URL(post.external_url);
         if (post.provider === 'youtube') {
             if (
-                !['youtube.com', 'www.youtube.com', 'youtu.be'].includes(
-                    url.hostname,
-                )
+                ![
+                    'youtube.com',
+                    'www.youtube.com',
+                    'm.youtube.com',
+                    'youtu.be',
+                ].includes(url.hostname)
             )
                 return null;
             const id =
@@ -66,20 +69,38 @@ function safeExternalUrl(value?: string | null): string | null {
 }
 export function MediaPlayer({ post }: { post: Post }) {
     if (post.video_url) {
+        const isAudio =
+            post.video_mime_type?.startsWith('audio/') ||
+            post.video_mime_type === 'application/ogg';
+
         return (
-            <div className="media-player">
-                <video
-                    controls
-                    preload="metadata"
-                    poster={post.cover_url ?? undefined}
-                    aria-label={`Reproduzir ${post.title}`}
-                >
-                    <source
-                        src={post.video_url}
-                        type={post.video_mime_type ?? undefined}
-                    />
-                    Seu navegador não conseguiu reproduzir este vídeo.
-                </video>
+            <div className={`media-player${isAudio ? ' audio' : ''}`}>
+                {isAudio ? (
+                    <audio
+                        controls
+                        preload="metadata"
+                        aria-label={`Ouvir ${post.title}`}
+                    >
+                        <source
+                            src={post.video_url}
+                            type={post.video_mime_type ?? undefined}
+                        />
+                        Seu navegador não conseguiu reproduzir este áudio.
+                    </audio>
+                ) : (
+                    <video
+                        controls
+                        preload="metadata"
+                        poster={post.cover_url ?? undefined}
+                        aria-label={`Reproduzir ${post.title}`}
+                    >
+                        <source
+                            src={post.video_url}
+                            type={post.video_mime_type ?? undefined}
+                        />
+                        Seu navegador não conseguiu reproduzir este vídeo.
+                    </video>
+                )}
             </div>
         );
     }
