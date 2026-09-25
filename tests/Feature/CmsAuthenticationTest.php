@@ -167,9 +167,15 @@ it('creates the first verified administrator idempotently without a versioned pa
         ->expectsQuestion('Senha forte', 'SenhaMuitoForte!123')
         ->assertSuccessful();
 
+    User::query()->where('email', 'admin@azon.example')->update([
+        'disabled_at' => now(),
+        'email_verified_at' => null,
+    ]);
     $this->artisan('azon:create-admin', ['email' => 'admin@azon.example'])->assertSuccessful();
 
     $admin = User::query()->where('email', 'admin@azon.example')->firstOrFail();
-    expect($admin->hasVerifiedEmail())->toBeTrue()->and($admin->hasRole('administrator'))->toBeTrue();
+    expect($admin->hasVerifiedEmail())->toBeTrue()
+        ->and($admin->disabled_at)->toBeNull()
+        ->and($admin->hasRole('administrator'))->toBeTrue();
     $this->assertDatabaseCount('users', 1);
 });

@@ -63,6 +63,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn (): mixed => $request->session()->get('success'),
                 'status' => fn (): mixed => $request->session()->get('status'),
+                'error' => fn (): mixed => $request->session()->get('error'),
             ],
             ...($request->is('admin/*') || $request->is('admin') ? [
                 'seo' => [

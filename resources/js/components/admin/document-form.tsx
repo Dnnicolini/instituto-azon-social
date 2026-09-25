@@ -168,6 +168,7 @@ export function DocumentForm({ document }: { document?: DocumentDetail }) {
             <FormActions
                 processing={form.processing}
                 isDirty={form.isDirty}
+                isNew={!document}
                 cancelHref="/admin/documentos"
                 submitLabel={document ? 'Salvar documento' : 'Enviar documento'}
             />

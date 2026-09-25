@@ -95,11 +95,13 @@ export function Pagination<T>({ page }: { page: Paginated<T> }) {
 export function FormActions({
     processing,
     isDirty,
+    isNew = false,
     submitLabel = 'Salvar alterações',
     cancelHref,
 }: {
     processing: boolean;
     isDirty: boolean;
+    isNew?: boolean;
     submitLabel?: string;
     cancelHref: string;
 }) {
@@ -110,7 +112,9 @@ export function FormActions({
                     ? 'Salvando…'
                     : isDirty
                       ? 'Há alterações não salvas.'
-                      : 'Tudo salvo.'}
+                      : isNew
+                        ? 'Preencha os campos para criar este conteúdo.'
+                        : 'Tudo salvo.'}
             </span>
             <div>
                 <Link className="cms-button secondary" href={cancelHref}>

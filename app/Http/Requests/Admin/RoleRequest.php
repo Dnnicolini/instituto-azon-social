@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class RoleRequest extends FormRequest
 {
@@ -25,5 +27,36 @@ class RoleRequest extends FormRequest
             'permissions' => ['required', 'array', 'min:1'],
             'permissions.*' => ['integer', Rule::exists('permissions', 'id')],
         ];
+    }
+
+    /** @return array<int, callable> */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            $input = $this->input('permissions');
+            if (! is_array($input)) {
+                return;
+            }
+
+            $permissionIds = array_values(array_filter(
+                $input,
+                fn (mixed $id): bool => is_int($id) || (is_string($id) && ctype_digit($id)),
+            ));
+
+            if ($permissionIds === []) {
+                return;
+            }
+
+            $slugs = Permission::query()->whereKey($permissionIds)->pluck('slug');
+            $panelPermissions = $slugs->diff(['access-admin']);
+            if ($panelPermissions->isNotEmpty() && ! $slugs->contains('access-admin')) {
+                $validator->errors()->add('permissions', 'Inclua a permissão "Acessar painel" para usar permissões administrativas.');
+            }
+        }];
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return route('admin.roles.index');
     }
 }

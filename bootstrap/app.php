@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\NoIndexAdmin;
 use App\Http\Middleware\RequirePermission;
@@ -22,12 +23,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => RequirePermission::class,
             'noindex' => NoIndexAdmin::class,
+            'active' => EnsureUserIsActive::class,
         ]);
 
         $middleware->web(append: [
             SecurityHeaders::class,
             HandleInertiaRequests::class,
-            AddLinkHeadersForPreloadedAssets::class,
+            AddLinkHeadersForPreloadedAssets::using(6),
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

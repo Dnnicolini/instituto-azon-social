@@ -60,7 +60,7 @@ class DocumentController extends AdminController
             $this->recordChange('document.updated', $document, $before);
         });
 
-        return back()->with('success', 'Documento atualizado.');
+        return redirect()->route('admin.documents.edit', $document)->with('success', 'Documento atualizado.');
     }
 
     public function destroy(Document $document): RedirectResponse

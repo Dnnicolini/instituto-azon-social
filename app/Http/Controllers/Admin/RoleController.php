@@ -45,7 +45,7 @@ class RoleController extends AdminController
             return $role;
         });
 
-        return back()->with('success', "Grupo {$role->name} criado.");
+        return redirect()->route('admin.roles.index')->with('success', "Grupo {$role->name} criado.");
     }
 
     public function update(RoleRequest $request, Role $role): RedirectResponse
@@ -58,7 +58,7 @@ class RoleController extends AdminController
             $this->recordChange('role.updated', $role, $before);
         });
 
-        return back()->with('success', 'Grupo atualizado.');
+        return redirect()->route('admin.roles.index')->with('success', 'Grupo atualizado.');
     }
 
     public function destroy(Role $role): RedirectResponse
@@ -67,7 +67,7 @@ class RoleController extends AdminController
         $this->recordChange('role.deleted', $role);
         $role->delete();
 
-        return back()->with('success', 'Grupo excluído.');
+        return redirect()->route('admin.roles.index')->with('success', 'Grupo excluído.');
     }
 
     /** @return array<string, mixed> */

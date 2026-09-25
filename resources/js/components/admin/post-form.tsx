@@ -1,6 +1,8 @@
 import { useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useRef } from 'react';
 import { FieldError, FormActions } from './cms-ui';
+import { FormErrorSummary } from './form-error-summary';
 import type { ContentStatus, ContentType, Post } from '@/types/cms';
 import { statusLabels, typeLabels } from '@/types/cms';
 import { useCan } from './use-can';
@@ -9,6 +11,7 @@ import {
     type PostSection,
     typesForSection,
 } from '@/lib/admin-post-section';
+import { focusFirstFormError, slugifyTitle } from '@/lib/cms-form';
 
 export function PostForm({
     post,
@@ -20,6 +23,8 @@ export function PostForm({
     initialType?: ContentType;
 }) {
     const canPublish = useCan('content.publish');
+    const formId = post ? `post-${post.id}` : 'create-post';
+    const slugWasEdited = useRef(Boolean(post));
     const form = useForm<{
         title: string;
         slug: string;
@@ -80,15 +85,65 @@ export function PostForm({
     const sectionQuery = section === 'all' ? '' : `?section=${section}`;
     function submit(event: FormEvent) {
         event.preventDefault();
+        if (form.processing) return;
+        const options = {
+            forceFormData: true,
+            onError: () => focusFirstFormError(formId),
+        };
         if (post)
             form.post(`/admin/posts/${post.id}${sectionQuery}`, {
-                forceFormData: true,
+                ...options,
                 headers: { 'X-HTTP-Method-Override': 'PUT' },
             });
-        else form.post(`/admin/posts${sectionQuery}`, { forceFormData: true });
+        else form.post(`/admin/posts${sectionQuery}`, options);
     }
     return (
-        <form className="cms-editor" onSubmit={submit} noValidate>
+        <form
+            id={formId}
+            className="cms-editor"
+            onSubmit={submit}
+            noValidate
+            aria-busy={form.processing}
+        >
+            <FormErrorSummary
+                errors={form.errors}
+                labels={{
+                    title: 'Título',
+                    slug: 'Endereço amigável',
+                    excerpt: 'Resumo',
+                    body: 'Texto ou transcrição',
+                    type: 'Formato',
+                    status: 'Status',
+                    published_at: 'Data de publicação',
+                    provider: 'Plataforma',
+                    external_url: 'URL externa',
+                    duration_seconds: 'Duração',
+                    is_featured: 'Destaque',
+                    sort_order: 'Ordem entre destaques',
+                    seo_title: 'Título para busca',
+                    seo_description: 'Descrição para busca',
+                    cover: 'Imagem de capa',
+                    cover_alt: 'Descrição da imagem',
+                    video: 'Arquivo de vídeo',
+                }}
+                fieldIds={{
+                    title: 'post-title',
+                    slug: 'post-slug',
+                    excerpt: 'post-excerpt',
+                    body: 'post-body',
+                    type: 'post-type',
+                    status: 'post-status',
+                    published_at: 'published-at',
+                    duration_seconds: 'duration',
+                    external_url: 'external-url',
+                    is_featured: 'is_featured',
+                    sort_order: 'social-sort-order',
+                    seo_title: 'seo-title',
+                    seo_description: 'seo-description',
+                    cover_alt: 'cover-alt',
+                    video: 'video-file',
+                }}
+            />
             <div className="cms-editor-main">
                 <section className="cms-form-section">
                     <h2>Conteúdo</h2>
@@ -97,9 +152,16 @@ export function PostForm({
                         <input
                             id="post-title"
                             value={form.data.title}
-                            onChange={(e) =>
-                                form.setData('title', e.target.value)
-                            }
+                            onChange={(event) => {
+                                const title = event.target.value;
+                                form.setData({
+                                    ...form.data,
+                                    title,
+                                    slug: slugWasEdited.current
+                                        ? form.data.slug
+                                        : slugifyTitle(title),
+                                });
+                            }}
                             aria-invalid={Boolean(form.errors.title)}
                             autoFocus
                         />
@@ -112,12 +174,17 @@ export function PostForm({
                             <input
                                 id="post-slug"
                                 value={form.data.slug}
-                                onChange={(e) =>
-                                    form.setData('slug', e.target.value)
-                                }
+                                onChange={(event) => {
+                                    slugWasEdited.current = true;
+                                    form.setData('slug', event.target.value);
+                                }}
+                                aria-invalid={Boolean(form.errors.slug)}
                             />
                         </div>
-                        <small>Use letras minúsculas, números e hífens.</small>
+                        <small>
+                            Gerado pelo título. Você pode personalizar usando
+                            letras minúsculas, números e hífens.
+                        </small>
                         <FieldError message={form.errors.slug} />
                     </div>
                     <div className="cms-field">
@@ -130,6 +197,7 @@ export function PostForm({
                             onChange={(e) =>
                                 form.setData('excerpt', e.target.value)
                             }
+                            aria-invalid={Boolean(form.errors.excerpt)}
                         />
                         <small>{form.data.excerpt.length}/320 caracteres</small>
                         <FieldError message={form.errors.excerpt} />
@@ -143,6 +211,7 @@ export function PostForm({
                             onChange={(e) =>
                                 form.setData('body', e.target.value)
                             }
+                            aria-invalid={Boolean(form.errors.body)}
                         />
                         <small>
                             Texto simples. Parágrafos e quebras de linha serão
@@ -175,6 +244,7 @@ export function PostForm({
                                             e.target.files?.[0] ?? null,
                                         )
                                     }
+                                    aria-invalid={Boolean(form.errors.video)}
                                 />
                                 <small>
                                     MP4, MOV ou WebM, com até 200 MB. Um novo
@@ -209,6 +279,9 @@ export function PostForm({
                                                     .value as typeof form.data.provider,
                                             )
                                         }
+                                        aria-invalid={Boolean(
+                                            form.errors.provider,
+                                        )}
                                     >
                                         <option value="">Selecione</option>
                                         <option value="youtube">YouTube</option>
@@ -242,6 +315,9 @@ export function PostForm({
                                                 e.target.value,
                                             )
                                         }
+                                        aria-invalid={Boolean(
+                                            form.errors.duration_seconds,
+                                        )}
                                     />
                                     <FieldError
                                         message={form.errors.duration_seconds}
@@ -265,6 +341,7 @@ export function PostForm({
                                 onChange={(e) =>
                                     form.setData('external_url', e.target.value)
                                 }
+                                aria-invalid={Boolean(form.errors.external_url)}
                             />
                             <small>
                                 {isSocial
@@ -288,6 +365,7 @@ export function PostForm({
                             onChange={(e) =>
                                 form.setData('seo_title', e.target.value)
                             }
+                            aria-invalid={Boolean(form.errors.seo_title)}
                         />
                         <small>
                             {form.data.seo_title.length}/70 caracteres
@@ -306,6 +384,7 @@ export function PostForm({
                             onChange={(e) =>
                                 form.setData('seo_description', e.target.value)
                             }
+                            aria-invalid={Boolean(form.errors.seo_description)}
                         />
                         <small>
                             {form.data.seo_description.length}/160 caracteres
@@ -337,6 +416,7 @@ export function PostForm({
                                     form.setData('sort_order', '0');
                                 }
                             }}
+                            aria-invalid={Boolean(form.errors.type)}
                         >
                             {availableTypes.map((value) => (
                                 <option key={value} value={value}>
@@ -344,6 +424,7 @@ export function PostForm({
                                 </option>
                             ))}
                         </select>
+                        <FieldError message={form.errors.type} />
                     </div>
                     <div className="cms-field">
                         <label htmlFor="post-status">Status</label>
@@ -356,6 +437,7 @@ export function PostForm({
                                     e.target.value as ContentStatus,
                                 )
                             }
+                            aria-invalid={Boolean(form.errors.status)}
                         >
                             {Object.entries(statusLabels)
                                 .filter(
@@ -371,6 +453,7 @@ export function PostForm({
                                     </option>
                                 ))}
                         </select>
+                        <FieldError message={form.errors.status} />
                     </div>
                     {(form.data.status === 'scheduled' ||
                         form.data.status === 'published') && (
@@ -387,6 +470,7 @@ export function PostForm({
                                 onChange={(e) =>
                                     form.setData('published_at', e.target.value)
                                 }
+                                aria-invalid={Boolean(form.errors.published_at)}
                             />
                             <FieldError message={form.errors.published_at} />
                         </div>
@@ -395,6 +479,7 @@ export function PostForm({
                         <div className="cms-social-options">
                             <label className="cms-check-row">
                                 <input
+                                    id="is_featured"
                                     type="checkbox"
                                     checked={form.data.is_featured}
                                     onChange={(e) =>
@@ -403,6 +488,9 @@ export function PostForm({
                                             e.target.checked,
                                         )
                                     }
+                                    aria-invalid={Boolean(
+                                        form.errors.is_featured,
+                                    )}
                                 />
                                 <span>
                                     <strong>Mostrar como destaque</strong>
@@ -428,6 +516,9 @@ export function PostForm({
                                             e.target.value,
                                         )
                                     }
+                                    aria-invalid={Boolean(
+                                        form.errors.sort_order,
+                                    )}
                                 />
                                 <small>Use 0 para a posição mais alta.</small>
                                 <FieldError message={form.errors.sort_order} />
@@ -456,6 +547,7 @@ export function PostForm({
                                     e.target.files?.[0] ?? null,
                                 )
                             }
+                            aria-invalid={Boolean(form.errors.cover)}
                         />
                         <small>
                             JPG, PNG ou WebP. Máximo definido pelo servidor.
@@ -471,6 +563,7 @@ export function PostForm({
                             onChange={(e) =>
                                 form.setData('cover_alt', e.target.value)
                             }
+                            aria-invalid={Boolean(form.errors.cover_alt)}
                         />
                         <FieldError message={form.errors.cover_alt} />
                     </div>
@@ -479,6 +572,7 @@ export function PostForm({
             <FormActions
                 processing={form.processing}
                 isDirty={form.isDirty}
+                isNew={!post}
                 cancelHref={postIndexHref(section)}
                 submitLabel={post ? 'Salvar alterações' : 'Criar conteúdo'}
             />

@@ -166,6 +166,14 @@ export type ManagedUser = {
     name: string;
     email: string;
     roles: Array<{ id: number; name: string; slug: string }>;
+    status: 'active' | 'pending' | 'disabled';
+    disabled_at: string | null;
+    capabilities: {
+        update: boolean;
+        delete: boolean;
+        toggle_status: boolean;
+        reset_password: boolean;
+    };
     email_verified_at?: string | null;
     created_at: string;
 };

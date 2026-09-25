@@ -64,7 +64,7 @@ class ProjectController extends AdminController
             $this->recordChange('project.updated', $project, $before);
         });
 
-        return back()->with('success', 'Projeto atualizado.');
+        return redirect()->route('admin.projects.edit', $project)->with('success', 'Projeto atualizado.');
     }
 
     public function destroy(Project $project): RedirectResponse

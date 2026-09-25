@@ -37,7 +37,7 @@ class LoginRequest extends FormRequest
         }
 
         $user = Auth::user();
-        if (! $user || ! $user->hasVerifiedEmail() || ! $user->hasPermission('access-admin')) {
+        if (! $user || $user->disabled_at !== null || ! $user->hasVerifiedEmail() || ! $user->hasPermission('access-admin')) {
             Auth::logout();
             RateLimiter::hit($this->throttleKey());
             throw ValidationException::withMessages(['email' => __('auth.failed')]);

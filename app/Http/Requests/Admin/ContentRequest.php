@@ -46,4 +46,27 @@ abstract class ContentRequest extends FormRequest
     {
         return strtolower(class_basename($this->modelClass()));
     }
+
+    protected function getRedirectUrl(): string
+    {
+        $routeName = (string) $this->route()?->getName();
+        $model = $this->route($this->routeParameter());
+        $query = array_filter([
+            'section' => $this->query('section'),
+            'type' => $this->query('type'),
+        ], fn ($value): bool => is_string($value) && $value !== '');
+
+        if ($model && str_ends_with($routeName, '.update')) {
+            return route(str_replace('.update', '.edit', $routeName), [
+                $this->routeParameter() => $model,
+                ...$query,
+            ]);
+        }
+
+        if (str_ends_with($routeName, '.store')) {
+            return route(str_replace('.store', '.create', $routeName), $query);
+        }
+
+        return route('admin.dashboard');
+    }
 }

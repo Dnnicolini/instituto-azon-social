@@ -34,7 +34,7 @@ class SettingsController extends AdminController
             AuditLog::query()->create(['user_id' => $request->user()->id, 'action' => 'settings.updated', 'metadata' => ['keys' => array_keys($request->validated('settings'))], 'ip_hash' => $this->ipHash()]);
         });
 
-        return back()->with('success', 'Configurações atualizadas.');
+        return redirect()->route('admin.settings.edit')->with('success', 'Configurações atualizadas.');
     }
 
     /** @return array<string, mixed> */

@@ -64,7 +64,7 @@ class EventController extends AdminController
             $this->recordChange('event.updated', $event, $before);
         });
 
-        return back()->with('success', 'Evento atualizado.');
+        return redirect()->route('admin.events.edit', $event)->with('success', 'Evento atualizado.');
     }
 
     public function destroy(Event $event): RedirectResponse

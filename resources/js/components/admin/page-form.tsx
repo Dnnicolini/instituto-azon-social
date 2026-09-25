@@ -366,6 +366,7 @@ export function PageForm({ page }: { page?: SitePage }) {
             <FormActions
                 processing={form.processing}
                 isDirty={form.isDirty}
+                isNew={!page}
                 cancelHref="/admin/paginas"
                 submitLabel={page ? 'Salvar página' : 'Criar página'}
             />
