@@ -1,5 +1,5 @@
-import { Link } from '@inertiajs/react';
-import type { ReactNode } from 'react';
+import { Link, router } from '@inertiajs/react';
+import type { FormEvent, ReactNode } from 'react';
 import type { ContentStatus, Paginated } from '@/types/cms';
 import { statusLabels } from '@/types/cms';
 
@@ -92,18 +92,114 @@ export function Pagination<T>({ page }: { page: Paginated<T> }) {
     );
 }
 
+type ListingFilterOption = { value: string; label: string };
+
+export function ListingFilters({
+    basePath,
+    filters,
+    searchPlaceholder,
+    extra = [],
+}: {
+    basePath: string;
+    filters: Record<string, string | null | undefined>;
+    searchPlaceholder: string;
+    extra?: Array<{
+        name: string;
+        label: string;
+        options: ListingFilterOption[];
+    }>;
+}) {
+    function apply(name: string, value: string) {
+        router.get(
+            basePath,
+            { ...filters, [name]: value || undefined },
+            { preserveState: true, replace: true },
+        );
+    }
+
+    function search(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        const data = new FormData(event.currentTarget);
+        const value = data.get('search');
+        apply('search', typeof value === 'string' ? value.trim() : '');
+    }
+
+    const hasFilters = Object.values(filters).some(Boolean);
+
+    return (
+        <form className="cms-toolbar" role="search" onSubmit={search}>
+            <label>
+                <span>Buscar</span>
+                <span className="cms-search-control">
+                    <input
+                        name="search"
+                        type="search"
+                        defaultValue={filters.search ?? ''}
+                        placeholder={searchPlaceholder}
+                    />
+                    <button type="submit" className="cms-button secondary">
+                        Buscar
+                    </button>
+                </span>
+            </label>
+            <label>
+                <span>Status</span>
+                <select
+                    value={filters.status ?? ''}
+                    onChange={(event) => apply('status', event.target.value)}
+                >
+                    <option value="">Todos</option>
+                    {Object.entries(statusLabels).map(([value, label]) => (
+                        <option key={value} value={value}>
+                            {label}
+                        </option>
+                    ))}
+                </select>
+            </label>
+            {extra.map((filter) => (
+                <label key={filter.name}>
+                    <span>{filter.label}</span>
+                    <select
+                        value={filters[filter.name] ?? ''}
+                        onChange={(event) =>
+                            apply(filter.name, event.target.value)
+                        }
+                    >
+                        {filter.options.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+            ))}
+            {hasFilters && (
+                <Link className="cms-toolbar-clear" href={basePath}>
+                    Limpar filtros
+                </Link>
+            )}
+        </form>
+    );
+}
+
 export function FormActions({
     processing,
     isDirty,
     isNew = false,
-    submitLabel = 'Salvar alterações',
     cancelHref,
+    currentStatus,
+    canPublish,
+    canSchedule = false,
+    onIntent,
 }: {
     processing: boolean;
     isDirty: boolean;
     isNew?: boolean;
-    submitLabel?: string;
     cancelHref: string;
+    currentStatus: ContentStatus;
+    canPublish: boolean;
+    canSchedule?: boolean;
+    onIntent: (status: ContentStatus) => void;
 }) {
     return (
         <div className="cms-form-actions">
@@ -116,17 +212,91 @@ export function FormActions({
                         ? 'Preencha os campos para criar este conteúdo.'
                         : 'Tudo salvo.'}
             </span>
-            <div>
+            <div className="cms-form-action-buttons">
                 <Link className="cms-button secondary" href={cancelHref}>
                     Cancelar
                 </Link>
                 <button
-                    className="cms-button primary"
+                    className="cms-button secondary"
                     type="submit"
+                    name="status_intent"
+                    value="draft"
+                    onClick={() => onIntent('draft')}
                     disabled={processing}
                 >
-                    {processing ? 'Salvando…' : submitLabel}
+                    Salvar rascunho
                 </button>
+                {!isNew && (
+                    <button
+                        className="cms-button secondary"
+                        type="submit"
+                        name="status_intent"
+                        value="archived"
+                        onClick={() => onIntent('archived')}
+                        disabled={processing}
+                    >
+                        {currentStatus === 'archived'
+                            ? 'Salvar arquivado'
+                            : 'Arquivar'}
+                    </button>
+                )}
+                {!canPublish && (
+                    <button
+                        className="cms-button primary"
+                        type="submit"
+                        name="status_intent"
+                        value="review"
+                        onClick={() => onIntent('review')}
+                        disabled={processing}
+                    >
+                        Enviar para revisão
+                    </button>
+                )}
+                {canPublish && (
+                    <>
+                        <button
+                            className="cms-button secondary"
+                            type="submit"
+                            name="status_intent"
+                            value="review"
+                            onClick={() => onIntent('review')}
+                            disabled={processing}
+                        >
+                            Enviar para revisão
+                        </button>
+                        <button
+                            className="cms-button secondary"
+                            type="submit"
+                            name="status_intent"
+                            value="scheduled"
+                            onClick={() => onIntent('scheduled')}
+                            disabled={processing || !canSchedule}
+                            title={
+                                canSchedule
+                                    ? undefined
+                                    : 'Informe a data e a hora de publicação para agendar.'
+                            }
+                        >
+                            {currentStatus === 'scheduled'
+                                ? 'Atualizar agendamento'
+                                : 'Agendar'}
+                        </button>
+                        <button
+                            className="cms-button primary"
+                            type="submit"
+                            name="status_intent"
+                            value="published"
+                            onClick={() => onIntent('published')}
+                            disabled={processing}
+                        >
+                            {processing
+                                ? 'Salvando…'
+                                : currentStatus === 'published'
+                                  ? 'Salvar publicação'
+                                  : 'Publicar agora'}
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     );

@@ -3,7 +3,10 @@
 use App\Enums\ContentStatus;
 use App\Enums\PostType;
 use App\Models\ContactMessage;
+use App\Models\Document;
+use App\Models\Event;
 use App\Models\MediaAsset;
+use App\Models\Page;
 use App\Models\Permission;
 use App\Models\Post;
 use App\Models\Project;
@@ -152,6 +155,30 @@ it('allows editors to draft but not publish and allows publishers to publish', f
     $this->assertDatabaseHas('posts', ['slug' => 'publicacao-aprovada', 'status' => 'published']);
 });
 
+it('makes publish now immediately visible even when a future schedule was present', function (): void {
+    $publisher = $this->cmsUser('publisher');
+    $post = Post::query()->create([
+        'type' => PostType::Article,
+        'title' => 'Publicação agendada',
+        'slug' => 'publicacao-agendada-agora',
+        'status' => ContentStatus::Scheduled,
+        'published_at' => now()->addMonth(),
+    ]);
+
+    $this->actingAs($publisher)->put(route('admin.posts.update', $post), [
+        'type' => 'article',
+        'title' => $post->title,
+        'slug' => $post->slug,
+        'status' => 'published',
+        'published_at' => now()->addMonth()->toDateTimeString(),
+    ])->assertRedirect();
+
+    $post->refresh();
+    expect($post->status)->toBe(ContentStatus::Published)
+        ->and($post->published_at?->isFuture())->toBeFalse()
+        ->and(Post::query()->published()->whereKey($post->getKey())->exists())->toBeTrue();
+});
+
 it('validates and stores generated image uploads', function (): void {
     Storage::fake('public');
     $publisher = $this->cmsUser('publisher');
@@ -195,6 +222,154 @@ it('accepts a video upload separately from the cover image', function (): void {
         ->and($post->video?->mime_type)->toBe('video/quicktime')
         ->and($post->cover)->toBeNull();
     Storage::disk('public')->assertExists((string) $post->video?->path);
+});
+
+it('accepts an audio upload for podcasts without persisting the form source mode', function (): void {
+    Storage::fake('public');
+    $publisher = $this->cmsUser('publisher');
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'podcast',
+        'title' => 'Vozes do território',
+        'slug' => 'vozes-do-territorio',
+        'status' => 'draft',
+        'source_mode' => 'upload',
+        'video' => UploadedFile::fake()->create('episodio.mp3', 2048, 'audio/mpeg'),
+    ])->assertRedirect();
+
+    $post = Post::query()->where('slug', 'vozes-do-territorio')->with('video')->firstOrFail();
+    expect($post->video?->original_name)->toBe('episodio.mp3')
+        ->and($post->provider)->toBeNull()
+        ->and($post->external_url)->toBeNull()
+        ->and($post->getAttributes())->not->toHaveKey('source_mode');
+    Storage::disk('public')->assertExists((string) $post->video?->path);
+});
+
+it('keeps the current upload on edit and clears it only when switching to a link', function (): void {
+    Storage::fake('public');
+    $publisher = $this->cmsUser('publisher');
+    $media = MediaAsset::query()->create([
+        'disk' => 'public',
+        'path' => 'cms/media/existente.mp4',
+        'original_name' => 'existente.mp4',
+        'mime_type' => 'video/mp4',
+        'size' => 1024,
+    ]);
+    $post = Post::query()->create([
+        'type' => PostType::Video,
+        'title' => 'Vídeo existente',
+        'slug' => 'video-existente',
+        'status' => ContentStatus::Draft,
+        'video_media_id' => $media->id,
+    ]);
+
+    $this->actingAs($publisher)->put(route('admin.posts.update', $post), [
+        'type' => 'video',
+        'title' => 'Vídeo revisado',
+        'slug' => 'video-existente',
+        'status' => 'draft',
+        'source_mode' => 'upload',
+    ])->assertRedirect();
+    expect($post->fresh()->video_media_id)->toBe($media->id);
+
+    $this->actingAs($publisher)->put(route('admin.posts.update', $post), [
+        'type' => 'video',
+        'title' => 'Vídeo por link',
+        'slug' => 'video-existente',
+        'status' => 'draft',
+        'source_mode' => 'link',
+        'provider' => 'youtube',
+        'external_url' => 'https://www.youtube.com/watch?v=abc123',
+    ])->assertRedirect();
+
+    $post->refresh();
+    expect($post->video_media_id)->toBeNull()
+        ->and($post->provider)->toBe('youtube')
+        ->and($post->external_url)->toBe('https://www.youtube.com/watch?v=abc123');
+});
+
+it('rejects a stored upload when its mime is incompatible with the changed media type', function (): void {
+    Storage::fake('public');
+    $publisher = $this->cmsUser('publisher');
+    $video = MediaAsset::query()->create([
+        'disk' => 'public',
+        'path' => 'cms/media/existente.mp4',
+        'original_name' => 'existente.mp4',
+        'mime_type' => 'video/mp4',
+        'size' => 1024,
+    ]);
+    $post = Post::query()->create([
+        'type' => PostType::Video,
+        'title' => 'Vídeo existente',
+        'slug' => 'video-existente-mime',
+        'status' => ContentStatus::Draft,
+        'video_media_id' => $video->id,
+    ]);
+
+    $this->actingAs($publisher)->put(route('admin.posts.update', $post), [
+        'type' => 'podcast',
+        'title' => 'Podcast inválido',
+        'slug' => 'video-existente-mime',
+        'status' => 'draft',
+        'source_mode' => 'upload',
+    ])->assertSessionHasErrors('video');
+
+    expect($post->fresh()->type)->toBe(PostType::Video);
+
+    $audio = MediaAsset::query()->create([
+        'disk' => 'public',
+        'path' => 'cms/media/existente.mp3',
+        'original_name' => 'existente.mp3',
+        'mime_type' => 'audio/mpeg',
+        'size' => 1024,
+    ]);
+    $podcast = Post::query()->create([
+        'type' => PostType::Podcast,
+        'title' => 'Podcast existente',
+        'slug' => 'podcast-existente-mime',
+        'status' => ContentStatus::Draft,
+        'video_media_id' => $audio->id,
+    ]);
+
+    $this->actingAs($publisher)->put(route('admin.posts.update', $podcast), [
+        'type' => 'video',
+        'title' => 'Vídeo inválido',
+        'slug' => 'podcast-existente-mime',
+        'status' => 'draft',
+        'source_mode' => 'upload',
+    ])->assertSessionHasErrors('video');
+
+    expect($podcast->fresh()->type)->toBe(PostType::Podcast);
+});
+
+it('requires exactly one coherent media source', function (): void {
+    Storage::fake('public');
+    $publisher = $this->cmsUser('publisher');
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'video',
+        'title' => 'Duas origens',
+        'slug' => 'duas-origens',
+        'status' => 'draft',
+        'source_mode' => 'upload',
+        'provider' => 'youtube',
+        'external_url' => 'https://www.youtube.com/watch?v=abc123',
+        'video' => UploadedFile::fake()->create('video.mp4', 1024, 'video/mp4'),
+    ])->assertSessionHasErrors(['provider', 'external_url']);
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'podcast',
+        'title' => 'Áudio no modo link',
+        'slug' => 'audio-no-modo-link',
+        'status' => 'draft',
+        'source_mode' => 'link',
+        'provider' => 'spotify',
+        'external_url' => 'https://open.spotify.com/episode/123',
+        'video' => UploadedFile::fake()->create('episodio.mp3', 1024, 'audio/mpeg'),
+    ])->assertSessionHasErrors('video');
+
+    $this->assertDatabaseMissing('posts', ['slug' => 'duas-origens']);
+    $this->assertDatabaseMissing('posts', ['slug' => 'audio-no-modo-link']);
 });
 
 it('rejects unsupported video files and video uploads on non-video content', function (): void {
@@ -254,6 +429,93 @@ it('separates content, media and social admin experiences and preserves their co
     ]);
     $created = Post::query()->where('slug', 'video-externo')->firstOrFail();
     $response->assertRedirect(route('admin.posts.edit', ['post' => $created, 'section' => 'media']));
+});
+
+it('filters every content directory on the server and preserves validated filters', function (): void {
+    $publisher = $this->cmsUser('publisher');
+    Project::query()->create([
+        'title' => 'Horta Comunitária',
+        'slug' => 'horta-comunitaria',
+        'summary' => 'Cultivo no território',
+        'status' => ContentStatus::Published,
+    ]);
+    Project::query()->create([
+        'title' => 'Oficina de leitura',
+        'slug' => 'oficina-leitura',
+        'status' => ContentStatus::Draft,
+    ]);
+    Event::query()->create([
+        'title' => 'Encontro futuro',
+        'slug' => 'encontro-futuro',
+        'location' => 'Sede Azon',
+        'starts_at' => now()->addWeek(),
+        'status' => ContentStatus::Published,
+    ]);
+    Event::query()->create([
+        'title' => 'Encontro realizado',
+        'slug' => 'encontro-realizado',
+        'starts_at' => now()->subWeeks(2),
+        'ends_at' => now()->subWeek(),
+        'status' => ContentStatus::Published,
+    ]);
+    Page::query()->create([
+        'title' => 'História do Instituto',
+        'slug' => 'historia-instituto',
+        'status' => ContentStatus::Review,
+    ]);
+    Page::query()->create([
+        'title' => 'Página sem relação',
+        'slug' => 'pagina-sem-relacao',
+        'status' => ContentStatus::Draft,
+    ]);
+
+    $media = MediaAsset::query()->create([
+        'disk' => 'local',
+        'path' => 'cms/documents/relatorio.pdf',
+        'original_name' => 'relatorio.pdf',
+        'mime_type' => 'application/pdf',
+        'size' => 1024,
+    ]);
+    Document::query()->create([
+        'media_asset_id' => $media->id,
+        'title' => 'Relatório anual',
+        'slug' => 'relatorio-anual',
+        'category' => 'Relatórios',
+        'status' => ContentStatus::Published,
+    ]);
+
+    $this->actingAs($publisher)->get(route('admin.projects.index', [
+        'search' => 'horta',
+        'status' => 'published',
+    ]))->assertInertia(fn (Assert $page): Assert => $page
+        ->where('filters.search', 'horta')
+        ->where('filters.status', 'published')
+        ->has('items.data', 1)
+        ->where('items.data.0.slug', 'horta-comunitaria'));
+
+    $this->actingAs($publisher)->get(route('admin.events.index', [
+        'period' => 'upcoming',
+    ]))->assertInertia(fn (Assert $page): Assert => $page
+        ->where('filters.period', 'upcoming')
+        ->has('items.data', 1)
+        ->where('items.data.0.slug', 'encontro-futuro'));
+
+    $this->actingAs($publisher)->get(route('admin.documents.index', [
+        'category' => 'Relatórios',
+    ]))->assertInertia(fn (Assert $page): Assert => $page
+        ->where('filters.category', 'Relatórios')
+        ->where('categories.0', 'Relatórios')
+        ->has('items.data', 1)
+        ->where('items.data.0.slug', 'relatorio-anual'));
+
+    $this->actingAs($publisher)->get(route('admin.pages.index', [
+        'search' => 'historia',
+        'status' => 'review',
+    ]))->assertInertia(fn (Assert $page): Assert => $page
+        ->where('filters.search', 'historia')
+        ->where('filters.status', 'review')
+        ->has('items.data', 1)
+        ->where('items.data.0.slug', 'historia-instituto'));
 });
 
 it('serves valid admin routes directly with SSR configured and returns 404 for unknown routes', function (): void {
@@ -339,6 +601,51 @@ it('validates and stores curated Instagram publications', function (): void {
         'status' => 'draft',
         'provider' => 'instagram',
         'external_url' => 'https://www.instagram.com/azon.social/',
+    ])->assertSessionHasErrors('external_url');
+});
+
+it('accepts direct Facebook TikTok and LinkedIn publications and rejects profiles or forged hosts', function (): void {
+    $publisher = $this->cmsUser('publisher');
+    $socialLinks = [
+        ['facebook', 'https://www.facebook.com/azon.social/posts/123456789', 'facebook-direto'],
+        ['tiktok', 'https://www.tiktok.com/@azon.social/video/7420000000000000000', 'tiktok-direto'],
+        ['linkedin', 'https://www.linkedin.com/posts/azon-social_atividade-123456789', 'linkedin-direto'],
+    ];
+
+    foreach ($socialLinks as [$provider, $url, $slug]) {
+        $this->actingAs($publisher)->post(route('admin.posts.store'), [
+            'type' => 'social',
+            'title' => 'Publicação '.$provider,
+            'slug' => $slug,
+            'status' => 'draft',
+            'source_mode' => 'link',
+            'provider' => $provider,
+            'external_url' => $url,
+        ])->assertRedirect();
+    }
+
+    $this->assertDatabaseHas('posts', ['slug' => 'facebook-direto', 'provider' => 'facebook']);
+    $this->assertDatabaseHas('posts', ['slug' => 'tiktok-direto', 'provider' => 'tiktok']);
+    $this->assertDatabaseHas('posts', ['slug' => 'linkedin-direto', 'provider' => 'linkedin']);
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'social',
+        'title' => 'Perfil do Facebook',
+        'slug' => 'perfil-facebook',
+        'status' => 'draft',
+        'source_mode' => 'link',
+        'provider' => 'facebook',
+        'external_url' => 'https://www.facebook.com/azon.social',
+    ])->assertSessionHasErrors('external_url');
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'social',
+        'title' => 'Host forjado',
+        'slug' => 'host-forjado-social',
+        'status' => 'draft',
+        'source_mode' => 'link',
+        'provider' => 'linkedin',
+        'external_url' => 'https://linkedin.com.example.org/posts/azon-falso',
     ])->assertSessionHasErrors('external_url');
 });
 
@@ -474,7 +781,7 @@ it('protects system groups, self demotion and the last administrator', function 
 
     $this->actingAs($admin)->delete(route('admin.roles.destroy', $administrator))->assertForbidden();
     $this->actingAs($admin)->put(route('admin.users.update', $admin), ['name' => $admin->name, 'email' => $admin->email, 'roles' => [Role::query()->where('slug', 'editor')->value('id')]])
-        ->assertRedirect(route('admin.users.index'))
+        ->assertRedirect(route('admin.users.edit', $admin))
         ->assertSessionHasErrors('roles');
     $this->actingAs($admin)->delete(route('admin.users.destroy', $admin))->assertForbidden();
 });

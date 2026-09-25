@@ -1,73 +1,80 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { type ReactNode, useState } from 'react';
+import { AdminIcon, type AdminIconName } from '@/components/admin/admin-icon';
 import type { AdminSharedProps } from '@/types/cms';
 
-const navigation = [
+const navigation: ReadonlyArray<{
+    label: string;
+    href: string;
+    icon: AdminIconName;
+    permission: string;
+    administratorOnly?: boolean;
+}> = [
     {
         label: 'Visão geral',
         href: '/admin',
-        icon: '⌂',
+        icon: 'home',
         permission: 'access-admin',
     },
     {
         label: 'Conteúdos',
         href: '/admin/posts',
-        icon: '▤',
+        icon: 'file-text',
         permission: 'content.view',
     },
     {
         label: 'Mídia',
         href: '/admin/posts?type=media',
-        icon: '▶',
+        icon: 'play-square',
         permission: 'content.view',
     },
     {
         label: 'Redes sociais',
         href: '/admin/posts?type=social',
-        icon: '◎',
+        icon: 'share-nodes',
         permission: 'content.view',
     },
     {
         label: 'Projetos',
         href: '/admin/projetos',
-        icon: '◆',
+        icon: 'sprout',
         permission: 'content.view',
     },
     {
         label: 'Eventos',
         href: '/admin/eventos',
-        icon: '□',
+        icon: 'calendar',
         permission: 'content.view',
     },
     {
         label: 'Transparência',
         href: '/admin/documentos',
-        icon: '◎',
+        icon: 'shield-check',
         permission: 'content.view',
     },
     {
         label: 'Páginas',
         href: '/admin/paginas',
-        icon: '¶',
+        icon: 'files',
         permission: 'content.view',
     },
     {
         label: 'Mensagens',
         href: '/admin/mensagens',
-        icon: '✉',
+        icon: 'mail',
         permission: 'messages.view',
         administratorOnly: true,
     },
     {
         label: 'Usuários e grupos',
         href: '/admin/usuarios',
-        icon: '♙',
+        icon: 'users',
         permission: 'users.manage',
     },
     {
         label: 'Configurações',
         href: '/admin/configuracoes',
-        icon: '⚙',
+        icon: 'settings',
         permission: 'settings.manage',
     },
 ] as const;
@@ -164,7 +171,9 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                                     onClick={() => setMenuOpen(false)}
                                     prefetch
                                 >
-                                    <span aria-hidden="true">{item.icon}</span>
+                                    <span>
+                                        <AdminIcon name={item.icon} />
+                                    </span>
                                     {item.label}
                                     {item.label === 'Mensagens' &&
                                         unreadMessages > 0 && (
@@ -196,7 +205,7 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                         onClick={logout}
                         aria-label="Sair do painel"
                     >
-                        ↗
+                        <AdminIcon name="log-out" />
                     </button>
                 </div>
             </aside>
@@ -211,7 +220,7 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                         aria-controls="admin-navigation"
                         aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
                     >
-                        ☰
+                        <AdminIcon name="menu" />
                     </button>
                     <div>
                         <small>Instituto Azon Social</small>
@@ -219,7 +228,7 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                     </div>
                     <div className="admin-top-actions">
                         <Link href="/" target="_blank">
-                            Ver site ↗
+                            Ver site <AdminIcon name="external-link" />
                         </Link>
                     </div>
                 </header>

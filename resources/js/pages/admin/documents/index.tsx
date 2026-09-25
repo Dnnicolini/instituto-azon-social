@@ -3,6 +3,7 @@ import { AdminLayout } from '@/components/admin/admin-layout';
 import {
     ConfirmDeleteButton,
     EmptyState,
+    ListingFilters,
     PageHeading,
     Pagination,
     StatusBadge,
@@ -17,7 +18,13 @@ import type {
 export default function Documents({
     seo,
     documents,
-}: AdminSharedProps & { documents: Paginated<TransparencyDocument> }) {
+    filters = {},
+    categories = [],
+}: AdminSharedProps & {
+    documents: Paginated<TransparencyDocument>;
+    filters?: Record<string, string | null | undefined>;
+    categories?: string[];
+}) {
     return (
         <>
             <SeoHead seo={seo} />
@@ -35,6 +42,24 @@ export default function Documents({
                         </Link>
                     </Can>
                 </PageHeading>
+                <ListingFilters
+                    basePath="/admin/documentos"
+                    filters={filters}
+                    searchPlaceholder="Título ou descrição"
+                    extra={[
+                        {
+                            name: 'category',
+                            label: 'Categoria',
+                            options: [
+                                { value: '', label: 'Todas' },
+                                ...categories.map((category) => ({
+                                    value: category,
+                                    label: category,
+                                })),
+                            ],
+                        },
+                    ]}
+                />
                 {documents.data.length ? (
                     <>
                         <div className="cms-table-wrap">

@@ -3,6 +3,7 @@ import { AdminLayout } from '@/components/admin/admin-layout';
 import {
     ConfirmDeleteButton,
     EmptyState,
+    ListingFilters,
     PageHeading,
     Pagination,
     StatusBadge,
@@ -13,7 +14,11 @@ import type { AdminSharedProps, Event, Paginated } from '@/types/cms';
 export default function Events({
     seo,
     events,
-}: AdminSharedProps & { events: Paginated<Event> }) {
+    filters = {},
+}: AdminSharedProps & {
+    events: Paginated<Event>;
+    filters?: Record<string, string | null | undefined>;
+}) {
     return (
         <>
             <SeoHead seo={seo} />
@@ -31,6 +36,22 @@ export default function Events({
                         </Link>
                     </Can>
                 </PageHeading>
+                <ListingFilters
+                    basePath="/admin/eventos"
+                    filters={filters}
+                    searchPlaceholder="Título, resumo ou local"
+                    extra={[
+                        {
+                            name: 'period',
+                            label: 'Período',
+                            options: [
+                                { value: '', label: 'Todos' },
+                                { value: 'upcoming', label: 'Próximos' },
+                                { value: 'past', label: 'Realizados' },
+                            ],
+                        },
+                    ]}
+                />
                 {events.data.length ? (
                     <>
                         <div className="cms-table-wrap">

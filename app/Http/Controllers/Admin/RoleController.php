@@ -7,6 +7,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,20 +18,18 @@ class RoleController extends AdminController
     {
         $this->authorize('viewAny', Role::class);
         $roles = Role::query()->with('permissions:id,name,slug,group')->withCount('users')->orderBy('name')->get()->map(fn (Role $role): array => $this->serialize($role));
-        $permissions = Permission::query()
-            ->whereNotIn('slug', ['messages.view', 'messages.manage'])
-            ->orderBy('group')
-            ->orderBy('name');
-        if (! request()->user()?->hasRole('administrator')) {
-            $permissionSlugs = request()->user()?->loadMissing('roles.permissions')->roles
-                ->flatMap->permissions
-                ->pluck('slug') ?? collect();
-            $permissions->whereIn('slug', $permissionSlugs);
-        }
 
         return Inertia::render('admin/roles', [
             'groups' => $roles,
-            'permissions' => $permissions->get(['id', 'name', 'slug', 'group']),
+        ]);
+    }
+
+    public function create(): Response
+    {
+        $this->authorize('create', Role::class);
+
+        return Inertia::render('admin/roles/create', [
+            'permissions' => $this->availablePermissions(),
         ]);
     }
 
@@ -61,6 +60,16 @@ class RoleController extends AdminController
         return redirect()->route('admin.roles.index')->with('success', 'Grupo atualizado.');
     }
 
+    public function edit(Role $role): Response
+    {
+        $this->authorize('update', $role);
+
+        return Inertia::render('admin/roles/edit', [
+            'group' => $this->serialize($role->load('permissions:id,name,slug,group')->loadCount('users')),
+            'permissions' => $this->availablePermissions(),
+        ]);
+    }
+
     public function destroy(Role $role): RedirectResponse
     {
         $this->authorize('delete', $role);
@@ -74,6 +83,23 @@ class RoleController extends AdminController
     private function serialize(Role $role): array
     {
         return ['id' => $role->id, 'name' => $role->name, 'slug' => $role->slug, 'description' => $role->description, 'is_system' => $role->is_system, 'permissions' => $role->permissions->map(fn (Permission $permission): array => ['id' => $permission->id, 'name' => $permission->name, 'slug' => $permission->slug, 'group' => $permission->group])->values(), 'users_count' => $role->users_count];
+    }
+
+    /** @return Collection<int, Permission> */
+    private function availablePermissions(): Collection
+    {
+        $permissions = Permission::query()
+            ->whereNotIn('slug', ['messages.view', 'messages.manage'])
+            ->orderBy('group')
+            ->orderBy('name');
+        if (! request()->user()?->hasRole('administrator')) {
+            $permissionSlugs = request()->user()?->loadMissing('roles.permissions')->roles
+                ->flatMap->permissions
+                ->pluck('slug') ?? collect();
+            $permissions->whereIn('slug', $permissionSlugs);
+        }
+
+        return $permissions->get(['id', 'name', 'slug', 'group']);
     }
 
     private function authorizePermissionAssignment(RoleRequest $request): void

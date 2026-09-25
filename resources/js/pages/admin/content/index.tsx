@@ -21,6 +21,8 @@ export default function ContentIndex(
             Post | Project | Event | TransparencyDocument | SitePage
         >;
         section?: PostSection;
+        filters?: Record<string, string | null | undefined>;
+        categories?: string[];
     },
 ) {
     if (props.resource === 'posts')
@@ -36,18 +38,31 @@ export default function ContentIndex(
             <ProjectsIndex
                 {...props}
                 projects={props.items as Paginated<Project>}
+                filters={props.filters}
             />
         );
     if (props.resource === 'events')
         return (
-            <EventsIndex {...props} events={props.items as Paginated<Event>} />
+            <EventsIndex
+                {...props}
+                events={props.items as Paginated<Event>}
+                filters={props.filters}
+            />
         );
     if (props.resource === 'documents')
         return (
             <DocumentsIndex
                 {...props}
                 documents={props.items as Paginated<TransparencyDocument>}
+                filters={props.filters}
+                categories={props.categories}
             />
         );
-    return <PagesIndex {...props} pages={props.items as Paginated<SitePage>} />;
+    return (
+        <PagesIndex
+            {...props}
+            pages={props.items as Paginated<SitePage>}
+            filters={props.filters}
+        />
+    );
 }

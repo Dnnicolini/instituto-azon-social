@@ -63,13 +63,14 @@ class PostController extends AdminController
     public function store(PostRequest $request): RedirectResponse
     {
         $post = DB::transaction(function () use ($request): Post {
-            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'video']));
+            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'source_mode', 'video']));
+            $data = $this->normalizeSource($request, $data);
             $data['author_id'] = $request->user()->id;
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
             }
             if ($request->hasFile('video')) {
-                $data['video_media_id'] = $this->createAsset($request->file('video'), 'cms/videos')->id;
+                $data['video_media_id'] = $this->createAsset($request->file('video'), 'cms/media')->id;
             }
             $post = Post::query()->create($data);
             $this->recordChange('post.created', $post);
@@ -91,14 +92,15 @@ class PostController extends AdminController
     {
         DB::transaction(function () use ($request, $post): void {
             $before = $post->attributesToArray();
-            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'video']));
+            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'source_mode', 'video']));
+            $data = $this->normalizeSource($request, $data, $post);
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
             } elseif ($request->has('cover_alt') && $post->cover) {
                 $this->updateAssetAlt($post->cover, $request->validated('cover_alt'));
             }
             if ($request->hasFile('video')) {
-                $data['video_media_id'] = $this->createAsset($request->file('video'), 'cms/videos')->id;
+                $data['video_media_id'] = $this->createAsset($request->file('video'), 'cms/media')->id;
             }
             $post->update($data);
             $this->recordChange('post.updated', $post, $before);
@@ -130,6 +132,7 @@ class PostController extends AdminController
             'id' => $post->id, 'slug' => $post->slug, 'title' => $post->title, 'type' => $post->type->value,
             'status' => $post->status->value, 'excerpt' => $post->excerpt, 'body' => $post->body,
             'cover_url' => $post->cover?->url, 'cover_alt' => $post->cover?->alt_text, 'provider' => $post->provider, 'external_url' => $post->external_url,
+            'source_mode' => $post->external_url ? 'link' : ($post->video_media_id ? 'upload' : null),
             'video_url' => $post->video?->url, 'video_name' => $post->video?->original_name, 'video_mime_type' => $post->video?->mime_type,
             'duration_seconds' => $post->duration_seconds, 'published_at' => $post->published_at?->toIso8601String(),
             'is_featured' => $post->is_featured, 'sort_order' => $post->sort_order,
@@ -151,5 +154,37 @@ class PostController extends AdminController
             'social' => 'social',
             default => 'all',
         };
+    }
+
+    /** @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function normalizeSource(PostRequest $request, array $data, ?Post $post = null): array
+    {
+        $type = (string) ($data['type'] ?? '');
+        $sourceMode = $request->string('source_mode')->toString();
+
+        if ($sourceMode === '') {
+            $sourceMode = filled($data['external_url'] ?? null)
+                ? 'link'
+                : (($request->hasFile('video') || $post?->video_media_id !== null) ? 'upload' : '');
+        }
+
+        if (in_array($type, ['vlog', 'video', 'podcast'], true) && $sourceMode === 'upload') {
+            $data['provider'] = null;
+            $data['external_url'] = null;
+        }
+
+        if ((in_array($type, ['vlog', 'video', 'podcast'], true) && $sourceMode === 'link') || $type === 'social') {
+            $data['video_media_id'] = null;
+        }
+
+        if ($type === 'article') {
+            $data['provider'] = null;
+            $data['external_url'] = null;
+            $data['video_media_id'] = null;
+        }
+
+        return $data;
     }
 }

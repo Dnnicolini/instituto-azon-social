@@ -34,6 +34,6 @@ class UserRequest extends FormRequest
 
     protected function getRedirectUrl(): string
     {
-        return route('admin.users.index');
+        return route('admin.users.edit', $this->route('user'));
     }
 }

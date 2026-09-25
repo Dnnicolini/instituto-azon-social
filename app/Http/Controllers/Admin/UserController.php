@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -24,6 +25,10 @@ class UserController extends AdminController
         $this->authorize('viewAny', User::class);
         $actor = request()->user()->loadMissing('roles.permissions');
         $search = mb_substr(trim((string) request()->query('q', '')), 0, 100);
+        $requestedStatus = (string) request()->query('status', '');
+        $status = in_array($requestedStatus, ['active', 'pending', 'disabled'], true)
+            ? $requestedStatus
+            : '';
         $users = User::query()
             ->with('roles:id,name,slug')
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
@@ -31,19 +36,26 @@ class UserController extends AdminController
                     ->orWhereLike('email', "%{$search}%", caseSensitive: false)
                     ->orWhereHas('roles', fn ($query) => $query->whereLike('name', "%{$search}%", caseSensitive: false));
             }))
+            ->when($status === 'active', fn ($query) => $query->whereNull('disabled_at')->whereNotNull('email_verified_at'))
+            ->when($status === 'pending', fn ($query) => $query->whereNull('disabled_at')->whereNull('email_verified_at'))
+            ->when($status === 'disabled', fn ($query) => $query->whereNotNull('disabled_at'))
             ->latest()
             ->paginate(20)
             ->withQueryString()
             ->through(fn (User $user): array => $this->serialize($user, $actor));
-        $roles = Role::query()->orderBy('name');
-        if (! request()->user()?->hasRole('administrator')) {
-            $roles->where('slug', '!=', 'administrator');
-        }
 
         return Inertia::render('admin/users', [
             'users' => $users,
-            'roles' => $roles->get(['id', 'name', 'slug']),
-            'filters' => ['q' => $search],
+            'filters' => ['q' => $search, 'status' => $status],
+        ]);
+    }
+
+    public function create(): Response
+    {
+        $this->authorize('viewAny', User::class);
+
+        return Inertia::render('admin/users/create', [
+            'roles' => $this->availableRoles(),
         ]);
     }
 
@@ -141,6 +153,18 @@ class UserController extends AdminController
         }
 
         return redirect()->route('admin.users.index')->with('success', 'Usuário atualizado.');
+    }
+
+    public function edit(User $user): Response
+    {
+        $user->loadMissing('roles:id,name,slug');
+        $actor = request()->user()->loadMissing('roles.permissions');
+        $this->authorize('update', $user);
+
+        return Inertia::render('admin/users/edit', [
+            'managedUser' => $this->serialize($user, $actor),
+            'roles' => $this->availableRoles(),
+        ]);
     }
 
     public function updateStatus(UserStatusRequest $request, User $user): RedirectResponse
@@ -249,6 +273,17 @@ class UserController extends AdminController
         ];
     }
 
+    /** @return Collection<int, Role> */
+    private function availableRoles(): Collection
+    {
+        $roles = Role::query()->orderBy('name');
+        if (! request()->user()?->hasRole('administrator')) {
+            $roles->where('slug', '!=', 'administrator');
+        }
+
+        return $roles->get(['id', 'name', 'slug']);
+    }
+
     /** @param array<int, int> $roleIds */
     private function authorizeRoleAssignment(Request $request, array $roleIds): void
     {
@@ -278,6 +313,6 @@ class UserController extends AdminController
     private function failUserValidation(string $field, string $message): never
     {
         throw ValidationException::withMessages([$field => $message])
-            ->redirectTo(route('admin.users.index'));
+            ->redirectTo(route('admin.users.edit', request()->route('user')));
     }
 }

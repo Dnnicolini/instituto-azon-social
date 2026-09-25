@@ -1,17 +1,21 @@
 import { useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useRef } from 'react';
-import { FieldError, FormActions } from './cms-ui';
+import { FieldError, FormActions, StatusBadge } from './cms-ui';
 import { FormErrorSummary } from './form-error-summary';
 import type { ContentStatus, Project } from '@/types/cms';
-import { statusLabels } from '@/types/cms';
 import { useCan } from './use-can';
-import { focusFirstFormError, slugifyTitle } from '@/lib/cms-form';
+import {
+    focusFirstFormError,
+    normalizePublicationIntent,
+    slugifyTitle,
+} from '@/lib/cms-form';
 
 export function ProjectForm({ project }: { project?: Project }) {
     const canPublish = useCan('content.publish');
     const formId = project ? `project-${project.id}` : 'create-project';
     const slugWasEdited = useRef(Boolean(project));
+    const publicationIntent = useRef<ContentStatus | null>(null);
     const form = useForm<{
         title: string;
         slug: string;
@@ -35,9 +39,16 @@ export function ProjectForm({ project }: { project?: Project }) {
         cover_alt: project?.cover_alt ?? '',
         cover: null,
     });
-    function submit(event: FormEvent) {
+    function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         if (form.processing) return;
+        const status = normalizePublicationIntent(
+            publicationIntent.current ?? undefined,
+            form.data.status,
+            canPublish,
+        );
+        publicationIntent.current = null;
+        form.transform((data) => ({ ...data, status }));
         const options = {
             forceFormData: true,
             onError: () => focusFirstFormError(formId),
@@ -164,60 +175,36 @@ export function ProjectForm({ project }: { project?: Project }) {
             <aside className="cms-editor-side">
                 <section className="cms-form-section">
                     <h2>Publicação</h2>
-                    <div className="cms-field">
-                        <label htmlFor="status">Status</label>
-                        <select
-                            id="status"
-                            value={form.data.status}
-                            onChange={(e) =>
-                                form.setData(
-                                    'status',
-                                    e.target.value as ContentStatus,
-                                )
-                            }
-                            aria-invalid={Boolean(form.errors.status)}
-                        >
-                            {Object.entries(statusLabels)
-                                .filter(
-                                    ([value]) =>
-                                        canPublish ||
-                                        !['scheduled', 'published'].includes(
-                                            value,
-                                        ),
-                                )
-                                .map(([v, l]) => (
-                                    <option key={v} value={v}>
-                                        {l}
-                                    </option>
-                                ))}
-                        </select>
+                    <div
+                        id="status"
+                        className="cms-publication-state"
+                        tabIndex={-1}
+                    >
+                        <span>Status atual</span>
+                        <StatusBadge status={form.data.status} />
+                        <small>
+                            O botão usado ao salvar define o próximo status.
+                        </small>
                         <FieldError message={form.errors.status} />
                     </div>
-                    {(form.data.status === 'scheduled' ||
-                        form.data.status === 'published') && (
-                        <div className="cms-field">
-                            <label>
-                                {form.data.status === 'scheduled'
-                                    ? 'Publicar em'
-                                    : 'Publicado em'}
-                                <input
-                                    id="published_at"
-                                    type="datetime-local"
-                                    value={form.data.published_at}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'published_at',
-                                            e.target.value,
-                                        )
-                                    }
-                                    aria-invalid={Boolean(
-                                        form.errors.published_at,
-                                    )}
-                                />
-                            </label>
-                            <FieldError message={form.errors.published_at} />
-                        </div>
-                    )}
+                    <div className="cms-field">
+                        <label htmlFor="published_at">
+                            Data e hora para agendar
+                        </label>
+                        <input
+                            id="published_at"
+                            type="datetime-local"
+                            value={form.data.published_at}
+                            onChange={(e) =>
+                                form.setData('published_at', e.target.value)
+                            }
+                            aria-invalid={Boolean(form.errors.published_at)}
+                        />
+                        <small>
+                            Preencha somente se quiser usar o botão Agendar.
+                        </small>
+                        <FieldError message={form.errors.published_at} />
+                    </div>
                     <div className="cms-field">
                         <label>
                             Ordem
@@ -286,7 +273,13 @@ export function ProjectForm({ project }: { project?: Project }) {
                 isDirty={form.isDirty}
                 isNew={!project}
                 cancelHref="/admin/projetos"
-                submitLabel={project ? 'Salvar projeto' : 'Criar projeto'}
+                currentStatus={form.data.status}
+                canPublish={canPublish}
+                canSchedule={Boolean(form.data.published_at)}
+                onIntent={(status) => {
+                    publicationIntent.current = status;
+                    form.setData('status', status);
+                }}
             />
         </form>
     );

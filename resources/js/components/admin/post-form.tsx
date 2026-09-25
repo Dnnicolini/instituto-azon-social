@@ -1,17 +1,26 @@
 import { useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useRef } from 'react';
-import { FieldError, FormActions } from './cms-ui';
+import { FieldError, FormActions, StatusBadge } from './cms-ui';
 import { FormErrorSummary } from './form-error-summary';
-import type { ContentStatus, ContentType, Post } from '@/types/cms';
-import { statusLabels, typeLabels } from '@/types/cms';
+import type {
+    ContentStatus,
+    ContentType,
+    MediaProvider,
+    Post,
+} from '@/types/cms';
+import { typeLabels } from '@/types/cms';
 import { useCan } from './use-can';
 import {
     postIndexHref,
     type PostSection,
     typesForSection,
 } from '@/lib/admin-post-section';
-import { focusFirstFormError, slugifyTitle } from '@/lib/cms-form';
+import {
+    focusFirstFormError,
+    normalizePublicationIntent,
+    slugifyTitle,
+} from '@/lib/cms-form';
 
 export function PostForm({
     post,
@@ -25,6 +34,7 @@ export function PostForm({
     const canPublish = useCan('content.publish');
     const formId = post ? `post-${post.id}` : 'create-post';
     const slugWasEdited = useRef(Boolean(post));
+    const publicationIntent = useRef<ContentStatus | null>(null);
     const form = useForm<{
         title: string;
         slug: string;
@@ -32,14 +42,8 @@ export function PostForm({
         status: ContentStatus;
         excerpt: string;
         body: string;
-        provider:
-            | ''
-            | 'youtube'
-            | 'vimeo'
-            | 'spotify'
-            | 'anchor'
-            | 'instagram'
-            | 'other';
+        source_mode: '' | 'upload' | 'link';
+        provider: '' | MediaProvider;
         external_url: string;
         duration_seconds: string;
         is_featured: boolean;
@@ -57,6 +61,15 @@ export function PostForm({
         status: post?.status ?? 'draft',
         excerpt: post?.excerpt ?? '',
         body: post?.body ?? '',
+        source_mode:
+            post?.source_mode ??
+            (post?.external_url
+                ? 'link'
+                : post?.video_url
+                  ? 'upload'
+                  : (post?.type ?? initialType) === 'social'
+                    ? 'link'
+                    : ''),
         provider:
             post?.provider ??
             ((post?.type ?? initialType) === 'social' ? 'instagram' : ''),
@@ -83,9 +96,16 @@ export function PostForm({
               : '/midia/';
     const availableTypes = typesForSection(section);
     const sectionQuery = section === 'all' ? '' : `?section=${section}`;
-    function submit(event: FormEvent) {
+    function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         if (form.processing) return;
+        const status = normalizePublicationIntent(
+            publicationIntent.current ?? undefined,
+            form.data.status,
+            canPublish,
+        );
+        publicationIntent.current = null;
+        form.transform((data) => ({ ...data, status }));
         const options = {
             forceFormData: true,
             onError: () => focusFirstFormError(formId),
@@ -114,6 +134,7 @@ export function PostForm({
                     body: 'Texto ou transcrição',
                     type: 'Formato',
                     status: 'Status',
+                    source_mode: 'Origem da mídia',
                     published_at: 'Data de publicação',
                     provider: 'Plataforma',
                     external_url: 'URL externa',
@@ -133,6 +154,7 @@ export function PostForm({
                     body: 'post-body',
                     type: 'post-type',
                     status: 'post-status',
+                    source_mode: 'source-mode',
                     published_at: 'published-at',
                     duration_seconds: 'duration',
                     external_url: 'external-url',
@@ -222,22 +244,107 @@ export function PostForm({
                 </section>
                 {(isMedia || isSocial) && (
                     <section className="cms-form-section">
-                        <h2>{isSocial ? 'Instagram' : 'Reprodução'}</h2>
-                        {['vlog', 'video'].includes(form.data.type) && (
+                        <h2>{isSocial ? 'Rede social' : 'Mídia'}</h2>
+                        <p className="cms-form-section-intro">
+                            {isSocial
+                                ? 'Escolha a rede e cole o link direto da publicação.'
+                                : 'Defina primeiro se a mídia será enviada ao sistema ou vinculada por uma URL externa.'}
+                        </p>
+                        {isMedia && (
+                            <fieldset
+                                id="source-mode"
+                                className="cms-source-choice"
+                                aria-invalid={Boolean(form.errors.source_mode)}
+                            >
+                                <legend>
+                                    Como você quer adicionar a mídia?
+                                </legend>
+                                <label
+                                    className={
+                                        form.data.source_mode === 'upload'
+                                            ? 'selected'
+                                            : undefined
+                                    }
+                                >
+                                    <input
+                                        type="radio"
+                                        name="source_mode"
+                                        value="upload"
+                                        checked={
+                                            form.data.source_mode === 'upload'
+                                        }
+                                        onChange={() =>
+                                            form.setData({
+                                                ...form.data,
+                                                source_mode: 'upload',
+                                                provider: '',
+                                                external_url: '',
+                                            })
+                                        }
+                                    />
+                                    <span>
+                                        <strong>Enviar arquivo</strong>
+                                        <small>
+                                            {form.data.type === 'podcast'
+                                                ? 'Áudio MP3, M4A, WAV ou OGG.'
+                                                : 'Vídeo MP4, MOV ou WebM.'}
+                                        </small>
+                                    </span>
+                                </label>
+                                <label
+                                    className={
+                                        form.data.source_mode === 'link'
+                                            ? 'selected'
+                                            : undefined
+                                    }
+                                >
+                                    <input
+                                        type="radio"
+                                        name="source_mode"
+                                        value="link"
+                                        checked={
+                                            form.data.source_mode === 'link'
+                                        }
+                                        onChange={() =>
+                                            form.setData({
+                                                ...form.data,
+                                                source_mode: 'link',
+                                                video: null,
+                                            })
+                                        }
+                                    />
+                                    <span>
+                                        <strong>Usar um link</strong>
+                                        <small>
+                                            YouTube, Vimeo, Spotify ou outra
+                                            plataforma segura.
+                                        </small>
+                                    </span>
+                                </label>
+                            </fieldset>
+                        )}
+                        <FieldError message={form.errors.source_mode} />
+                        {isMedia && form.data.source_mode === 'upload' && (
                             <div className="cms-field">
                                 <label htmlFor="video-file">
-                                    Arquivo de vídeo
+                                    {form.data.type === 'podcast'
+                                        ? 'Arquivo de áudio'
+                                        : 'Arquivo de vídeo'}
                                 </label>
                                 {post?.video_url && (
                                     <small>
                                         Arquivo atual:{' '}
-                                        {post.video_name ?? 'vídeo enviado'}
+                                        {post.video_name ?? 'mídia enviada'}
                                     </small>
                                 )}
                                 <input
                                     id="video-file"
                                     type="file"
-                                    accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
+                                    accept={
+                                        form.data.type === 'podcast'
+                                            ? 'audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/ogg,.mp3,.m4a,.wav,.ogg'
+                                            : 'video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm'
+                                    }
                                     onChange={(e) =>
                                         form.setData(
                                             'video',
@@ -247,28 +354,16 @@ export function PostForm({
                                     aria-invalid={Boolean(form.errors.video)}
                                 />
                                 <small>
-                                    MP4, MOV ou WebM, com até 200 MB. Um novo
-                                    envio substitui o vídeo vinculado a este
-                                    conteúdo.
+                                    Até 200 MB. Um novo envio substitui o
+                                    arquivo vinculado a este conteúdo.
                                 </small>
                                 <FieldError message={form.errors.video} />
                             </div>
                         )}
-                        {['vlog', 'video'].includes(form.data.type) && (
-                            <p className="cms-form-separator">
-                                ou informe uma publicação externa
-                            </p>
-                        )}
                         <div className="cms-form-grid two">
-                            <div className="cms-field">
-                                <label htmlFor="provider">Plataforma</label>
-                                {isSocial ? (
-                                    <input
-                                        id="provider"
-                                        value="Instagram"
-                                        readOnly
-                                    />
-                                ) : (
+                            {(isSocial || form.data.source_mode === 'link') && (
+                                <div className="cms-field">
+                                    <label htmlFor="provider">Plataforma</label>
                                     <select
                                         id="provider"
                                         value={form.data.provider}
@@ -284,19 +379,46 @@ export function PostForm({
                                         )}
                                     >
                                         <option value="">Selecione</option>
-                                        <option value="youtube">YouTube</option>
-                                        <option value="vimeo">Vimeo</option>
-                                        <option value="spotify">Spotify</option>
-                                        <option value="anchor">
-                                            Spotify for Creators
-                                        </option>
-                                        <option value="other">
-                                            Outra plataforma
-                                        </option>
+                                        {isSocial ? (
+                                            <>
+                                                <option value="instagram">
+                                                    Instagram
+                                                </option>
+                                                <option value="facebook">
+                                                    Facebook
+                                                </option>
+                                                <option value="tiktok">
+                                                    TikTok
+                                                </option>
+                                                <option value="linkedin">
+                                                    LinkedIn
+                                                </option>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <option value="youtube">
+                                                    YouTube
+                                                </option>
+                                                <option value="vimeo">
+                                                    Vimeo
+                                                </option>
+                                                <option value="spotify">
+                                                    Spotify
+                                                </option>
+                                                <option value="anchor">
+                                                    Spotify for Creators
+                                                </option>
+                                                <option value="other">
+                                                    Outra plataforma
+                                                </option>
+                                            </>
+                                        )}
                                     </select>
-                                )}
-                                <FieldError message={form.errors.provider} />
-                            </div>
+                                    <FieldError
+                                        message={form.errors.provider}
+                                    />
+                                </div>
+                            )}
                             {isMedia && (
                                 <div className="cms-field">
                                     <label htmlFor="duration">
@@ -325,33 +447,35 @@ export function PostForm({
                                 </div>
                             )}
                         </div>
-                        <div className="cms-field">
-                            <label htmlFor="external-url">
-                                {isSocial
-                                    ? 'Link direto da publicação'
-                                    : ['vlog', 'video'].includes(form.data.type)
-                                      ? 'URL externa do vídeo (opcional)'
-                                      : 'URL do episódio'}
-                            </label>
-                            <input
-                                id="external-url"
-                                type="url"
-                                placeholder="https://…"
-                                value={form.data.external_url}
-                                onChange={(e) =>
-                                    form.setData('external_url', e.target.value)
-                                }
-                                aria-invalid={Boolean(form.errors.external_url)}
-                            />
-                            <small>
-                                {isSocial
-                                    ? 'Use o endereço de um post ou reel público do Instagram.'
-                                    : ['vlog', 'video'].includes(form.data.type)
-                                      ? 'Opcional quando um arquivo de vídeo for enviado. Aceita YouTube ou Vimeo.'
-                                      : 'Use um endereço validado do Spotify para incorporar o episódio.'}
-                            </small>
-                            <FieldError message={form.errors.external_url} />
-                        </div>
+                        {(isSocial || form.data.source_mode === 'link') && (
+                            <div className="cms-field">
+                                <label htmlFor="external-url">
+                                    Link direto da publicação ou mídia
+                                </label>
+                                <input
+                                    id="external-url"
+                                    type="url"
+                                    placeholder="https://…"
+                                    value={form.data.external_url}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'external_url',
+                                            e.target.value,
+                                        )
+                                    }
+                                    aria-invalid={Boolean(
+                                        form.errors.external_url,
+                                    )}
+                                />
+                                <small>
+                                    Cole a URL completa da plataforma
+                                    selecionada, iniciada por https://.
+                                </small>
+                                <FieldError
+                                    message={form.errors.external_url}
+                                />
+                            </div>
+                        )}
                     </section>
                 )}
                 <section className="cms-form-section">
@@ -403,17 +527,52 @@ export function PostForm({
                             value={form.data.type}
                             onChange={(e) => {
                                 const type = e.target.value as ContentType;
-                                form.setData('type', type);
-                                if (!['vlog', 'video'].includes(type)) {
-                                    form.setData('video', null);
-                                }
+                                const changingSection = type !== form.data.type;
                                 if (type === 'social') {
-                                    form.setData('provider', 'instagram');
-                                    form.setData('duration_seconds', '');
-                                } else if (form.data.type === 'social') {
-                                    form.setData('provider', '');
-                                    form.setData('is_featured', false);
-                                    form.setData('sort_order', '0');
+                                    form.setData({
+                                        ...form.data,
+                                        type,
+                                        source_mode: 'link',
+                                        provider: 'instagram',
+                                        external_url: changingSection
+                                            ? ''
+                                            : form.data.external_url,
+                                        video: null,
+                                        duration_seconds: '',
+                                    });
+                                } else if (
+                                    ['vlog', 'video', 'podcast'].includes(type)
+                                ) {
+                                    form.setData({
+                                        ...form.data,
+                                        type,
+                                        source_mode: changingSection
+                                            ? ''
+                                            : form.data.source_mode,
+                                        provider: changingSection
+                                            ? ''
+                                            : form.data.provider,
+                                        external_url: changingSection
+                                            ? ''
+                                            : form.data.external_url,
+                                        video: changingSection
+                                            ? null
+                                            : form.data.video,
+                                        is_featured: false,
+                                        sort_order: '0',
+                                    });
+                                } else {
+                                    form.setData({
+                                        ...form.data,
+                                        type,
+                                        source_mode: '',
+                                        provider: '',
+                                        external_url: '',
+                                        video: null,
+                                        duration_seconds: '',
+                                        is_featured: false,
+                                        sort_order: '0',
+                                    });
                                 }
                             }}
                             aria-invalid={Boolean(form.errors.type)}
@@ -426,55 +585,36 @@ export function PostForm({
                         </select>
                         <FieldError message={form.errors.type} />
                     </div>
-                    <div className="cms-field">
-                        <label htmlFor="post-status">Status</label>
-                        <select
-                            id="post-status"
-                            value={form.data.status}
-                            onChange={(e) =>
-                                form.setData(
-                                    'status',
-                                    e.target.value as ContentStatus,
-                                )
-                            }
-                            aria-invalid={Boolean(form.errors.status)}
-                        >
-                            {Object.entries(statusLabels)
-                                .filter(
-                                    ([value]) =>
-                                        canPublish ||
-                                        !['scheduled', 'published'].includes(
-                                            value,
-                                        ),
-                                )
-                                .map(([value, label]) => (
-                                    <option key={value} value={value}>
-                                        {label}
-                                    </option>
-                                ))}
-                        </select>
+                    <div
+                        id="post-status"
+                        className="cms-publication-state"
+                        tabIndex={-1}
+                    >
+                        <span>Status atual</span>
+                        <StatusBadge status={form.data.status} />
+                        <small>
+                            O botão usado ao salvar define o próximo status.
+                        </small>
                         <FieldError message={form.errors.status} />
                     </div>
-                    {(form.data.status === 'scheduled' ||
-                        form.data.status === 'published') && (
-                        <div className="cms-field">
-                            <label htmlFor="published-at">
-                                {form.data.status === 'scheduled'
-                                    ? 'Publicar em'
-                                    : 'Publicado em'}
-                            </label>
-                            <input
-                                id="published-at"
-                                type="datetime-local"
-                                value={form.data.published_at}
-                                onChange={(e) =>
-                                    form.setData('published_at', e.target.value)
-                                }
-                                aria-invalid={Boolean(form.errors.published_at)}
-                            />
-                            <FieldError message={form.errors.published_at} />
-                        </div>
-                    )}
+                    <div className="cms-field">
+                        <label htmlFor="published-at">
+                            Data e hora para agendar
+                        </label>
+                        <input
+                            id="published-at"
+                            type="datetime-local"
+                            value={form.data.published_at}
+                            onChange={(e) =>
+                                form.setData('published_at', e.target.value)
+                            }
+                            aria-invalid={Boolean(form.errors.published_at)}
+                        />
+                        <small>
+                            Preencha somente se quiser usar o botão Agendar.
+                        </small>
+                        <FieldError message={form.errors.published_at} />
+                    </div>
                     {isSocial && (
                         <div className="cms-social-options">
                             <label className="cms-check-row">
@@ -574,7 +714,13 @@ export function PostForm({
                 isDirty={form.isDirty}
                 isNew={!post}
                 cancelHref={postIndexHref(section)}
-                submitLabel={post ? 'Salvar alterações' : 'Criar conteúdo'}
+                currentStatus={form.data.status}
+                canPublish={canPublish}
+                canSchedule={Boolean(form.data.published_at)}
+                onIntent={(status) => {
+                    publicationIntent.current = status;
+                    form.setData('status', status);
+                }}
             />
         </form>
     );
