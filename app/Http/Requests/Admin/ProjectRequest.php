@@ -50,4 +50,13 @@ class ProjectRequest extends ContentRequest
             'registration_confirmation_message' => ['nullable', 'string', 'max:10000'],
         ];
     }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'cover.dimensions' => 'A foto de capa deve ter no máximo 5000 × 5000 px.',
+            'gallery.*.dimensions' => 'Cada foto deve ter no máximo 5000 × 5000 px.',
+        ];
+    }
 }

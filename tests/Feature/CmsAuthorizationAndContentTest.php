@@ -730,7 +730,9 @@ it('rejects oversized image dimensions for projects and events', function (): vo
         'sort_order' => 0,
         'cover' => UploadedFile::fake()->image('projeto.png', 5001, 20),
         'cover_alt' => 'Capa muito larga',
-    ])->assertSessionHasErrors('cover');
+    ])->assertSessionHasErrors([
+        'cover' => 'A foto de capa deve ter no máximo 5000 × 5000 px.',
+    ]);
 
     $this->actingAs($publisher)->post(route('admin.events.store'), [
         'title' => 'Evento com capa enorme',
@@ -739,7 +741,9 @@ it('rejects oversized image dimensions for projects and events', function (): vo
         'location' => 'Sepetiba, Rio de Janeiro',
         'cover' => UploadedFile::fake()->image('evento.png', 20, 5001),
         'cover_alt' => 'Capa muito alta',
-    ])->assertSessionHasErrors('cover');
+    ])->assertSessionHasErrors([
+        'cover' => 'A foto de capa deve ter no máximo 5000 × 5000 px.',
+    ]);
 });
 
 it('stores the project badge configured in the admin form', function (): void {

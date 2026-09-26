@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { useRef } from 'react';
 import { FieldError, FormActions, StatusBadge } from './cms-ui';
 import { FormErrorSummary } from './form-error-summary';
-import { CoverImagePreview, ImageGalleryFields } from './image-gallery-fields';
+import { ImageGalleryFields } from './image-gallery-fields';
 import type { ContentStatus, Project, RegistrationType } from '@/types/cms';
 import { useCan } from './use-can';
 import {
@@ -650,10 +650,17 @@ export function ProjectForm({ project }: { project?: Project }) {
                     images={project?.gallery_images}
                     files={form.data.gallery}
                     coverFile={form.data.cover}
+                    currentCoverUrl={project?.cover_url}
+                    currentCoverAlt={project?.cover_alt}
+                    dimensionHint="Dimensões recomendadas para a capa: 1200 × 675 px (16:9). Máximo de 5000 × 5000 px."
                     selectedCoverId={form.data.gallery_cover_id}
                     removedIds={form.data.remove_gallery_ids}
                     error={form.errors.gallery}
-                    coverError={form.errors.gallery_cover_id}
+                    coverError={
+                        form.errors.cover ||
+                        form.errors.gallery_cover_id ||
+                        form.errors.cover_alt
+                    }
                     onFilesChange={(files) => form.setData('gallery', files)}
                     onNewCoverSelect={(file, remainingFiles) =>
                         form.setData({
@@ -738,50 +745,6 @@ export function ProjectForm({ project }: { project?: Project }) {
                             />
                         </label>
                         <FieldError message={form.errors.sort_order} />
-                    </div>
-                </section>
-                <section className="cms-form-section">
-                    <h2>Capa</h2>
-                    <CoverImagePreview
-                        file={form.data.cover}
-                        url={project?.cover_url}
-                        alt={form.data.cover_alt}
-                    />
-                    <div className="cms-field">
-                        <label>
-                            Imagem
-                            <input
-                                id="cover"
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                onChange={(e) =>
-                                    form.setData({
-                                        ...form.data,
-                                        cover: e.target.files?.[0] ?? null,
-                                        cover_alt: e.target.files?.[0]
-                                            ? `Imagem de capa de ${form.data.title || 'projeto'}`
-                                            : form.data.cover_alt,
-                                        gallery_cover_id: null,
-                                    })
-                                }
-                                aria-invalid={Boolean(form.errors.cover)}
-                            />
-                        </label>
-                        <FieldError message={form.errors.cover} />
-                    </div>
-                    <div className="cms-field">
-                        <label>
-                            Descrição da imagem
-                            <input
-                                id="cover_alt"
-                                value={form.data.cover_alt}
-                                onChange={(e) =>
-                                    form.setData('cover_alt', e.target.value)
-                                }
-                                aria-invalid={Boolean(form.errors.cover_alt)}
-                            />
-                        </label>
-                        <FieldError message={form.errors.cover_alt} />
                     </div>
                 </section>
             </aside>
