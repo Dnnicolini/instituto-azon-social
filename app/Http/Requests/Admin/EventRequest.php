@@ -64,6 +64,15 @@ class EventRequest extends ContentRequest
     }
 
     /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'cover.dimensions' => 'A foto de capa deve ter no máximo 5000 × 5000 px.',
+            'gallery.*.dimensions' => 'Cada foto deve ter no máximo 5000 × 5000 px.',
+        ];
+    }
+
+    /** @return array<string, string> */
     public function attributes(): array
     {
         return [

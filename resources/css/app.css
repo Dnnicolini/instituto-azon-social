@@ -3058,8 +3058,7 @@ button.cms-button:disabled,
     gap: 20px;
 }
 .cms-editor-side {
-    position: sticky;
-    top: 92px;
+    position: static;
 }
 .cms-form-section {
     padding: 26px;

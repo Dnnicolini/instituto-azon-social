@@ -14,36 +14,13 @@ function LocalImage({ file, alt }: { file: File; alt: string }) {
     return url ? <img src={url} alt={alt} /> : null;
 }
 
-export function CoverImagePreview({
-    file,
-    url,
-    alt,
-}: {
-    file: File | null;
-    url?: string | null;
-    alt: string;
-}) {
-    if (file)
-        return (
-            <div className="cms-cover-preview-wrap">
-                <LocalImage file={file} alt={alt} />
-                <span>Nova capa selecionada</span>
-            </div>
-        );
-    if (!url) return null;
-
-    return (
-        <div className="cms-cover-preview-wrap">
-            <img src={url} alt={alt} />
-            <span>Capa atual</span>
-        </div>
-    );
-}
-
 export function ImageGalleryFields({
     images = [],
     files,
     coverFile,
+    currentCoverUrl,
+    currentCoverAlt,
+    dimensionHint,
     selectedCoverId,
     removedIds,
     error,
@@ -56,6 +33,9 @@ export function ImageGalleryFields({
     images?: GalleryImage[];
     files: File[];
     coverFile: File | null;
+    currentCoverUrl?: string | null;
+    currentCoverAlt?: string | null;
+    dimensionHint: string;
     selectedCoverId: number | null;
     removedIds: number[];
     error?: string;
@@ -68,21 +48,39 @@ export function ImageGalleryFields({
     const visibleImages = images.filter(
         (image) => !removedIds.includes(image.id),
     );
+    const showCurrentCover =
+        Boolean(currentCoverUrl) &&
+        coverFile === null &&
+        selectedCoverId === null;
     const hasPreviews =
-        coverFile !== null || visibleImages.length > 0 || files.length > 0;
+        showCurrentCover ||
+        coverFile !== null ||
+        visibleImages.length > 0 ||
+        files.length > 0;
 
     return (
         <section className="cms-form-section">
             <h2>Fotos</h2>
             <p className="cms-form-section-intro">
                 Adicione até 10 fotos, confira as prévias e escolha qual será a
-                capa do conteúdo.
+                capa do conteúdo. Todo o processo é feito aqui.
             </p>
             {hasPreviews && (
                 <div
                     className="cms-gallery-admin"
                     aria-label="Prévia das fotos"
                 >
+                    {showCurrentCover && (
+                        <figure className="is-cover">
+                            <img
+                                src={currentCoverUrl ?? ''}
+                                alt={currentCoverAlt ?? ''}
+                            />
+                            <div className="cms-gallery-cover-choice selected">
+                                Capa atual
+                            </div>
+                        </figure>
+                    )}
                     {coverFile && (
                         <figure className="is-cover">
                             <LocalImage
@@ -176,7 +174,7 @@ export function ImageGalleryFields({
                 </div>
             )}
             <div className="cms-field">
-                <label htmlFor="gallery">Adicionar fotos à galeria</label>
+                <label htmlFor="gallery">Selecionar fotos</label>
                 <input
                     id="gallery"
                     type="file"
@@ -187,11 +185,12 @@ export function ImageGalleryFields({
                         onFilesChange([...files, ...selected].slice(0, 10));
                         event.target.value = '';
                     }}
-                    aria-invalid={Boolean(error)}
+                    aria-invalid={Boolean(error || coverError)}
                 />
                 <small>
-                    JPG, PNG ou WebP, com no máximo 5 MB por foto. As imagens
-                    aparecem acima antes de salvar.
+                    JPG, PNG ou WebP, com no máximo 5 MB por foto.{' '}
+                    {dimensionHint} As imagens aparecem acima antes de salvar;
+                    use “Definir como capa” na foto principal.
                 </small>
                 {files.length > 0 && (
                     <small>

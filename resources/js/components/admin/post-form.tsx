@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { useRef } from 'react';
 import { FieldError, FormActions, StatusBadge } from './cms-ui';
 import { FormErrorSummary } from './form-error-summary';
-import { CoverImagePreview, ImageGalleryFields } from './image-gallery-fields';
+import { ImageGalleryFields } from './image-gallery-fields';
 import { ProjectLinkField } from './project-link-field';
 import type {
     ContentStatus,
@@ -493,10 +493,17 @@ export function PostForm({
                     images={post?.gallery_images}
                     files={form.data.gallery}
                     coverFile={form.data.cover}
+                    currentCoverUrl={post?.cover_url}
+                    currentCoverAlt={post?.cover_alt}
+                    dimensionHint="Dimensões recomendadas para a capa: 1200 × 675 px (16:9). Mínimo de 400 × 225 px e máximo de 5000 × 5000 px."
                     selectedCoverId={form.data.gallery_cover_id}
                     removedIds={form.data.remove_gallery_ids}
                     error={form.errors.gallery}
-                    coverError={form.errors.gallery_cover_id}
+                    coverError={
+                        form.errors.cover ||
+                        form.errors.gallery_cover_id ||
+                        form.errors.cover_alt
+                    }
                     onFilesChange={(files) => form.setData('gallery', files)}
                     onNewCoverSelect={(file, remainingFiles) =>
                         form.setData({
@@ -683,50 +690,6 @@ export function PostForm({
                             </div>
                         </div>
                     )}
-                </section>
-                <section className="cms-form-section">
-                    <h2>Capa</h2>
-                    <CoverImagePreview
-                        file={form.data.cover}
-                        url={post?.cover_url}
-                        alt={form.data.cover_alt}
-                    />
-                    <div className="cms-field">
-                        <label htmlFor="cover">Imagem de capa</label>
-                        <input
-                            id="cover"
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            onChange={(e) =>
-                                form.setData({
-                                    ...form.data,
-                                    cover: e.target.files?.[0] ?? null,
-                                    cover_alt: e.target.files?.[0]
-                                        ? `Imagem de capa de ${form.data.title || 'conteúdo'}`
-                                        : form.data.cover_alt,
-                                    gallery_cover_id: null,
-                                })
-                            }
-                            aria-invalid={Boolean(form.errors.cover)}
-                        />
-                        <small>
-                            JPG, PNG ou WebP. Máximo definido pelo servidor.
-                        </small>
-                        <FieldError message={form.errors.cover} />
-                    </div>
-                    <div className="cms-field">
-                        <label htmlFor="cover-alt">Descrição da imagem</label>
-                        <textarea
-                            id="cover-alt"
-                            rows={2}
-                            value={form.data.cover_alt}
-                            onChange={(e) =>
-                                form.setData('cover_alt', e.target.value)
-                            }
-                            aria-invalid={Boolean(form.errors.cover_alt)}
-                        />
-                        <FieldError message={form.errors.cover_alt} />
-                    </div>
                 </section>
             </aside>
             <FormActions
