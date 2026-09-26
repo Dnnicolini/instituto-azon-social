@@ -70,6 +70,8 @@ class ProjectController extends AdminController
             $data = $this->normalizeProjectData($request->validated(), $project);
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
+            } elseif ($galleryCoverId = $this->takeGalleryImageAsCover($request, $project)) {
+                $data['cover_media_id'] = $galleryCoverId;
             } elseif ($request->has('cover_alt') && $project->cover) {
                 $this->updateAssetAlt($project->cover, $request->validated('cover_alt'));
             }
@@ -107,7 +109,7 @@ class ProjectController extends AdminController
     private function normalizeProjectData(array $validated, ?Project $project = null): array
     {
         $data = Arr::except($validated, [
-            'cover', 'cover_alt', 'gallery', 'remove_gallery_ids', 'registration_title', 'registration_description',
+            'cover', 'cover_alt', 'gallery', 'gallery_cover_id', 'remove_gallery_ids', 'registration_title', 'registration_description',
             'registration_max_applications', 'registration_allow_editing', 'registration_edit_deadline',
             'registration_requires_authentication', 'registration_one_per_user', 'registration_success_message',
             'registration_confirmation_message',

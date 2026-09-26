@@ -65,7 +65,7 @@ class PostController extends AdminController
     public function store(PostRequest $request): RedirectResponse
     {
         $post = DB::transaction(function () use ($request): Post {
-            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'source_mode', 'video', 'gallery', 'remove_gallery_ids', 'project_ids']));
+            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'source_mode', 'video', 'gallery', 'gallery_cover_id', 'remove_gallery_ids', 'project_ids']));
             $data = $this->normalizeSource($request, $data);
             $data['author_id'] = $request->user()->id;
             if ($request->hasFile('cover')) {
@@ -96,10 +96,12 @@ class PostController extends AdminController
     {
         DB::transaction(function () use ($request, $post): void {
             $before = $post->attributesToArray();
-            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'source_mode', 'video', 'gallery', 'remove_gallery_ids', 'project_ids']));
+            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'source_mode', 'video', 'gallery', 'gallery_cover_id', 'remove_gallery_ids', 'project_ids']));
             $data = $this->normalizeSource($request, $data, $post);
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
+            } elseif ($galleryCoverId = $this->takeGalleryImageAsCover($request, $post)) {
+                $data['cover_media_id'] = $galleryCoverId;
             } elseif ($request->has('cover_alt') && $post->cover) {
                 $this->updateAssetAlt($post->cover, $request->validated('cover_alt'));
             }

@@ -368,6 +368,7 @@ export default function Home({
                                 <article
                                     className={`project-card ${['blue', 'gold', 'green', 'brown'][index % 4]}`}
                                     key={project.id}
+                                    onClick={() => setSelectedProject(project)}
                                 >
                                     <div className="card-top">
                                         <span>Projeto Azon</span>
@@ -400,9 +401,6 @@ export default function Home({
                                     <button
                                         className="project-card-action"
                                         type="button"
-                                        onClick={() =>
-                                            setSelectedProject(project)
-                                        }
                                         aria-haspopup="dialog"
                                         aria-label={`Conhecer projeto ${project.title}`}
                                     >

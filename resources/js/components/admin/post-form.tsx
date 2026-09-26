@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { useRef } from 'react';
 import { FieldError, FormActions, StatusBadge } from './cms-ui';
 import { FormErrorSummary } from './form-error-summary';
-import { ImageGalleryFields } from './image-gallery-fields';
+import { CoverImagePreview, ImageGalleryFields } from './image-gallery-fields';
 import { ProjectLinkField } from './project-link-field';
 import type {
     ContentStatus,
@@ -58,6 +58,7 @@ export function PostForm({
         cover: File | null;
         video: File | null;
         gallery: File[];
+        gallery_cover_id: number | null;
         remove_gallery_ids: number[];
         project_ids: number[];
     }>({
@@ -90,6 +91,7 @@ export function PostForm({
         cover: null,
         video: null,
         gallery: [],
+        gallery_cover_id: null,
         remove_gallery_ids: [],
         project_ids: post?.project_ids ?? [],
     });
@@ -490,11 +492,41 @@ export function PostForm({
                 <ImageGalleryFields
                     images={post?.gallery_images}
                     files={form.data.gallery}
+                    coverFile={form.data.cover}
+                    selectedCoverId={form.data.gallery_cover_id}
                     removedIds={form.data.remove_gallery_ids}
                     error={form.errors.gallery}
+                    coverError={form.errors.gallery_cover_id}
                     onFilesChange={(files) => form.setData('gallery', files)}
+                    onNewCoverSelect={(file, remainingFiles) =>
+                        form.setData({
+                            ...form.data,
+                            cover: file,
+                            cover_alt: `Imagem de capa de ${form.data.title || 'conteúdo'}`,
+                            gallery: remainingFiles,
+                            gallery_cover_id: null,
+                        })
+                    }
+                    onExistingCoverSelect={(id, alt) =>
+                        form.setData({
+                            ...form.data,
+                            cover: null,
+                            cover_alt:
+                                alt ||
+                                `Imagem de capa de ${form.data.title || 'conteúdo'}`,
+                            gallery_cover_id: id,
+                        })
+                    }
                     onRemovedIdsChange={(ids) =>
-                        form.setData('remove_gallery_ids', ids)
+                        form.setData({
+                            ...form.data,
+                            remove_gallery_ids: ids,
+                            gallery_cover_id: ids.includes(
+                                form.data.gallery_cover_id ?? 0,
+                            )
+                                ? null
+                                : form.data.gallery_cover_id,
+                        })
                     }
                 />
                 <ProjectLinkField
@@ -654,13 +686,11 @@ export function PostForm({
                 </section>
                 <section className="cms-form-section">
                     <h2>Capa</h2>
-                    {post?.cover_url && (
-                        <img
-                            className="cms-cover-preview"
-                            src={post.cover_url}
-                            alt={post.cover_alt ?? ''}
-                        />
-                    )}
+                    <CoverImagePreview
+                        file={form.data.cover}
+                        url={post?.cover_url}
+                        alt={form.data.cover_alt}
+                    />
                     <div className="cms-field">
                         <label htmlFor="cover">Imagem de capa</label>
                         <input
@@ -668,10 +698,14 @@ export function PostForm({
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
                             onChange={(e) =>
-                                form.setData(
-                                    'cover',
-                                    e.target.files?.[0] ?? null,
-                                )
+                                form.setData({
+                                    ...form.data,
+                                    cover: e.target.files?.[0] ?? null,
+                                    cover_alt: e.target.files?.[0]
+                                        ? `Imagem de capa de ${form.data.title || 'conteúdo'}`
+                                        : form.data.cover_alt,
+                                    gallery_cover_id: null,
+                                })
                             }
                             aria-invalid={Boolean(form.errors.cover)}
                         />

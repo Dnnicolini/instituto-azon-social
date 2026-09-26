@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 
 abstract class AdminController extends Controller
 {
@@ -80,6 +81,30 @@ abstract class AdminController extends Controller
                 'sort_order' => $nextOrder++,
             ]);
         }
+    }
+
+    protected function takeGalleryImageAsCover(FormRequest $request, Post|Project|Event $model): ?int
+    {
+        $galleryImageId = (int) $request->validated('gallery_cover_id', 0);
+        if ($galleryImageId === 0) {
+            return null;
+        }
+
+        abort_unless($request->user()?->hasPermission('media.manage'), 403);
+        $galleryImage = $model->galleryImages()->whereKey($galleryImageId)->first();
+        if ($galleryImage === null) {
+            throw ValidationException::withMessages([
+                'gallery_cover_id' => 'A foto escolhida para capa não pertence a este conteúdo.',
+            ]);
+        }
+
+        if ($request->has('cover_alt')) {
+            $this->updateAssetAlt($galleryImage->media, $request->validated('cover_alt'));
+        }
+        $mediaAssetId = $galleryImage->media_asset_id;
+        $galleryImage->delete();
+
+        return $mediaAssetId;
     }
 
     /** @return array<int, array{value: string, label: string}> */

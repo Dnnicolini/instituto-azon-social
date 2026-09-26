@@ -80,6 +80,7 @@ class SitePageController extends Controller
         $events = $datedEvents->concat($continuousEvents);
 
         return Inertia::render('calendar', [
+            'currentDate' => today()->toDateString(),
             'events' => $events->map(fn (Event $event): array => $this->serializeCalendarEvent($event)),
             'seo' => $this->seo(
                 title: 'Calendário de ações | Instituto Azon Social',

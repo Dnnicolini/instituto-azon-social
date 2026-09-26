@@ -2,6 +2,7 @@
 
 use App\Enums\ContentStatus;
 use App\Models\Event;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
@@ -10,6 +11,29 @@ beforeEach(function (): void {
         'app.url' => 'https://azon.example',
         'inertia.ssr.enabled' => false,
     ]);
+});
+
+afterEach(function (): void {
+    Carbon::setTestNow();
+});
+
+it('opens the calendar on the current month instead of an event month', function (): void {
+    Carbon::setTestNow('2026-09-25 12:00:00');
+
+    Event::query()->create([
+        'title' => 'Evento do mês anterior',
+        'slug' => 'evento-do-mes-anterior',
+        'starts_at' => '2026-08-29 14:00:00',
+        'status' => ContentStatus::Published,
+        'published_at' => now()->subMinute(),
+    ]);
+
+    $this->get(route('calendar'))->assertOk()->assertInertia(
+        fn (Assert $page): Assert => $page
+            ->component('calendar')
+            ->where('currentDate', '2026-09-25')
+            ->where('events.0.slug', 'evento-do-mes-anterior'),
+    );
 });
 
 it('shows relevant published calendar events and keeps unpublished content private', function (): void {
