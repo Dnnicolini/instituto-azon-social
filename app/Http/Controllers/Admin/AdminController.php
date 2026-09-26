@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\ContentStatus;
 use App\Http\Controllers\Controller;
+use App\Jobs\OptimizeVideoAsset;
 use App\Models\AuditLog;
 use App\Models\ContentRevision;
 use App\Models\Event;
@@ -85,11 +86,19 @@ abstract class AdminController extends Controller
             if (! $file instanceof UploadedFile) {
                 continue;
             }
-            $asset = $this->createAsset($file, 'cms/images', 'Foto da galeria de '.$title);
+            $isVideo = str_starts_with((string) $file->getMimeType(), 'video/');
+            $asset = $this->createAsset(
+                $file,
+                $isVideo ? 'cms/videos' : 'cms/images',
+                $isVideo ? null : 'Imagem da galeria de '.$title,
+            );
             $model->galleryImages()->create([
                 'media_asset_id' => $asset->id,
                 'sort_order' => $nextOrder++,
             ]);
+            if ($isVideo) {
+                OptimizeVideoAsset::dispatch($asset->id);
+            }
         }
     }
 
@@ -105,6 +114,12 @@ abstract class AdminController extends Controller
         if ($galleryImage === null) {
             throw ValidationException::withMessages([
                 'gallery_cover_id' => 'A foto escolhida para capa não pertence a este conteúdo.',
+            ]);
+        }
+
+        if (! str_starts_with((string) $galleryImage->media->mime_type, 'image/')) {
+            throw ValidationException::withMessages([
+                'gallery_cover_id' => 'A capa precisa ser uma imagem da galeria.',
             ]);
         }
 

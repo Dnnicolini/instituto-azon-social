@@ -46,30 +46,7 @@ done
 nginx -t
 systemctl reload nginx
 
-cat > /etc/systemd/system/azon-queue.service <<EOF
-[Unit]
-Description=Azon Laravel queue worker
-After=network-online.target php8.4-fpm.service
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=www-data
-Group=www-data
-WorkingDirectory=$APP_DIR
-ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --timeout=90 --max-time=3600 --memory=192
-Restart=always
-RestartSec=5
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectHome=true
-ProtectSystem=full
-ReadWritePaths=$SHARED_DIR/storage $APP_DIR/bootstrap/cache
-MemoryMax=256M
-
-[Install]
-WantedBy=multi-user.target
-EOF
+bash "$SCRIPT_DIR/install-queue-service.sh"
 
 cat > /etc/systemd/system/azon-scheduler.service <<EOF
 [Unit]

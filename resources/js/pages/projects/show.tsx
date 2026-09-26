@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import { AccessibilityTools } from '@/components/accessibility-tools';
 import { RegistrationStatus } from '@/components/applications/registration-status';
 import { PublicSeoHead } from '@/components/applications/public-seo-head';
+import { ContentGallery } from '@/components/content-gallery';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { contentUrl } from '@/lib/content-url';
 import { formatApplicationDate } from '@/lib/applications';
@@ -90,33 +91,12 @@ export default function ProjectShow({
                 </div>
 
                 {(project.gallery_images?.length ?? 0) > 0 && (
-                    <section
-                        className="project-gallery"
-                        aria-labelledby="project-gallery-title"
-                    >
-                        <header>
-                            <h2 id="project-gallery-title">
-                                Registros do projeto
-                            </h2>
-                            <p>
-                                Imagens das ações realizadas junto à comunidade.
-                            </p>
-                        </header>
-                        <div>
-                            {project.gallery_images?.map((image) => (
-                                <figure key={image.id}>
-                                    <img
-                                        src={image.url}
-                                        alt={
-                                            image.alt ??
-                                            `Registro do projeto ${project.title}`
-                                        }
-                                        loading="lazy"
-                                    />
-                                </figure>
-                            ))}
-                        </div>
-                    </section>
+                    <ContentGallery
+                        items={project.gallery_images ?? []}
+                        title="Registros do projeto"
+                        description="Imagens e vídeos das ações realizadas junto à comunidade."
+                        fallbackAlt={`Registro do projeto ${project.title}`}
+                    />
                 )}
 
                 {posts.length > 0 && (

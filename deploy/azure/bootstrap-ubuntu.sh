@@ -41,7 +41,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 apt-get update
 apt-get install -y --no-install-recommends \
-    ca-certificates certbot curl fail2ban git gnupg nginx openssl \
+    ca-certificates certbot curl fail2ban ffmpeg git gnupg nginx openssl \
     postgresql postgresql-client python3-certbot-nginx rsync software-properties-common \
     ufw unattended-upgrades unzip util-linux
 

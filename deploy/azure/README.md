@@ -35,7 +35,9 @@ sudo bash /tmp/azure/bootstrap-ubuntu.sh 203.0.113.10/32
 
 O bootstrap valida o instalador do Composer por SHA-384, instala PHP 8.4 com
 `pgsql`, Node 22, PostgreSQL, Nginx, Certbot, fail2ban e atualizações de
-segurança. O UFW libera HTTP/HTTPS publicamente e limita SSH ao `ADMIN_CIDR`.
+segurança. Ele também instala o FFmpeg usado pela fila para converter os vídeos
+das galerias para MP4 (H.264/AAC) e reduzir o espaço ocupado com qualidade
+visual alta. O UFW libera HTTP/HTTPS publicamente e limita SSH ao `ADMIN_CIDR`.
 Mantenha a sessão SSH atual aberta até confirmar uma segunda conexão. A área de
 staging pertence somente a `azonadmin`; o processo web não pode alterá-la.
 
@@ -208,6 +210,21 @@ curl -I -H 'Host: azonsocial.org.br' http://127.0.0.1/
 sudo nginx -t
 sudo journalctl -u azon-queue -u azon-ssr --since '10 minutes ago'
 ```
+
+Uploads de vídeo são salvos primeiro e otimizados pela fila `azon-queue` sem
+bloquear o formulário. Depois de enviar um vídeo, acompanhe o processamento
+sem exibir credenciais ou conteúdo sensível:
+
+```bash
+sudo journalctl -u azon-queue --since '10 minutes ago' --no-pager
+sudo -u www-data php /var/www/apps/azon/current/artisan queue:failed
+```
+
+O deploy instala o FFmpeg caso a VM seja anterior a essa funcionalidade. Uma
+falha de conversão preserva o upload original e aparece na fila de falhas para
+diagnóstico; não apague o original manualmente. O worker usa timeout de 900
+segundos, `DB_QUEUE_RETRY_AFTER=1200` e limite de memória do serviço de 768 MB
+para evitar duas conversões simultâneas do mesmo arquivo e acomodar o FFmpeg.
 
 ### Entrega contínua pelo GitHub Actions
 

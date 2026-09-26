@@ -50,6 +50,13 @@ if [[ ! -f $ENV_FILE ]]; then
     exit 66
 fi
 
+if ! command -v ffmpeg >/dev/null 2>&1; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends ffmpeg
+    apt-get clean
+fi
+
 rollback_on_error() {
     local exit_code=$?
     if [[ $DATABASE_PHASE_STARTED == true ]]; then
@@ -128,6 +135,7 @@ mv -Tf "$APP_ROOT/current.new" "$CURRENT_LINK"
 systemctl restart php8.4-fpm
 systemctl is-active --quiet php8.4-fpm
 if systemctl cat azon-queue.service >/dev/null 2>&1; then
+    bash "$RELEASE_DIR/deploy/azure/install-queue-service.sh"
     systemctl restart azon-queue.service azon-ssr.service
     systemctl is-active --quiet azon-queue.service
     systemctl is-active --quiet azon-ssr.service

@@ -152,7 +152,7 @@ export function PostForm({
                     sort_order: 'Ordem entre destaques',
                     cover: 'Foto escolhida como capa',
                     cover_alt: 'Descrição da foto de capa',
-                    gallery: 'Fotos',
+                    gallery: 'Mídias da galeria',
                     gallery_cover_id: 'Foto escolhida como capa',
                     video: 'Arquivo de vídeo',
                 }}
@@ -500,7 +500,6 @@ export function PostForm({
                     coverFile={form.data.cover}
                     currentCoverUrl={post?.cover_url}
                     currentCoverAlt={post?.cover_alt}
-                    dimensionHint="Dimensões recomendadas para a capa: 1200 × 675 px (16:9). Mínimo de 400 × 225 px e máximo de 5000 × 5000 px."
                     selectedCoverId={form.data.gallery_cover_id}
                     removedIds={form.data.remove_gallery_ids}
                     error={form.errors.gallery}

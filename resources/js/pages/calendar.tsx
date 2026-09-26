@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityTools } from '@/components/accessibility-tools';
+import { ContentGallery } from '@/components/content-gallery';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
 import type { Event } from '@/types/cms';
@@ -521,23 +522,12 @@ export default function CalendarPage({
                         )}
                         {selected.gallery_images &&
                             selected.gallery_images.length > 0 && (
-                                <div
-                                    className="content-gallery compact"
-                                    aria-label="Galeria do evento"
-                                >
-                                    <div>
-                                        {selected.gallery_images.map(
-                                            (image) => (
-                                                <img
-                                                    key={image.id}
-                                                    src={image.url}
-                                                    alt={image.alt ?? ''}
-                                                    loading="lazy"
-                                                />
-                                            ),
-                                        )}
-                                    </div>
-                                </div>
+                                <ContentGallery
+                                    items={selected.gallery_images}
+                                    title="Galeria do evento"
+                                    fallbackAlt={`Registro do evento ${selected.title}`}
+                                    compact
+                                />
                             )}
                         <div className="calendar-dialog-content">
                             <p className="eyebrow">Evento Azon Social</p>

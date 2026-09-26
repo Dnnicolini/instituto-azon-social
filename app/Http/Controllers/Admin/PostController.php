@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\Admin\PostRequest;
+use App\Jobs\OptimizeVideoAsset;
 use App\Models\Post;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -73,7 +74,11 @@ class PostController extends AdminController
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
             }
             if ($request->hasFile('video')) {
-                $data['video_media_id'] = $this->createAsset($request->file('video'), 'cms/media')->id;
+                $video = $this->createAsset($request->file('video'), 'cms/media');
+                $data['video_media_id'] = $video->id;
+                if (str_starts_with((string) $video->mime_type, 'video/')) {
+                    OptimizeVideoAsset::dispatch($video->id);
+                }
             }
             $post = Post::query()->create($data);
             $this->updateGallery($request, $post, $post->title);
@@ -105,7 +110,11 @@ class PostController extends AdminController
                 $this->updateAssetAlt($post->cover, $request->validated('cover_alt'));
             }
             if ($request->hasFile('video')) {
-                $data['video_media_id'] = $this->createAsset($request->file('video'), 'cms/media')->id;
+                $video = $this->createAsset($request->file('video'), 'cms/media');
+                $data['video_media_id'] = $video->id;
+                if (str_starts_with((string) $video->mime_type, 'video/')) {
+                    OptimizeVideoAsset::dispatch($video->id);
+                }
             }
             $post->update($data);
             $this->updateGallery($request, $post, $post->title);
@@ -157,7 +166,7 @@ class PostController extends AdminController
             'duration_seconds' => $post->duration_seconds, 'published_at' => $post->published_at?->toIso8601String(),
             'is_featured' => $post->is_featured, 'sort_order' => $post->sort_order,
             'scheduled_at' => $post->status->value === 'scheduled' ? $post->published_at?->toIso8601String() : null,
-            'gallery_images' => $post->relationLoaded('galleryImages') ? $post->galleryImages->map(fn ($image): array => ['id' => $image->id, 'url' => $image->media->url, 'alt' => $image->media->alt_text])->values() : [],
+            'gallery_images' => $post->relationLoaded('galleryImages') ? $post->galleryImages->map->toMediaPayload()->values() : [],
             'project_ids' => $post->relationLoaded('projects') ? $post->projects->pluck('id')->values() : [],
             'author' => $post->relationLoaded('author') ? $post->author?->name : null, 'updated_at' => $post->updated_at?->toIso8601String(),
         ];

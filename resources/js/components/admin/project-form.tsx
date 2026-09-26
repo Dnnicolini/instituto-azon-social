@@ -129,7 +129,7 @@ export function ProjectForm({ project }: { project?: Project }) {
                     sort_order: 'Ordem',
                     cover: 'Foto escolhida como capa',
                     cover_alt: 'Descrição da foto de capa',
-                    gallery: 'Fotos',
+                    gallery: 'Mídias da galeria',
                     gallery_cover_id: 'Foto escolhida como capa',
                     registration_enabled: 'Aceitar inscrições',
                     registration_type: 'Tipo de inscrição',
@@ -659,7 +659,6 @@ export function ProjectForm({ project }: { project?: Project }) {
                     coverFile={form.data.cover}
                     currentCoverUrl={project?.cover_url}
                     currentCoverAlt={project?.cover_alt}
-                    dimensionHint="Dimensões recomendadas para a capa: 1200 × 675 px (16:9). Máximo de 5000 × 5000 px."
                     selectedCoverId={form.data.gallery_cover_id}
                     removedIds={form.data.remove_gallery_ids}
                     error={form.errors.gallery}

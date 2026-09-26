@@ -2,6 +2,10 @@
 
 return [
 
+    'ffmpeg' => [
+        'binary' => env('FFMPEG_BINARY', 'ffmpeg'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

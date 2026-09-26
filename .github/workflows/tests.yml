@@ -52,7 +52,7 @@ jobs:
         run: composer ci:check
 
       - name: Run frontend unit tests
-        run: npm exec vp test -- resources/js/components/seo-head.test.ts resources/js/components/media-player.test.tsx resources/js/lib/cms-form.test.ts resources/js/lib/managed-user.test.ts
+        run: npm exec vp test -- resources/js/components/seo-head.test.ts resources/js/components/media-player.test.tsx resources/js/components/gallery-media-item.test.tsx resources/js/components/content-gallery.test.tsx resources/js/lib/cms-form.test.ts resources/js/lib/managed-user.test.ts resources/js/lib/project-registration-action.test.ts
         env:
           LARAVEL_BYPASS_ENV_CHECK: '1'
 

@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { AccessibilityTools } from '@/components/accessibility-tools';
+import { ContentGallery } from '@/components/content-gallery';
 import { MediaPlayer } from '@/components/media-player';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
@@ -66,22 +67,10 @@ export default function MediaShow({
                     )}
                 </article>
                 {post.gallery_images && post.gallery_images.length > 0 && (
-                    <section
-                        className="content-gallery"
-                        aria-labelledby="content-gallery-title"
-                    >
-                        <h2 id="content-gallery-title">Galeria de fotos</h2>
-                        <div>
-                            {post.gallery_images.map((image) => (
-                                <img
-                                    key={image.id}
-                                    src={image.url}
-                                    alt={image.alt ?? ''}
-                                    loading="lazy"
-                                />
-                            ))}
-                        </div>
-                    </section>
+                    <ContentGallery
+                        items={post.gallery_images}
+                        fallbackAlt={`Registro de ${post.title}`}
+                    />
                 )}
                 {related.length > 0 && (
                     <aside className="media-related">

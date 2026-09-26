@@ -25,10 +25,10 @@ class ProjectRequest extends ContentRequest
             'status' => $this->statusRules(),
             'published_at' => ['nullable', 'date'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:10000'],
-            'cover' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120', 'dimensions:max_width=5000,max_height=5000'],
+            'cover' => $this->coverRules(),
             'cover_alt' => ['nullable', 'string', 'max:255', 'required_with:cover'],
             'gallery' => ['nullable', 'array', 'max:10'],
-            'gallery.*' => ['file', 'mimes:jpg,jpeg,png,webp', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120', 'dimensions:max_width=5000,max_height=5000'],
+            'gallery.*' => $this->galleryMediaRules(),
             'gallery_cover_id' => ['nullable', 'integer', 'min:1'],
             'remove_gallery_ids' => ['nullable', 'array', 'max:20'],
             'remove_gallery_ids.*' => ['integer', 'distinct', 'min:1'],
@@ -48,15 +48,6 @@ class ProjectRequest extends ContentRequest
             'registration_one_per_user' => ['sometimes', 'boolean'],
             'registration_success_message' => ['nullable', 'string', 'max:10000'],
             'registration_confirmation_message' => ['nullable', 'string', 'max:10000'],
-        ];
-    }
-
-    /** @return array<string, string> */
-    public function messages(): array
-    {
-        return [
-            'cover.dimensions' => 'A foto de capa deve ter no máximo 5000 × 5000 px.',
-            'gallery.*.dimensions' => 'Cada foto deve ter no máximo 5000 × 5000 px.',
         ];
     }
 }

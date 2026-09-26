@@ -47,6 +47,10 @@ export type GalleryImage = {
     id: number;
     url: string;
     alt?: string | null;
+    mime_type?: string | null;
+    media_type?: 'image' | 'video';
+    width?: number | null;
+    height?: number | null;
 };
 
 export type AdminUserSummary = {

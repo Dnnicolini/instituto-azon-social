@@ -2,11 +2,13 @@
 
 use App\Enums\ContentStatus;
 use App\Enums\PostType;
+use App\Jobs\OptimizeVideoAsset;
 use App\Models\AuditLog;
 use App\Models\Post;
 use App\Models\Project;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -144,6 +146,44 @@ it('does not allow a gallery photo from another content item to become the cover
     ])->assertSessionHasErrors('gallery_cover_id');
 
     expect($second->fresh()->cover_media_id)->toBeNull();
+});
+
+it('stores gallery videos for background optimization and never uses them as a cover', function (): void {
+    Storage::fake('public');
+    Queue::fake();
+    $publisher = $this->cmsUser('publisher');
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'article',
+        'title' => 'História com vídeo',
+        'slug' => 'historia-com-video',
+        'status' => 'draft',
+        'gallery' => [
+            UploadedFile::fake()->create('registro.MOV', 1024, 'video/quicktime'),
+        ],
+    ])->assertRedirect();
+
+    $post = Post::query()->where('slug', 'historia-com-video')->with('galleryImages.media')->firstOrFail();
+    $video = $post->galleryImages->firstOrFail();
+
+    expect($video->media->mime_type)->toBe('video/quicktime')
+        ->and($video->toMediaPayload()['media_type'])->toBe('video');
+    Queue::assertPushed(
+        OptimizeVideoAsset::class,
+        fn (OptimizeVideoAsset $job): bool => $job->mediaAssetId === $video->media_asset_id,
+    );
+
+    $this->actingAs($publisher)->put(route('admin.posts.update', $post), [
+        'type' => 'article',
+        'title' => $post->title,
+        'slug' => $post->slug,
+        'status' => 'draft',
+        'gallery_cover_id' => $video->id,
+    ])->assertSessionHasErrors([
+        'gallery_cover_id' => 'A capa precisa ser uma imagem da galeria.',
+    ]);
+
+    expect($post->fresh()->cover_media_id)->toBeNull();
 });
 
 it('links posts to social programs without mixing their records', function (): void {

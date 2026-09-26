@@ -51,24 +51,15 @@ class EventRequest extends ContentRequest
             'participation_details' => ['nullable', 'string', 'max:5000'],
             'status' => $this->statusRules(),
             'published_at' => ['nullable', 'date'],
-            'cover' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120', 'dimensions:max_width=5000,max_height=5000'],
+            'cover' => $this->coverRules(),
             'cover_alt' => ['nullable', 'string', 'max:255', 'required_with:cover'],
             'gallery' => ['nullable', 'array', 'max:10'],
-            'gallery.*' => ['file', 'mimes:jpg,jpeg,png,webp', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120', 'dimensions:max_width=5000,max_height=5000'],
+            'gallery.*' => $this->galleryMediaRules(),
             'gallery_cover_id' => ['nullable', 'integer', 'min:1'],
             'remove_gallery_ids' => ['nullable', 'array', 'max:20'],
             'remove_gallery_ids.*' => ['integer', 'distinct', 'min:1'],
             'project_ids' => ['nullable', 'array', 'max:20'],
             'project_ids.*' => ['integer', 'distinct', Rule::exists('projects', 'id')],
-        ];
-    }
-
-    /** @return array<string, string> */
-    public function messages(): array
-    {
-        return [
-            'cover.dimensions' => 'A foto de capa deve ter no máximo 5000 × 5000 px.',
-            'gallery.*.dimensions' => 'Cada foto deve ter no máximo 5000 × 5000 px.',
         ];
     }
 

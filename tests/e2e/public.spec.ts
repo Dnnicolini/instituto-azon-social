@@ -336,6 +336,9 @@ test('AYI GBE and Hunto projects expose their new artwork and details', async ({
     await expect(
         dialog.getByText('Saúde que começa no cuidado com a vida'),
     ).toBeVisible();
+    await expect(
+        dialog.getByRole('link', { name: 'Entrar em contato →' }),
+    ).toHaveAttribute('href', '#contato');
     const centering = await dialog.evaluate((element) => {
         const rect = element.getBoundingClientRect();
 

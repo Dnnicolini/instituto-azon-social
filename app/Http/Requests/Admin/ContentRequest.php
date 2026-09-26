@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Enums\ContentStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -25,6 +26,36 @@ abstract class ContentRequest extends FormRequest
     protected function statusRules(): array
     {
         return ['required', Rule::enum(ContentStatus::class)];
+    }
+
+    /** @return array<int, mixed> */
+    protected function coverRules(): array
+    {
+        return [
+            'nullable',
+            'file',
+            'mimes:jpg,jpeg,png,webp,gif,avif,bmp',
+            'mimetypes:image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,image/x-ms-bmp',
+            'max:20480',
+        ];
+    }
+
+    /** @return array<int, mixed> */
+    protected function galleryMediaRules(): array
+    {
+        return [
+            'file',
+            'mimes:jpg,jpeg,png,webp,gif,avif,bmp,mp4,mov,m4v,webm,mkv,avi',
+            'mimetypes:image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,image/x-ms-bmp,video/mp4,video/quicktime,video/x-m4v,video/webm,video/x-matroska,video/x-msvideo',
+            'max:204800',
+            function (string $attribute, mixed $value, \Closure $fail): void {
+                if ($value instanceof UploadedFile
+                    && str_starts_with((string) $value->getMimeType(), 'image/')
+                    && $value->getSize() > 20 * 1024 * 1024) {
+                    $fail('Cada imagem pode ter no máximo 20 MB.');
+                }
+            },
+        ];
     }
 
     /** @return array<int, callable> */

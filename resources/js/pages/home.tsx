@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FieldError } from '@/components/admin/cms-ui';
 import { AccessibilityTools } from '@/components/accessibility-tools';
 import { SeoHead } from '@/components/seo-head';
-import { isSafeExternalApplicationUrl } from '@/lib/applications';
 import { contentUrl } from '@/lib/content-url';
+import { projectRegistrationAction } from '@/lib/project-registration-action';
 import type { Event, Post, Project, SitePage, SiteSettings } from '@/types/cms';
 import type { SeoData } from '@/types/seo';
 type PublicDocument = {
@@ -131,6 +131,9 @@ export default function Home({
                 : posts.filter((post) => post.type === newsFilter),
         [posts, newsFilter],
     );
+    const selectedProjectAction = selectedProject
+        ? projectRegistrationAction(selectedProject)
+        : null;
     useEffect(() => {
         const dialog = projectDialogRef.current;
         if (!dialog) return;
@@ -478,38 +481,45 @@ export default function Home({
                                             ))}
                                     </div>
                                 )}
-                                {selectedProject.registration_enabled &&
-                                    selectedProject.registration_state ===
-                                        'open' &&
-                                    (selectedProject.registration_type ===
-                                    'external' ? (
-                                        isSafeExternalApplicationUrl(
-                                            selectedProject.registration_url,
-                                        ) ? (
-                                            <a
-                                                className="button button-gold project-dialog-action"
-                                                href={
-                                                    selectedProject.registration_url ??
-                                                    undefined
-                                                }
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                {selectedProject.registration_button_label ||
-                                                    'Inscreva-se'}{' '}
-                                                ↗
-                                            </a>
-                                        ) : null
-                                    ) : (
-                                        <Link
+                                {selectedProjectAction?.kind === 'external' ? (
+                                    <a
+                                        className="button button-gold project-dialog-action"
+                                        href={selectedProjectAction.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        {selectedProjectAction.label} ↗
+                                    </a>
+                                ) : selectedProjectAction?.kind ===
+                                  'internal' ? (
+                                    <Link
+                                        className="button button-gold project-dialog-action"
+                                        href={selectedProjectAction.url}
+                                    >
+                                        {selectedProjectAction.label} →
+                                    </Link>
+                                ) : (
+                                    <div className="project-dialog-contact">
+                                        <p>
+                                            Quer participar ou saber quando
+                                            haverá novas inscrições?
+                                        </p>
+                                        <a
                                             className="button button-gold project-dialog-action"
-                                            href={`/projetos/${selectedProject.slug}/inscricao`}
+                                            href={
+                                                selectedProjectAction?.url ??
+                                                '#contato'
+                                            }
+                                            onClick={() =>
+                                                setSelectedProject(null)
+                                            }
                                         >
-                                            {selectedProject.registration_button_label ||
-                                                'Inscreva-se'}{' '}
+                                            {selectedProjectAction?.label ??
+                                                'Entrar em contato'}{' '}
                                             →
-                                        </Link>
-                                    ))}
+                                        </a>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

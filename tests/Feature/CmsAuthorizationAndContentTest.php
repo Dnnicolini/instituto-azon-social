@@ -2,6 +2,7 @@
 
 use App\Enums\ContentStatus;
 use App\Enums\PostType;
+use App\Jobs\OptimizeVideoAsset;
 use App\Models\ContactMessage;
 use App\Models\Document;
 use App\Models\Event;
@@ -15,6 +16,7 @@ use App\Models\User;
 use Database\Seeders\AuthorizationSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -239,6 +241,7 @@ it('validates and stores generated image uploads', function (): void {
 
 it('accepts a video upload separately from the cover image', function (): void {
     Storage::fake('public');
+    Queue::fake();
     $publisher = $this->cmsUser('publisher');
 
     $this->actingAs($publisher)->post(route('admin.posts.store'), [
@@ -254,6 +257,7 @@ it('accepts a video upload separately from the cover image', function (): void {
         ->and($post->video?->mime_type)->toBe('video/quicktime')
         ->and($post->cover)->toBeNull();
     Storage::disk('public')->assertExists((string) $post->video?->path);
+    Queue::assertPushed(OptimizeVideoAsset::class);
 });
 
 it('accepts an audio upload for podcasts without persisting the form source mode', function (): void {
@@ -801,20 +805,19 @@ it('requires media permission only when an existing cover description changes', 
     expect($cover->fresh()->alt_text)->toBe('Descrição original');
 });
 
-it('rejects oversized image dimensions for projects and events', function (): void {
+it('accepts images without imposing pixel dimension limits', function (): void {
     Storage::fake('public');
     $publisher = $this->cmsUser('publisher');
 
     $this->actingAs($publisher)->post(route('admin.projects.store'), [
         'title' => 'Projeto com capa enorme',
         'slug' => 'projeto-com-capa-enorme',
+        'badge_label' => 'Ação comunitária',
         'status' => 'draft',
         'sort_order' => 0,
         'cover' => UploadedFile::fake()->image('projeto.png', 5001, 20),
         'cover_alt' => 'Capa muito larga',
-    ])->assertSessionHasErrors([
-        'cover' => 'A foto de capa deve ter no máximo 5000 × 5000 px.',
-    ]);
+    ])->assertRedirect();
 
     $this->actingAs($publisher)->post(route('admin.events.store'), [
         'title' => 'Evento com capa enorme',
@@ -823,9 +826,10 @@ it('rejects oversized image dimensions for projects and events', function (): vo
         'location' => 'Sepetiba, Rio de Janeiro',
         'cover' => UploadedFile::fake()->image('evento.png', 20, 5001),
         'cover_alt' => 'Capa muito alta',
-    ])->assertSessionHasErrors([
-        'cover' => 'A foto de capa deve ter no máximo 5000 × 5000 px.',
-    ]);
+    ])->assertRedirect();
+
+    expect(Project::query()->where('slug', 'projeto-com-capa-enorme')->exists())->toBeTrue()
+        ->and(Event::query()->where('slug', 'evento-com-capa-enorme')->exists())->toBeTrue();
 });
 
 it('stores the project badge configured in the admin form', function (): void {
