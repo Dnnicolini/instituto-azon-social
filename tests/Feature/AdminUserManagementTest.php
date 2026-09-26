@@ -238,6 +238,24 @@ it('searches the complete user directory without case sensitivity', function ():
             ->where('users.data.0.id', $target->id));
 });
 
+it('supports a validated server-side page size for the user directory', function (): void {
+    $admin = $this->cmsUser();
+    User::factory()->count(24)->create();
+
+    $this->actingAs($admin)->get(route('admin.users.index', ['per_page' => 10]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('filters.per_page', 10)
+            ->where('users.per_page', 10)
+            ->has('users.data', 10));
+
+    $this->actingAs($admin)->get(route('admin.users.index', ['per_page' => 999]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('filters.per_page', 20)
+            ->where('users.per_page', 20));
+});
+
 it('filters the complete user directory by account status', function (): void {
     $admin = $this->cmsUser();
     $active = $this->cmsUser('editor');

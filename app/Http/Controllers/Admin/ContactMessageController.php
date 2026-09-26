@@ -11,12 +11,32 @@ use Inertia\Response;
 
 class ContactMessageController extends AdminController
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->authorizeAdministrator();
-        $messages = ContactMessage::query()->latest()->paginate(20)->withQueryString()->through(fn (ContactMessage $message): array => $this->serialize($message));
+        $filters = [
+            'search' => mb_substr(trim((string) $request->query('search', '')), 0, 100),
+            'status' => in_array($request->query('status'), ['new', 'read', 'responded', 'archived'], true)
+                ? (string) $request->query('status')
+                : null,
+            'per_page' => $this->perPage($request),
+        ];
+        $messages = ContactMessage::query()
+            ->when($filters['search'] !== '', function ($query) use ($filters): void {
+                $search = '%'.addcslashes($filters['search'], '%_\\').'%';
+                $query->where(fn ($query) => $query
+                    ->whereLike('name', $search, caseSensitive: false)
+                    ->orWhereLike('email', $search, caseSensitive: false)
+                    ->orWhereLike('subject', $search, caseSensitive: false)
+                    ->orWhereLike('message', $search, caseSensitive: false));
+            })
+            ->when($filters['status'], fn ($query, string $status) => $query->where('status', $status))
+            ->latest()
+            ->paginate($filters['per_page'])
+            ->withQueryString()
+            ->through(fn (ContactMessage $message): array => $this->serialize($message));
 
-        return Inertia::render('admin/messages', ['messages' => $messages]);
+        return Inertia::render('admin/messages', ['messages' => $messages, 'filters' => $filters]);
     }
 
     public function update(Request $request, ContactMessage $message): RedirectResponse

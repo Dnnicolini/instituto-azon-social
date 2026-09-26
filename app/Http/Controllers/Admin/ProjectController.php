@@ -17,7 +17,7 @@ class ProjectController extends AdminController
     {
         $this->authorize('viewAny', Project::class);
         $filters = $this->contentFilters($request);
-        $query = Project::query()->with(['cover', 'registrationSetting'])->withCount(['applications as applications_count' => fn ($query) => $query->whereNotIn('status', ['draft', 'cancelled'])])->orderBy('sort_order');
+        $query = Project::query()->withCount(['applications as applications_count' => fn ($query) => $query->whereNotIn('status', ['draft', 'cancelled'])])->orderBy('sort_order');
         if ($filters['search'] !== '') {
             $query->where(fn ($query) => $query->whereLike('title', "%{$filters['search']}%", caseSensitive: false)
                 ->orWhereLike('summary', "%{$filters['search']}%", caseSensitive: false)
@@ -26,7 +26,7 @@ class ProjectController extends AdminController
         if ($filters['status']) {
             $query->where('status', $filters['status']);
         }
-        $items = $query->paginate(15)->withQueryString()->through(fn (Project $project): array => $this->serialize($project));
+        $items = $query->paginate($filters['per_page'])->withQueryString()->through(fn (Project $project): array => $this->serializeSummary($project));
 
         return Inertia::render('admin/content/index', ['resource' => 'projects', 'items' => $items, 'filters' => $filters]);
     }
@@ -40,7 +40,7 @@ class ProjectController extends AdminController
 
     public function store(ProjectRequest $request): RedirectResponse
     {
-        $project = DB::transaction(function () use ($request): Project {
+        DB::transaction(function () use ($request): void {
             $data = $this->normalizeProjectData($request->validated());
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
@@ -49,11 +49,9 @@ class ProjectController extends AdminController
             $this->syncRegistrationSetting($request, $project);
             $this->updateGallery($request, $project, $project->title);
             $this->recordChange('project.created', $project);
-
-            return $project;
         });
 
-        return redirect()->route('admin.projects.edit', $project)->with('success', 'Projeto criado.');
+        return redirect()->route('admin.projects.index')->with('success', 'Projeto cadastrado com sucesso.');
     }
 
     public function edit(Project $project): Response
@@ -96,11 +94,32 @@ class ProjectController extends AdminController
     }
 
     /** @return array<string, mixed> */
+    private function serializeSummary(Project $project): array
+    {
+        return [
+            'id' => $project->id,
+            'title' => $project->title,
+            'slug' => $project->slug,
+            'summary' => $project->summary,
+            'status' => $project->status->value,
+            'sort_order' => $project->sort_order,
+            'updated_at' => $project->updated_at?->toIso8601String(),
+            'registration_enabled' => $project->registration_enabled,
+            'registration_start_at' => $project->registration_start_at?->toIso8601String(),
+            'registration_end_at' => $project->registration_end_at?->toIso8601String(),
+            'applications_count' => $project->applications_count ?? 0,
+        ];
+    }
+
+    /** @return array<string, mixed> */
     private function serialize(Project $project): array
     {
-        $setting = $project->registrationSetting()->firstOrNew();
+        $setting = $project->registrationSetting;
+        $allowEditing = $setting?->allow_editing;
+        $requiresAuthentication = $setting?->requires_authentication;
+        $onePerUser = $setting?->one_per_user;
 
-        return ['id' => $project->id, 'name' => $project->title, 'title' => $project->title, 'slug' => $project->slug, 'summary' => $project->summary, 'badge_label' => $project->badge_label, 'body' => $project->body, 'status' => $project->status->value, 'cover_url' => $project->cover?->url, 'cover_alt' => $project->cover?->alt_text, 'gallery_images' => $project->relationLoaded('galleryImages') ? $project->galleryImages->map(fn ($image): array => ['id' => $image->id, 'url' => $image->media->url, 'alt' => $image->media->alt_text])->values() : [], 'published_at' => $project->published_at?->toIso8601String(), 'sort_order' => $project->sort_order, 'updated_at' => $project->updated_at?->toIso8601String(), 'registration_enabled' => $project->registration_enabled, 'registration_type' => $project->registration_type?->value, 'registration_url' => $project->registration_url, 'registration_start_at' => $project->registration_start_at?->toIso8601String(), 'registration_end_at' => $project->registration_end_at?->toIso8601String(), 'registration_instructions' => $project->registration_instructions, 'registration_button_label' => $project->registration_button_label, 'registration_title' => $setting->title, 'registration_description' => $setting->description, 'registration_max_applications' => $setting->max_applications, 'registration_allow_editing' => $setting->allow_editing ?? false, 'registration_edit_deadline' => $setting->edit_deadline?->toIso8601String(), 'registration_requires_authentication' => $setting->requires_authentication ?? false, 'registration_one_per_user' => $setting->one_per_user ?? true, 'registration_success_message' => $setting->success_message, 'registration_confirmation_message' => $setting->confirmation_message, 'applications_count' => $project->applications_count ?? $project->applications()->whereNotIn('status', ['draft', 'cancelled'])->count()];
+        return ['id' => $project->id, 'name' => $project->title, 'title' => $project->title, 'slug' => $project->slug, 'summary' => $project->summary, 'badge_label' => $project->badge_label, 'body' => $project->body, 'status' => $project->status->value, 'cover_url' => $project->cover?->url, 'cover_alt' => $project->cover?->alt_text, 'gallery_images' => $project->relationLoaded('galleryImages') ? $project->galleryImages->map(fn ($image): array => ['id' => $image->id, 'url' => $image->media->url, 'alt' => $image->media->alt_text])->values() : [], 'published_at' => $project->published_at?->toIso8601String(), 'sort_order' => $project->sort_order, 'updated_at' => $project->updated_at?->toIso8601String(), 'registration_enabled' => $project->registration_enabled, 'registration_type' => $project->registration_type?->value, 'registration_url' => $project->registration_url, 'registration_start_at' => $project->registration_start_at?->toIso8601String(), 'registration_end_at' => $project->registration_end_at?->toIso8601String(), 'registration_instructions' => $project->registration_instructions, 'registration_button_label' => $project->registration_button_label, 'registration_title' => $setting?->title, 'registration_description' => $setting?->description, 'registration_max_applications' => $setting?->max_applications, 'registration_allow_editing' => $allowEditing ?? false, 'registration_edit_deadline' => $setting?->edit_deadline?->toIso8601String(), 'registration_requires_authentication' => $requiresAuthentication ?? false, 'registration_one_per_user' => $onePerUser ?? true, 'registration_success_message' => $setting?->success_message, 'registration_confirmation_message' => $setting?->confirmation_message, 'applications_count' => $project->applications_count ?? $project->applications()->whereNotIn('status', ['draft', 'cancelled'])->count()];
     }
 
     /** @param array<string, mixed> $validated
@@ -151,12 +170,13 @@ class ProjectController extends AdminController
         $project->registrationSetting()->updateOrCreate([], $data);
     }
 
-    /** @return array{search: string, status: string|null} */
+    /** @return array{search: string, status: string|null, per_page: int} */
     private function contentFilters(Request $request): array
     {
         return [
             'search' => mb_substr(trim((string) $request->query('search', '')), 0, 100),
             'status' => in_array($request->query('status'), ['draft', 'review', 'scheduled', 'published', 'archived'], true) ? $request->query('status') : null,
+            'per_page' => $this->perPage($request),
         ];
     }
 }

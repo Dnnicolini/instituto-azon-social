@@ -20,12 +20,12 @@ use Throwable;
 
 class UserController extends AdminController
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->authorize('viewAny', User::class);
-        $actor = request()->user()->loadMissing('roles.permissions');
-        $search = mb_substr(trim((string) request()->query('q', '')), 0, 100);
-        $requestedStatus = (string) request()->query('status', '');
+        $actor = $request->user()->loadMissing('roles.permissions');
+        $search = mb_substr(trim((string) $request->query('q', '')), 0, 100);
+        $requestedStatus = (string) $request->query('status', '');
         $status = in_array($requestedStatus, ['active', 'pending', 'disabled'], true)
             ? $requestedStatus
             : '';
@@ -40,13 +40,13 @@ class UserController extends AdminController
             ->when($status === 'pending', fn ($query) => $query->whereNull('disabled_at')->whereNull('email_verified_at'))
             ->when($status === 'disabled', fn ($query) => $query->whereNotNull('disabled_at'))
             ->latest()
-            ->paginate(20)
+            ->paginate($this->perPage($request))
             ->withQueryString()
             ->through(fn (User $user): array => $this->serialize($user, $actor));
 
         return Inertia::render('admin/users', [
             'users' => $users,
-            'filters' => ['q' => $search, 'status' => $status],
+            'filters' => ['q' => $search, 'status' => $status, 'per_page' => $this->perPage($request)],
         ]);
     }
 

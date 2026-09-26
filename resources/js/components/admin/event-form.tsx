@@ -113,8 +113,16 @@ export function EventForm({
                     registration_url: 'Link para inscrição',
                     participation_details: 'Como participar',
                     status: 'Status',
-                    cover: 'Imagem',
-                    cover_alt: 'Descrição da imagem',
+                    cover: 'Foto escolhida como capa',
+                    cover_alt: 'Descrição da foto de capa',
+                    gallery: 'Fotos',
+                    gallery_cover_id: 'Foto escolhida como capa',
+                }}
+                fieldIds={{
+                    cover: 'gallery',
+                    cover_alt: 'gallery',
+                    gallery: 'gallery',
+                    gallery_cover_id: 'gallery',
                 }}
             />
             <div className="cms-editor-main">

@@ -1,6 +1,11 @@
 import { Link } from '@inertiajs/react';
 import { AdminLayout } from '@/components/admin/admin-layout';
-import { EmptyState, PageHeading, Pagination } from '@/components/admin/cms-ui';
+import {
+    EmptyState,
+    hasActiveListingFilters,
+    PageHeading,
+    Pagination,
+} from '@/components/admin/cms-ui';
 import { ProjectRegistrationNav } from '@/components/admin/project-registration-nav';
 import {
     ApplicationFilters,
@@ -39,6 +44,11 @@ export default function ApplicationsIndex({
     filters?: Record<string, string | number | null | undefined>;
     statuses?: Array<{ value: string; label: string }>;
 }) {
+    const hasFilters = hasActiveListingFilters(filters, {
+        sort: 'submitted_at',
+        direction: 'desc',
+    });
+
     return (
         <>
             <SeoHead seo={seo} />
@@ -149,6 +159,16 @@ export default function ApplicationsIndex({
                     <EmptyState
                         title="Nenhuma candidatura encontrada"
                         description="Ajuste os filtros ou aguarde o início das inscrições."
+                        action={
+                            hasFilters ? (
+                                <Link
+                                    className="cms-button secondary"
+                                    href={`/admin/projetos/${project.id}/inscricoes`}
+                                >
+                                    Limpar filtros
+                                </Link>
+                            ) : undefined
+                        }
                     />
                 )}
             </AdminLayout>

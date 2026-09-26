@@ -1,8 +1,12 @@
 import { Link, router } from '@inertiajs/react';
-import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { AdminLayout } from '@/components/admin/admin-layout';
-import { EmptyState, PageHeading, Pagination } from '@/components/admin/cms-ui';
+import {
+    EmptyState,
+    ListingFilters,
+    PageHeading,
+    Pagination,
+} from '@/components/admin/cms-ui';
 import { useCan } from '@/components/admin/use-can';
 import { SeoHead } from '@/components/seo-head';
 import { managedUserStatuses } from '@/lib/managed-user';
@@ -97,36 +101,10 @@ export default function Users({
     filters,
 }: AdminSharedProps & {
     users: Paginated<ManagedUser>;
-    filters: { q: string; status: UserStatusFilter };
+    filters: { q: string; status: UserStatusFilter; per_page?: number };
 }) {
     const canManageRoles = useCan('roles.manage');
-    const [query, setQuery] = useState(filters.q);
     const [busyAction, setBusyAction] = useState<string | null>(null);
-
-    function visitFilters(q: string, status: UserStatusFilter) {
-        router.get(
-            '/admin/usuarios',
-            {
-                ...(q.trim() ? { q: q.trim() } : {}),
-                ...(status ? { status } : {}),
-            },
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
-    }
-
-    function searchUsers(event: FormEvent) {
-        event.preventDefault();
-        visitFilters(query, filters.status);
-    }
-
-    function filterByStatus(status: UserStatusFilter) {
-        visitFilters(query, status);
-    }
-
-    function clearFilters() {
-        setQuery('');
-        visitFilters('', '');
-    }
 
     function resetPassword(user: ManagedUser) {
         if (busyAction) return;
@@ -205,6 +183,12 @@ export default function Users({
                             Gerenciar grupos
                         </Link>
                     )}
+                    <Link
+                        className="cms-button primary"
+                        href="/admin/usuarios/create"
+                    >
+                        ＋ Convidar usuário
+                    </Link>
                 </PageHeading>
 
                 <section className="admin-panel cms-users-panel">
@@ -217,63 +201,32 @@ export default function Users({
                                     : `${users.total} usuário(s) cadastrado(s).`}
                             </p>
                         </div>
-                        <div className="cms-users-toolbar-actions">
-                            <form
-                                className="cms-user-search"
-                                role="search"
-                                onSubmit={searchUsers}
-                            >
-                                <label
-                                    className="sr-only"
-                                    htmlFor="user-search"
-                                >
-                                    Buscar por nome, e-mail ou grupo
-                                </label>
-                                <input
-                                    id="user-search"
-                                    type="search"
-                                    value={query}
-                                    onChange={(event) =>
-                                        setQuery(event.target.value)
-                                    }
-                                    placeholder="Nome, e-mail ou grupo"
-                                />
-                                <button type="submit" aria-label="Buscar">
-                                    <span aria-hidden="true">⌕</span>
-                                </button>
-                            </form>
-                            <label className="cms-field">
-                                <span className="sr-only">
-                                    Filtrar por status
-                                </span>
-                                <select
-                                    aria-label="Filtrar usuários por status"
-                                    value={filters.status}
-                                    onChange={(event) =>
-                                        filterByStatus(
-                                            event.target
-                                                .value as UserStatusFilter,
-                                        )
-                                    }
-                                >
-                                    <option value="">Todos os status</option>
-                                    <option value="active">Ativos</option>
-                                    <option value="pending">
-                                        Convite pendente
-                                    </option>
-                                    <option value="disabled">
-                                        Desativados
-                                    </option>
-                                </select>
-                            </label>
-                            <Link
-                                className="cms-button primary"
-                                href="/admin/usuarios/create"
-                            >
-                                Convidar usuário
-                            </Link>
-                        </div>
                     </header>
+                    <ListingFilters
+                        basePath="/admin/usuarios"
+                        filters={filters}
+                        searchName="q"
+                        searchLabel="Pesquisar pessoas"
+                        searchPlaceholder="Nome, e-mail ou grupo"
+                        fields={[
+                            {
+                                name: 'status',
+                                label: 'Status',
+                                options: [
+                                    { value: '', label: 'Todos os status' },
+                                    { value: 'active', label: 'Ativos' },
+                                    {
+                                        value: 'pending',
+                                        label: 'Convite pendente',
+                                    },
+                                    {
+                                        value: 'disabled',
+                                        label: 'Desativados',
+                                    },
+                                ],
+                            },
+                        ]}
+                    />
 
                     {users.data.length ? (
                         <div className="cms-user-directory">
@@ -343,13 +296,12 @@ export default function Users({
                             title="Nenhum resultado"
                             description="Ajuste a busca ou o status para encontrar a pessoa."
                             action={
-                                <button
-                                    type="button"
+                                <Link
                                     className="cms-button secondary"
-                                    onClick={clearFilters}
+                                    href="/admin/usuarios"
                                 >
                                     Limpar filtros
-                                </button>
+                                </Link>
                             }
                         />
                     ) : (

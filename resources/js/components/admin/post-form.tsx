@@ -150,8 +150,10 @@ export function PostForm({
                     duration_seconds: 'Duração',
                     is_featured: 'Destaque',
                     sort_order: 'Ordem entre destaques',
-                    cover: 'Imagem de capa',
-                    cover_alt: 'Descrição da imagem',
+                    cover: 'Foto escolhida como capa',
+                    cover_alt: 'Descrição da foto de capa',
+                    gallery: 'Fotos',
+                    gallery_cover_id: 'Foto escolhida como capa',
                     video: 'Arquivo de vídeo',
                 }}
                 fieldIds={{
@@ -167,7 +169,10 @@ export function PostForm({
                     external_url: 'external-url',
                     is_featured: 'is_featured',
                     sort_order: 'social-sort-order',
-                    cover_alt: 'cover-alt',
+                    cover: 'gallery',
+                    cover_alt: 'gallery',
+                    gallery: 'gallery',
+                    gallery_cover_id: 'gallery',
                     video: 'video-file',
                 }}
             />

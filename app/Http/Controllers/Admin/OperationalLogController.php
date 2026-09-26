@@ -24,6 +24,9 @@ class OperationalLogController extends Controller
             'period' => in_array($request->query('period'), ['24h', '7d', '30d', 'all'], true)
                 ? (string) $request->query('period')
                 : '7d',
+            'per_page' => in_array((int) $request->query('per_page'), [10, 20, 50, 100], true)
+                ? (int) $request->query('per_page')
+                : 20,
         ];
 
         $query = AuditLog::query()
@@ -57,7 +60,7 @@ class OperationalLogController extends Controller
             $query->where('created_at', '>=', $since);
         }
 
-        $activities = $query->paginate(20)->withQueryString()->through(fn (AuditLog $log): array => [
+        $activities = $query->paginate($filters['per_page'])->withQueryString()->through(fn (AuditLog $log): array => [
             'id' => $log->id,
             'action' => $log->action,
             'action_label' => $this->actionLabel($log->action),

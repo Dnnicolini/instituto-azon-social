@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { AdminIcon, type AdminIconName } from '@/components/admin/admin-icon';
 import type { AdminSharedProps } from '@/types/cms';
 
@@ -107,6 +107,8 @@ type AdminLayoutProps = {
 
 export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
     const [menuOpen, setMenuOpen] = useState(false);
+    const closeMenuButton = useRef<HTMLButtonElement>(null);
+    const menuButton = useRef<HTMLButtonElement>(null);
     const page = usePage<AdminSharedProps>();
     const { auth, flash, unreadMessages = 0 } = page.props;
     const [currentPath, currentQuery = ''] = page.url.split('?');
@@ -127,6 +129,35 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
     function logout() {
         router.post('/admin/logout');
     }
+
+    useEffect(() => {
+        document.documentElement.classList.add('admin-page-active');
+        document.body.classList.add('admin-page-active');
+
+        return () => {
+            document.documentElement.classList.remove('admin-page-active');
+            document.body.classList.remove('admin-page-active');
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!menuOpen) return;
+
+        const previousOverflow = document.body.style.overflow;
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setMenuOpen(false);
+        };
+
+        document.body.style.overflow = 'hidden';
+        document.addEventListener('keydown', closeOnEscape);
+        closeMenuButton.current?.focus();
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            document.removeEventListener('keydown', closeOnEscape);
+            menuButton.current?.focus();
+        };
+    }, [menuOpen]);
 
     return (
         <div className="admin-shell">
@@ -156,6 +187,15 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                         <small>Gestão de conteúdo</small>
                     </span>
                 </Link>
+                <button
+                    ref={closeMenuButton}
+                    type="button"
+                    className="admin-sidebar-close"
+                    aria-label="Fechar menu"
+                    onClick={() => setMenuOpen(false)}
+                >
+                    ×
+                </button>
                 <nav aria-label="Administração do site">
                     {[
                         'Visão geral',
@@ -257,6 +297,7 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
             <main className="admin-main">
                 <header className="admin-topbar">
                     <button
+                        ref={menuButton}
                         type="button"
                         className="admin-mobile-menu"
                         onClick={() => setMenuOpen((open) => !open)}

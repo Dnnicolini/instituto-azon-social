@@ -21,7 +21,7 @@ export default function ContentIndex(
             Post | Project | Event | TransparencyDocument | SitePage
         >;
         section?: PostSection;
-        filters?: Record<string, string | null | undefined>;
+        filters?: Record<string, string | number | null | undefined>;
         categories?: string[];
     },
 ) {

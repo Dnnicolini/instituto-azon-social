@@ -1,9 +1,11 @@
 import { Link, router } from '@inertiajs/react';
-import { useState } from 'react';
 import { AdminLayout } from '@/components/admin/admin-layout';
 import {
     ConfirmDeleteButton,
+    contentStatusFilter,
     EmptyState,
+    hasActiveListingFilters,
+    ListingFilters,
     PageHeading,
     Pagination,
     StatusBadge,
@@ -28,24 +30,25 @@ export default function PostsIndex({
     section,
 }: AdminSharedProps & {
     posts: Paginated<Post>;
-    filters?: { search?: string; type?: string; status?: string };
+    filters?: {
+        search?: string;
+        type?: string;
+        status?: string;
+        per_page?: number;
+    };
     section: PostSection;
 }) {
     const content = postSectionContent[section];
     const availableTypes = typesForSection(section);
-    const [search, setSearch] = useState(filters.search ?? '');
-    const hasFilters = Boolean(
-        filters.search ||
-        filters.status ||
-        (section === 'media' && filters.type && filters.type !== 'media'),
-    );
-    function filter(name: string, value: string) {
-        router.get(
-            '/admin/posts',
-            { ...filters, [name]: value || undefined },
-            { preserveState: true, replace: true },
-        );
-    }
+    const defaultFilters = {
+        type:
+            section === 'media'
+                ? 'media'
+                : section === 'social'
+                  ? 'social'
+                  : undefined,
+    };
+    const hasFilters = hasActiveListingFilters(filters, defaultFilters);
     return (
         <>
             <SeoHead seo={seo} />
@@ -63,80 +66,33 @@ export default function PostsIndex({
                         </Link>
                     </Can>
                 </PageHeading>
-                <form
-                    className="cms-toolbar"
-                    role="search"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        filter('search', search.trim());
-                    }}
-                >
-                    <label>
-                        <span>Buscar</span>
-                        <span className="cms-search-control">
-                            <input
-                                type="search"
-                                value={search}
-                                placeholder="Título ou palavra-chave"
-                                onChange={(event) =>
-                                    setSearch(event.target.value)
-                                }
-                            />
-                            <button
-                                type="submit"
-                                className="cms-button secondary"
-                            >
-                                Buscar
-                            </button>
-                        </span>
-                    </label>
-                    {section === 'media' && (
-                        <label>
-                            <span>Formato</span>
-                            <select
-                                value={
-                                    filters.type === 'media'
-                                        ? 'media'
-                                        : (filters.type ?? '')
-                                }
-                                onChange={(e) => filter('type', e.target.value)}
-                            >
-                                <option
-                                    value={section === 'media' ? 'media' : ''}
-                                >
-                                    Todos
-                                </option>
-                                {availableTypes.map((value) => (
-                                    <option value={value} key={value}>
-                                        {typeLabels[value]}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    )}
-                    <label>
-                        <span>Status</span>
-                        <select
-                            value={filters.status ?? ''}
-                            onChange={(e) => filter('status', e.target.value)}
-                        >
-                            <option value="">Todos</option>
-                            <option value="draft">Rascunho</option>
-                            <option value="review">Em revisão</option>
-                            <option value="scheduled">Agendado</option>
-                            <option value="published">Publicado</option>
-                            <option value="archived">Arquivado</option>
-                        </select>
-                    </label>
-                    {hasFilters && (
-                        <Link
-                            className="cms-toolbar-clear"
-                            href={postIndexHref(section)}
-                        >
-                            Limpar filtros
-                        </Link>
-                    )}
-                </form>
+                <ListingFilters
+                    basePath={postIndexHref(section)}
+                    filters={filters}
+                    searchPlaceholder="Título ou palavra-chave"
+                    fields={[
+                        ...(section === 'media'
+                            ? [
+                                  {
+                                      name: 'type',
+                                      label: 'Formato',
+                                      options: [
+                                          {
+                                              value: 'media',
+                                              label: 'Todos',
+                                          },
+                                          ...availableTypes.map((value) => ({
+                                              value,
+                                              label: typeLabels[value],
+                                          })),
+                                      ],
+                                  },
+                              ]
+                            : []),
+                        contentStatusFilter,
+                    ]}
+                    defaultValues={defaultFilters}
+                />
                 {posts.data.length ? (
                     <>
                         <div className="cms-table-wrap">
@@ -231,17 +187,34 @@ export default function PostsIndex({
                     </>
                 ) : (
                     <EmptyState
-                        title={content.emptyTitle}
-                        description={content.emptyDescription}
+                        title={
+                            hasFilters
+                                ? 'Nenhum conteúdo encontrado'
+                                : content.emptyTitle
+                        }
+                        description={
+                            hasFilters
+                                ? 'Ajuste a pesquisa ou limpe os filtros para consultar outros conteúdos.'
+                                : content.emptyDescription
+                        }
                         action={
-                            <Can permission="content.create">
+                            hasFilters ? (
                                 <Link
-                                    className="cms-button primary"
-                                    href={postCreateHref(section)}
+                                    className="cms-button secondary"
+                                    href={postIndexHref(section)}
                                 >
-                                    {content.createLabel}
+                                    Limpar filtros
                                 </Link>
-                            </Can>
+                            ) : (
+                                <Can permission="content.create">
+                                    <Link
+                                        className="cms-button primary"
+                                        href={postCreateHref(section)}
+                                    >
+                                        {content.createLabel}
+                                    </Link>
+                                </Can>
+                            )
                         }
                     />
                 )}

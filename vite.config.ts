@@ -15,10 +15,12 @@ export default defineConfig({
             fonts: [
                 bunny('Plus Jakarta Sans', {
                     weights: [400, 500, 600],
+                    optimizedFallbacks: false,
                 }),
                 bunny('Playfair Display', {
                     weights: [500, 600, 700],
                     styles: ['normal', 'italic'],
+                    optimizedFallbacks: false,
                 }),
             ],
         }),

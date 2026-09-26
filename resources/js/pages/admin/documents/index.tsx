@@ -2,7 +2,9 @@ import { Link, router } from '@inertiajs/react';
 import { AdminLayout } from '@/components/admin/admin-layout';
 import {
     ConfirmDeleteButton,
+    contentStatusFilter,
     EmptyState,
+    hasActiveListingFilters,
     ListingFilters,
     PageHeading,
     Pagination,
@@ -22,9 +24,11 @@ export default function Documents({
     categories = [],
 }: AdminSharedProps & {
     documents: Paginated<TransparencyDocument>;
-    filters?: Record<string, string | null | undefined>;
+    filters?: Record<string, string | number | null | undefined>;
     categories?: string[];
 }) {
+    const hasFilters = hasActiveListingFilters(filters);
+
     return (
         <>
             <SeoHead seo={seo} />
@@ -46,7 +50,8 @@ export default function Documents({
                     basePath="/admin/documentos"
                     filters={filters}
                     searchPlaceholder="Título ou descrição"
-                    extra={[
+                    fields={[
+                        contentStatusFilter,
                         {
                             name: 'category',
                             label: 'Categoria',
@@ -137,17 +142,34 @@ export default function Documents({
                     </>
                 ) : (
                     <EmptyState
-                        title="Nenhum documento publicado"
-                        description="Envie o primeiro PDF para iniciar a área de transparência."
+                        title={
+                            hasFilters
+                                ? 'Nenhum documento encontrado'
+                                : 'Nenhum documento publicado'
+                        }
+                        description={
+                            hasFilters
+                                ? 'Ajuste a pesquisa ou limpe os filtros para consultar outros documentos.'
+                                : 'Envie o primeiro PDF para iniciar a área de transparência.'
+                        }
                         action={
-                            <Can permission="content.create">
+                            hasFilters ? (
                                 <Link
-                                    className="cms-button primary"
-                                    href="/admin/documentos/create"
+                                    className="cms-button secondary"
+                                    href="/admin/documentos"
                                 >
-                                    Enviar documento
+                                    Limpar filtros
                                 </Link>
-                            </Can>
+                            ) : (
+                                <Can permission="content.create">
+                                    <Link
+                                        className="cms-button primary"
+                                        href="/admin/documentos/create"
+                                    >
+                                        Enviar documento
+                                    </Link>
+                                </Can>
+                            )
                         }
                     />
                 )}

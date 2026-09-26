@@ -2,7 +2,9 @@ import { Link, router } from '@inertiajs/react';
 import { AdminLayout } from '@/components/admin/admin-layout';
 import {
     ConfirmDeleteButton,
+    contentStatusFilter,
     EmptyState,
+    hasActiveListingFilters,
     ListingFilters,
     PageHeading,
     Pagination,
@@ -22,8 +24,10 @@ export default function ProjectsIndex({
     filters = {},
 }: AdminSharedProps & {
     projects: Paginated<Project>;
-    filters?: Record<string, string | null | undefined>;
+    filters?: Record<string, string | number | null | undefined>;
 }) {
+    const hasFilters = hasActiveListingFilters(filters);
+
     return (
         <>
             <SeoHead seo={seo} />
@@ -45,6 +49,7 @@ export default function ProjectsIndex({
                     basePath="/admin/projetos"
                     filters={filters}
                     searchPlaceholder="Título, resumo ou identificação"
+                    fields={[contentStatusFilter]}
                 />
                 {projects.data.length ? (
                     <>
@@ -169,17 +174,34 @@ export default function ProjectsIndex({
                     </>
                 ) : (
                     <EmptyState
-                        title="Nenhum projeto cadastrado"
-                        description="Cadastre uma iniciativa para apresentá-la no site."
+                        title={
+                            hasFilters
+                                ? 'Nenhum projeto encontrado'
+                                : 'Nenhum projeto cadastrado'
+                        }
+                        description={
+                            hasFilters
+                                ? 'Ajuste a pesquisa ou limpe os filtros para consultar outros projetos.'
+                                : 'Cadastre uma iniciativa para apresentá-la no site.'
+                        }
                         action={
-                            <Can permission="content.create">
+                            hasFilters ? (
                                 <Link
-                                    className="cms-button primary"
-                                    href="/admin/projetos/create"
+                                    className="cms-button secondary"
+                                    href="/admin/projetos"
                                 >
-                                    Criar projeto
+                                    Limpar filtros
                                 </Link>
-                            </Can>
+                            ) : (
+                                <Can permission="content.create">
+                                    <Link
+                                        className="cms-button primary"
+                                        href="/admin/projetos/create"
+                                    >
+                                        Criar projeto
+                                    </Link>
+                                </Can>
+                            )
                         }
                     />
                 )}
