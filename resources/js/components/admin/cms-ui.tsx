@@ -1,5 +1,12 @@
 import { Link, router } from '@inertiajs/react';
-import type { FormEvent, ReactNode } from 'react';
+import {
+    type FormEvent,
+    type ReactNode,
+    useEffect,
+    useId,
+    useRef,
+    useState,
+} from 'react';
 import type { ContentStatus, Paginated } from '@/types/cms';
 import { statusLabels } from '@/types/cms';
 
@@ -309,18 +316,66 @@ export function ConfirmDeleteButton({
     label: string;
     onConfirm: () => void;
 }) {
+    const [open, setOpen] = useState(false);
+    const dialogRef = useRef<HTMLDialogElement>(null);
+    const titleId = useId();
+
+    useEffect(() => {
+        const dialog = dialogRef.current;
+        if (!dialog) return;
+        if (open && !dialog.open) dialog.showModal();
+        if (!open && dialog.open) dialog.close();
+    }, [open]);
+
     function confirmDelete() {
-        if (window.confirm(`Mover “${label}” para a lixeira?`)) {
-            onConfirm();
-        }
+        setOpen(false);
+        onConfirm();
     }
+
     return (
-        <button
-            type="button"
-            className="cms-text-action danger"
-            onClick={confirmDelete}
-        >
-            Excluir
-        </button>
+        <>
+            <button
+                type="button"
+                className="cms-text-action danger"
+                onClick={() => setOpen(true)}
+            >
+                Excluir
+            </button>
+            <dialog
+                ref={dialogRef}
+                className="cms-confirm-dialog"
+                aria-labelledby={titleId}
+                onClose={() => setOpen(false)}
+                onCancel={() => setOpen(false)}
+            >
+                <div className="cms-confirm-dialog-body">
+                    <span aria-hidden="true">!</span>
+                    <div>
+                        <h2 id={titleId}>Mover para a lixeira?</h2>
+                        <p>
+                            O item <strong>“{label}”</strong> deixará de
+                            aparecer no site, mas continuará recuperável no
+                            sistema.
+                        </p>
+                    </div>
+                </div>
+                <div className="cms-confirm-dialog-actions">
+                    <button
+                        type="button"
+                        className="cms-button secondary"
+                        onClick={() => setOpen(false)}
+                    >
+                        Manter item
+                    </button>
+                    <button
+                        type="button"
+                        className="cms-button danger"
+                        onClick={confirmDelete}
+                    >
+                        Mover para a lixeira
+                    </button>
+                </div>
+            </dialog>
+        </>
     );
 }

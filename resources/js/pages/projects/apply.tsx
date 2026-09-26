@@ -15,7 +15,6 @@ import {
 import type {
     ApplicationAnswerValue,
     ApplicationField as ApplicationFieldDefinition,
-    ApplicationAnswer,
     ProjectApplyProps,
 } from '@/types/applications';
 
@@ -31,10 +30,7 @@ type ApplicationPayload = {
 
 type FormErrors = Partial<Record<string, string>>;
 
-function initialAnswers(
-    fields: ApplicationFieldDefinition[],
-    saved: Record<string, ApplicationAnswer> = {},
-) {
+function initialAnswers(fields: ApplicationFieldDefinition[]) {
     return fields.reduce<Record<string, ApplicationAnswerValue>>(
         (answers, field) => {
             if (
@@ -44,13 +40,14 @@ function initialAnswers(
                 return answers;
             }
 
-            answers[field.identifier] =
-                saved[field.identifier]?.value ??
-                (['multiple_choice', 'checkbox'].includes(field.type)
-                    ? []
-                    : field.type === 'acceptance'
-                      ? false
-                      : '');
+            answers[field.identifier] = [
+                'multiple_choice',
+                'checkbox',
+            ].includes(field.type)
+                ? []
+                : field.type === 'acceptance'
+                  ? false
+                  : '';
             return answers;
         },
         {},
@@ -75,9 +72,7 @@ export default function ProjectApply({
     seo,
     project,
     registration,
-    viewer,
     form: formDefinition,
-    application,
     confirmation,
 }: ProjectApplyProps) {
     const [step, setStep] = useState<ApplicationStep>('details');
@@ -97,7 +92,7 @@ export default function ProjectApply({
         [formDefinition.fields],
     );
     const applicationForm = useForm<ApplicationPayload>({
-        answers: initialAnswers(formDefinition.fields, application?.answers),
+        answers: initialAnswers(formDefinition.fields),
         files: {},
         submit: false,
         confirmation: false,
@@ -106,13 +101,8 @@ export default function ProjectApply({
         ...applicationForm.errors,
         ...clientErrors,
     };
-    const isAuthenticated = viewer !== null && viewer !== undefined;
-    const canEdit = application?.can_edit ?? registration.can_apply;
-    const blockedByAuthentication =
-        registration.requires_auth && !isAuthenticated;
-    const mutationUrl = application
-        ? `/minhas-inscricoes/${application.id}`
-        : `/projetos/${encodeURIComponent(project.slug)}/inscricao`;
+    const canEdit = registration.can_apply;
+    const mutationUrl = `/projetos/${encodeURIComponent(project.slug)}/inscricao`;
 
     function updateAnswer(identifier: string, value: ApplicationAnswerValue) {
         applicationForm.setData('answers', {
@@ -148,10 +138,7 @@ export default function ProjectApply({
                 const hasNewFile = Boolean(
                     applicationForm.data.files[field.identifier],
                 );
-                const hasExistingFile = application?.files.some(
-                    (file) => file.identifier === field.identifier,
-                );
-                if (!hasNewFile && !hasExistingFile) {
+                if (!hasNewFile) {
                     nextErrors[fieldErrorKey(field)] =
                         'Selecione o arquivo solicitado.';
                 }
@@ -204,7 +191,6 @@ export default function ProjectApply({
         applicationForm.transform((data) => ({
             ...data,
             submit,
-            ...(application ? { _method: 'put' as const } : {}),
         }));
         applicationForm.post(mutationUrl, {
             forceFormData: true,
@@ -238,7 +224,7 @@ export default function ProjectApply({
                         <p>
                             {confirmation.message ??
                                 registration.success_message ??
-                                'Recebemos sua candidatura. Guarde o protocolo para acompanhar o processo.'}
+                                'Recebemos sua inscrição. Guarde o protocolo como comprovante de envio.'}
                         </p>
                         <dl>
                             <div>
@@ -256,14 +242,6 @@ export default function ProjectApply({
                             </div>
                         </dl>
                         <div className="application-success-actions">
-                            {confirmation.show_url && (
-                                <Link
-                                    className="button button-gold"
-                                    href={confirmation.show_url}
-                                >
-                                    Acompanhar inscrição →
-                                </Link>
-                            )}
                             <Link className="text-link" href="/">
                                 Voltar ao site
                             </Link>
@@ -292,7 +270,7 @@ export default function ProjectApply({
                 <header className="application-heading">
                     <Link
                         className="text-link"
-                        href={`/projetos/${project.slug}`}
+                        href={`/?projeto=${encodeURIComponent(project.slug)}#projetos`}
                     >
                         ← Voltar ao projeto
                     </Link>
@@ -303,21 +281,7 @@ export default function ProjectApply({
                     <p>{registrationStateMessage(registration)}</p>
                 </header>
 
-                {blockedByAuthentication ? (
-                    <section className="application-blocked">
-                        <h2>Entre para fazer sua inscrição</h2>
-                        <p>
-                            Este projeto exige uma conta para salvar, enviar e
-                            acompanhar a candidatura.
-                        </p>
-                        <Link
-                            className="button button-gold"
-                            href={`/acesso?redirect=${encodeURIComponent(`/projetos/${project.slug}/inscricao`)}`}
-                        >
-                            Entrar e continuar →
-                        </Link>
-                    </section>
-                ) : !canEdit ? (
+                {!canEdit ? (
                     <section className="application-blocked">
                         <h2>{registrationStateMessage(registration)}</h2>
                         <p>
@@ -326,7 +290,7 @@ export default function ProjectApply({
                         </p>
                         <Link
                             className="text-link"
-                            href={`/projetos/${project.slug}`}
+                            href={`/?projeto=${encodeURIComponent(project.slug)}#projetos`}
                         >
                             Voltar ao projeto
                         </Link>
@@ -426,11 +390,6 @@ export default function ProjectApply({
                                         {documentFields.map((field) => (
                                             <ApplicationField
                                                 field={field}
-                                                existingFile={application?.files.find(
-                                                    (file) =>
-                                                        file.identifier ===
-                                                        field.identifier,
-                                                )}
                                                 errors={errors}
                                                 disabled={
                                                     applicationForm.processing
@@ -459,7 +418,7 @@ export default function ProjectApply({
                                         fields={formDefinition.fields}
                                         answers={applicationForm.data.answers}
                                         files={applicationForm.data.files}
-                                        existingFiles={application?.files ?? []}
+                                        existingFiles={[]}
                                         onEdit={() => setStep('details')}
                                     />
                                     <div className="application-confirmation">
@@ -535,18 +494,6 @@ export default function ProjectApply({
                                     </button>
                                 )}
                                 <div>
-                                    {isAuthenticated && (
-                                        <button
-                                            className="text-link"
-                                            type="button"
-                                            disabled={
-                                                applicationForm.processing
-                                            }
-                                            onClick={() => persist(false)}
-                                        >
-                                            Salvar rascunho
-                                        </button>
-                                    )}
                                     {step === 'review' ? (
                                         <button
                                             className="button button-gold"

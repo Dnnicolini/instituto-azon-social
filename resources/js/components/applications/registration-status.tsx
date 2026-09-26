@@ -3,20 +3,15 @@ import {
     isSafeExternalApplicationUrl,
     registrationStateMessage,
 } from '@/lib/applications';
-import type {
-    ApplicationViewer,
-    PublicRegistration,
-} from '@/types/applications';
+import type { PublicRegistration } from '@/types/applications';
 
 export function RegistrationStatus({
     projectSlug,
     registration,
-    viewer,
     compact = false,
 }: {
     projectSlug: string;
     registration: PublicRegistration;
-    viewer?: ApplicationViewer | null;
     compact?: boolean;
 }) {
     const message = registrationStateMessage(registration);
@@ -75,10 +70,6 @@ export function RegistrationStatus({
                         {buttonLabel} →
                     </Link>
                 )
-            ) : viewer ? (
-                <Link className="text-link" href="/minhas-inscricoes">
-                    Acompanhar minhas inscrições →
-                </Link>
             ) : null}
         </section>
     );

@@ -241,9 +241,11 @@ export function EventForm({
                     </div>
                     <div className="cms-field">
                         <label>
-                            Local
+                            Local do evento
                             <input
                                 id="location"
+                                placeholder="Ex.: Sede do Instituto Azon Social, Sepetiba"
+                                autoComplete="street-address"
                                 value={form.data.location}
                                 onChange={(e) =>
                                     form.setData('location', e.target.value)
@@ -251,6 +253,10 @@ export function EventForm({
                                 aria-invalid={Boolean(form.errors.location)}
                             />
                         </label>
+                        <small>
+                            Informe o espaço, bairro ou endereço que deve
+                            aparecer no site e no calendário.
+                        </small>
                         <FieldError message={form.errors.location} />
                     </div>
                     <div className="cms-field">

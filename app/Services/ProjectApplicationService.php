@@ -36,18 +36,18 @@ class ProjectApplicationService
                 $lockedProject->loadMissing(['registrationSetting', 'registrationForm.fields']);
                 $this->assertProcessAllows($lockedProject, $request, $application);
                 if ($submit) {
-                    $this->assertCapacityAndUniqueness($lockedProject, $request, $application, $answers);
+                    $this->assertCapacityAndUniqueness($lockedProject, $application, $answers);
                 }
 
                 $isNew = $application === null;
                 $previouslySubmitted = $application?->submitted_at !== null;
                 $application ??= new ProjectApplication(['project_id' => $lockedProject->id]);
                 $application->fill([
-                    'user_id' => $application->user_id ?? $request->user()?->id,
+                    'user_id' => $application->user_id,
                     'status' => $submit ? ProjectApplicationStatus::Submitted : ProjectApplicationStatus::Draft,
                     'submitted_at' => $submit ? ($application->submitted_at ?? now()) : null,
-                    'applicant_name' => $this->identityValue($answers, ['nome_completo', 'name', 'nome']) ?? $request->user()?->name,
-                    'applicant_email' => $this->identityValue($answers, ['email']) ?? $request->user()?->email,
+                    'applicant_name' => $this->identityValue($answers, ['nome_completo', 'name', 'nome']),
+                    'applicant_email' => $this->identityValue($answers, ['email']),
                     'applicant_cpf' => $this->identityValue($answers, ['cpf']),
                     'ip_hash' => $application->ip_hash ?? $this->ipHash($request),
                 ]);
@@ -83,19 +83,20 @@ class ProjectApplicationService
                     if ($old !== null && $old->path !== $path) {
                         Storage::disk($old->disk)->delete($old->path);
                     }
-                    $application->histories()->create(['user_id' => $request->user()?->id, 'event' => 'document.updated']);
+                    $application->histories()->create(['user_id' => null, 'event' => 'document.updated']);
                 }
 
                 $event = $isNew ? 'application.created' : 'application.edited';
-                $application->histories()->create(['user_id' => $request->user()?->id, 'event' => $event]);
+                $application->histories()->create(['user_id' => null, 'event' => $event]);
                 if ($submit && ! $previouslySubmitted) {
-                    $application->histories()->create(['user_id' => $request->user()?->id, 'event' => 'application.submitted']);
+                    $application->histories()->create(['user_id' => null, 'event' => 'application.submitted']);
                 }
 
                 return $application->fresh(['project', 'answers.field', 'files.field', 'histories.user']);
             }, 3);
-            $message = $saved->project->registrationSetting?->confirmation_message;
-            if ($submit && $saved->applicant_email && $message) {
+            $message = $saved->project->registrationSetting?->confirmation_message
+                ?: 'Recebemos sua inscrição. Guarde o protocolo como comprovante de envio.';
+            if ($submit && $saved->applicant_email) {
                 try {
                     Mail::to($saved->applicant_email)->queue(ProjectApplicationConfirmation::fromApplication($saved, $message));
                 } catch (Throwable $exception) {
@@ -116,7 +117,6 @@ class ProjectApplicationService
     {
         throw_unless($project->registration_enabled && $project->registration_type === ProjectRegistrationType::Internal, ValidationException::withMessages(['registration' => 'Este projeto não recebe inscrições pelo sistema.']));
         $settings = $project->registrationSetting;
-        throw_if($settings?->requires_authentication && $request->user() === null, ValidationException::withMessages(['authentication' => 'Entre na sua conta para se candidatar.']));
         $state = $project->registrationState();
         throw_unless($state === 'open' || ($application !== null && $state === 'limit_reached'), ValidationException::withMessages(['registration' => match ($state) {
             'not_started' => 'As inscrições ainda não começaram.', 'limit_reached' => 'Limite de inscrições atingido.', default => 'As inscrições estão encerradas.',
@@ -133,7 +133,7 @@ class ProjectApplicationService
     }
 
     /** @param array<string, mixed> $answers */
-    private function assertCapacityAndUniqueness(Project $project, Request $request, ?ProjectApplication $application, array $answers): void
+    private function assertCapacityAndUniqueness(Project $project, ?ProjectApplication $application, array $answers): void
     {
         $settings = $project->registrationSetting;
         if ($settings?->max_applications !== null) {
@@ -147,13 +147,9 @@ class ProjectApplicationService
 
         $duplicate = $project->applications()->whereNotIn('status', [ProjectApplicationStatus::Draft->value, ProjectApplicationStatus::Cancelled->value])
             ->when($application, fn ($query) => $query->whereKeyNot($application->id));
-        if ($request->user()) {
-            $duplicate->where('user_id', $request->user()->id);
-        } else {
-            $email = $this->identityValue($answers, ['email']);
-            throw_if($email === null, ValidationException::withMessages(['answers.email' => 'Informe o e-mail para garantir uma única inscrição por pessoa.']));
-            $duplicate->where('applicant_email', mb_strtolower($email));
-        }
+        $email = $this->identityValue($answers, ['email']);
+        throw_if($email === null, ValidationException::withMessages(['answers.email' => 'Informe o e-mail para evitar inscrições duplicadas.']));
+        $duplicate->where('applicant_email', mb_strtolower($email));
         throw_if($duplicate->exists(), ValidationException::withMessages(['registration' => 'Você já possui uma inscrição neste projeto.']));
     }
 

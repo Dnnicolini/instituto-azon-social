@@ -143,9 +143,10 @@ class ProjectController extends AdminController
                 $data[$target] = $request->validated($source);
             }
         }
-        if ($data !== [] || $project->registration_type?->value === 'internal') {
-            $project->registrationSetting()->updateOrCreate([], $data);
-        }
+        $data['allow_editing'] = false;
+        $data['edit_deadline'] = null;
+        $data['requires_authentication'] = false;
+        $project->registrationSetting()->updateOrCreate([], $data);
     }
 
     /** @return array{search: string, status: string|null} */
