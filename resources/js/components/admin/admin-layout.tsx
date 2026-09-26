@@ -178,6 +178,11 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                                             ? currentPath === '/admin'
                                             : currentPath.startsWith(itemPath);
                                     if (itemPath === '/admin/posts') {
+                                        const isPostPage =
+                                            currentPath === '/admin/posts' ||
+                                            currentPath.startsWith(
+                                                '/admin/posts/',
+                                            );
                                         const itemType = new URLSearchParams(
                                             item.href.split('?')[1] ?? '',
                                         ).get('type');
@@ -187,12 +192,14 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                                             'video',
                                             'podcast',
                                         ].includes(currentType ?? '');
-                                        active = itemType
-                                            ? itemType === 'media'
-                                                ? isMedia
-                                                : currentType === itemType
-                                            : !isMedia &&
-                                              currentType !== 'social';
+                                        active =
+                                            isPostPage &&
+                                            (itemType
+                                                ? itemType === 'media'
+                                                    ? isMedia
+                                                    : currentType === itemType
+                                                : !isMedia &&
+                                                  currentType !== 'social');
                                     }
                                     return (
                                         <Link
