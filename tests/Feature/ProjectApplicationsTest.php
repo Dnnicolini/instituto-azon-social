@@ -118,7 +118,11 @@ it('lets authorized administrators filter, change status, add internal notes and
         'submitted_at' => now(), 'applicant_name' => 'Candidata Teste', 'applicant_email' => 'candidata@example.org',
     ]);
 
-    $this->actingAs($admin)->get(route('admin.projects.applications.index', [$project, 'search' => 'Candidata']))->assertOk();
+    $this->actingAs($admin)->get(route('admin.projects.applications.index', [$project, 'search' => 'Candidata', 'per_page' => 10]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('filters.per_page', 10)
+            ->where('applications.per_page', 10));
     $this->actingAs($admin)->patch(route('admin.projects.applications.status', [$project, $application]), ['status' => 'approved', 'note' => 'Documentos conferidos'])->assertRedirect();
     $this->actingAs($admin)->post(route('admin.projects.applications.notes.store', [$project, $application]), ['note' => 'Observação sigilosa'])->assertRedirect();
     expect($application->fresh()->status)->toBe(ProjectApplicationStatus::Approved);

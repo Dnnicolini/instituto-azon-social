@@ -28,15 +28,26 @@ class ProjectApplicationController extends AdminController
         $applications = $query->with('project.registrationSetting')->paginate($filters['per_page'])->withQueryString();
         $applications->through(fn ($application): array => (new ProjectApplicationResource($application))->resolve($request));
         $base = $project->applications()->whereNot('status', ProjectApplicationStatus::Draft->value);
+        $todayStart = today();
+        $metricsRow = $base->toBase()
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN submitted_at >= ? AND submitted_at < ? THEN 1 ELSE 0 END) as today', [$todayStart, $todayStart->copy()->addDay()])
+            ->selectRaw('SUM(CASE WHEN submitted_at >= ? THEN 1 ELSE 0 END) as this_week', [now()->startOfWeek()])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as submitted', [ProjectApplicationStatus::Submitted->value])
+            ->selectRaw('SUM(CASE WHEN status IN (?, ?, ?) THEN 1 ELSE 0 END) as pending', [ProjectApplicationStatus::Submitted->value, ProjectApplicationStatus::UnderReview->value, ProjectApplicationStatus::PendingDocuments->value])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved', [ProjectApplicationStatus::Approved->value])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as rejected', [ProjectApplicationStatus::Rejected->value])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled', [ProjectApplicationStatus::Cancelled->value])
+            ->first();
         $metrics = [
-            'total' => (clone $base)->count(),
-            'today' => (clone $base)->whereDate('submitted_at', today())->count(),
-            'this_week' => (clone $base)->where('submitted_at', '>=', now()->startOfWeek())->count(),
-            'submitted' => (clone $base)->where('status', ProjectApplicationStatus::Submitted->value)->count(),
-            'pending' => (clone $base)->whereIn('status', [ProjectApplicationStatus::Submitted->value, ProjectApplicationStatus::UnderReview->value, ProjectApplicationStatus::PendingDocuments->value])->count(),
-            'approved' => (clone $base)->where('status', ProjectApplicationStatus::Approved->value)->count(),
-            'rejected' => (clone $base)->where('status', ProjectApplicationStatus::Rejected->value)->count(),
-            'cancelled' => (clone $base)->where('status', ProjectApplicationStatus::Cancelled->value)->count(),
+            'total' => (int) ($metricsRow->total ?? 0),
+            'today' => (int) ($metricsRow->today ?? 0),
+            'this_week' => (int) ($metricsRow->this_week ?? 0),
+            'submitted' => (int) ($metricsRow->submitted ?? 0),
+            'pending' => (int) ($metricsRow->pending ?? 0),
+            'approved' => (int) ($metricsRow->approved ?? 0),
+            'rejected' => (int) ($metricsRow->rejected ?? 0),
+            'cancelled' => (int) ($metricsRow->cancelled ?? 0),
         ];
 
         return Inertia::render('admin/projects/registrations/index', [
@@ -127,7 +138,7 @@ class ProjectApplicationController extends AdminController
             'field' => preg_match('/^[a-z][a-z0-9_]*$/', (string) $request->query('field')) ? $request->query('field') : null,
             'field_value' => mb_substr(trim((string) $request->query('field_value', '')), 0, 255),
             'sort' => $sort, 'direction' => $request->query('direction') === 'asc' ? 'asc' : 'desc',
-            'per_page' => in_array((int) $request->query('per_page'), [15, 30, 50, 100], true) ? (int) $request->query('per_page') : 15,
+            'per_page' => $this->perPage($request),
         ];
     }
 

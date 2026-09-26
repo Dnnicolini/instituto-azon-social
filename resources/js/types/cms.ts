@@ -35,9 +35,11 @@ export type Paginated<T> = {
     data: T[];
     current_page: number;
     last_page: number;
+    per_page: number;
     from: number | null;
     to: number | null;
     total: number;
+    path: string;
     links: PaginationLink[];
 };
 
@@ -299,6 +301,7 @@ export type SitePage = {
     slug: string;
     status: ContentStatus;
     body?: string | null;
+    sections_count?: number;
     sections?: Array<{
         type:
             | 'hero'

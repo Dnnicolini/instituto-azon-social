@@ -127,9 +127,10 @@ export function ProjectForm({ project }: { project?: Project }) {
                     status: 'Status',
                     published_at: 'Data de publicação',
                     sort_order: 'Ordem',
-                    cover: 'Imagem',
-                    cover_alt: 'Descrição da imagem',
-                    gallery: 'Galeria de fotos',
+                    cover: 'Foto escolhida como capa',
+                    cover_alt: 'Descrição da foto de capa',
+                    gallery: 'Fotos',
+                    gallery_cover_id: 'Foto escolhida como capa',
                     registration_enabled: 'Aceitar inscrições',
                     registration_type: 'Tipo de inscrição',
                     registration_title: 'Título da inscrição',
@@ -144,6 +145,12 @@ export function ProjectForm({ project }: { project?: Project }) {
                         'Mensagem de confirmação',
                     registration_url: 'URL da inscrição',
                     registration_button_label: 'Texto do botão',
+                }}
+                fieldIds={{
+                    cover: 'gallery',
+                    cover_alt: 'gallery',
+                    gallery: 'gallery',
+                    gallery_cover_id: 'gallery',
                 }}
             />
             <div className="cms-editor-main">

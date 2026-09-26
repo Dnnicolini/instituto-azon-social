@@ -12,12 +12,22 @@ use App\Models\Post;
 use App\Models\Project;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 abstract class AdminController extends Controller
 {
+    protected function perPage(Request $request, int $default = 20): int
+    {
+        $perPage = (int) $request->query('per_page', $default);
+
+        return in_array($perPage, [10, 20, 50, 100], true)
+            ? $perPage
+            : $default;
+    }
+
     protected function createAsset(UploadedFile $file, string $folder, ?string $altText = null, ?string $disk = null): MediaAsset
     {
         abort_unless(request()->user()->hasPermission('media.manage'), 403);

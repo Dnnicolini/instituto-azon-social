@@ -66,125 +66,402 @@ export function FieldError({ message }: { message?: string }) {
 }
 
 export function Pagination<T>({ page }: { page: Paginated<T> }) {
-    if (page.last_page <= 1) return null;
+    const [isLoading, setIsLoading] = useState(false);
+    if (page.total === 0) return null;
+
+    const pageNumbers = Array.from(
+        new Set([
+            1,
+            page.last_page,
+            page.current_page - 2,
+            page.current_page - 1,
+            page.current_page,
+            page.current_page + 1,
+            page.current_page + 2,
+        ]),
+    )
+        .filter((value) => value >= 1 && value <= page.last_page)
+        .sort((a, b) => a - b);
+    const previousUrl = page.links[0]?.url ?? null;
+    const nextUrl = page.links.at(-1)?.url ?? null;
+
+    function pageUrl(pageNumber: number) {
+        const url = new URL(page.path, 'http://localhost');
+        if (typeof window !== 'undefined') {
+            new URLSearchParams(window.location.search).forEach((value, key) =>
+                url.searchParams.set(key, value),
+            );
+        }
+        url.searchParams.set('page', String(pageNumber));
+
+        return `${url.pathname}${url.search}`;
+    }
+
+    function changePerPage(value: string) {
+        if (typeof window === 'undefined') return;
+        const query = Object.fromEntries(
+            new URLSearchParams(window.location.search),
+        );
+        delete query.page;
+        query.per_page = value;
+        router.get(window.location.pathname, query, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            onStart: () => setIsLoading(true),
+            onFinish: () => setIsLoading(false),
+        });
+    }
+
+    function loadingProps() {
+        return {
+            preserveScroll: true,
+            onStart: () => setIsLoading(true),
+            onFinish: () => setIsLoading(false),
+        };
+    }
+
     return (
-        <nav className="cms-pagination" aria-label="Paginação">
-            <p>
-                Exibindo {page.from ?? 0}–{page.to ?? 0} de {page.total}
-            </p>
-            <div>
-                {page.links.map((link) =>
-                    link.url ? (
-                        <Link
-                            key={`${link.label}-${link.url}`}
-                            href={link.url}
-                            className={link.active ? 'active' : ''}
-                            aria-current={link.active ? 'page' : undefined}
-                            preserveScroll
-                        >
-                            {link.label
-                                .replace('&laquo;', '‹')
-                                .replace('&raquo;', '›')}
-                        </Link>
-                    ) : (
-                        <span key={link.label} aria-disabled="true">
-                            {link.label
-                                .replace('&laquo;', '‹')
-                                .replace('&raquo;', '›')}
-                        </span>
-                    ),
+        <nav
+            className="cms-pagination"
+            aria-label="Paginação"
+            aria-busy={isLoading}
+        >
+            <div className="cms-pagination-summary">
+                <p>
+                    Exibindo {page.from ?? 0}–{page.to ?? 0} de {page.total}{' '}
+                    registros
+                </p>
+                <label>
+                    <span className="sr-only">Registros por página</span>
+                    <select
+                        value={page.per_page}
+                        onChange={(event) => changePerPage(event.target.value)}
+                        disabled={isLoading}
+                    >
+                        {[10, 20, 50, 100].map((value) => (
+                            <option key={value} value={value}>
+                                {value} por página
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                {isLoading && (
+                    <span className="cms-list-loading" role="status">
+                        Atualizando…
+                    </span>
                 )}
             </div>
+            {page.last_page > 1 && (
+                <>
+                    <div className="cms-pagination-pages cms-pagination-desktop">
+                        {previousUrl ? (
+                            <Link href={previousUrl} {...loadingProps()}>
+                                ← Anterior
+                            </Link>
+                        ) : (
+                            <span aria-disabled="true">← Anterior</span>
+                        )}
+                        {pageNumbers.map((pageNumber, index) => (
+                            <span
+                                className="cms-pagination-slot"
+                                key={pageNumber}
+                            >
+                                {index > 0 &&
+                                    pageNumber - pageNumbers[index - 1] > 1 && (
+                                        <i aria-hidden="true">…</i>
+                                    )}
+                                <Link
+                                    href={pageUrl(pageNumber)}
+                                    className={
+                                        pageNumber === page.current_page
+                                            ? 'active'
+                                            : ''
+                                    }
+                                    aria-current={
+                                        pageNumber === page.current_page
+                                            ? 'page'
+                                            : undefined
+                                    }
+                                    {...loadingProps()}
+                                >
+                                    {pageNumber}
+                                </Link>
+                            </span>
+                        ))}
+                        {nextUrl ? (
+                            <Link href={nextUrl} {...loadingProps()}>
+                                Próxima →
+                            </Link>
+                        ) : (
+                            <span aria-disabled="true">Próxima →</span>
+                        )}
+                    </div>
+                    <div className="cms-pagination-mobile">
+                        {previousUrl ? (
+                            <Link
+                                href={previousUrl}
+                                aria-label="Página anterior"
+                                {...loadingProps()}
+                            >
+                                ←
+                            </Link>
+                        ) : (
+                            <span aria-disabled="true">←</span>
+                        )}
+                        <strong>
+                            Página {page.current_page} de {page.last_page}
+                        </strong>
+                        {nextUrl ? (
+                            <Link
+                                href={nextUrl}
+                                aria-label="Próxima página"
+                                {...loadingProps()}
+                            >
+                                →
+                            </Link>
+                        ) : (
+                            <span aria-disabled="true">→</span>
+                        )}
+                    </div>
+                </>
+            )}
         </nav>
     );
 }
 
 type ListingFilterOption = { value: string; label: string };
 
+export type ListingFilterField = {
+    name: string;
+    label: string;
+    type?: 'select' | 'date' | 'text';
+    options?: ListingFilterOption[];
+    placeholder?: string;
+};
+
+export const contentStatusFilter: ListingFilterField = {
+    name: 'status',
+    label: 'Status',
+    options: [
+        { value: '', label: 'Todos' },
+        ...Object.entries(statusLabels).map(([value, label]) => ({
+            value,
+            label,
+        })),
+    ],
+};
+
+type ListingFilterValue = string | number | null | undefined;
+
+function compactFilters(filters: Record<string, ListingFilterValue>) {
+    return Object.fromEntries(
+        Object.entries(filters).filter(
+            ([key, value]) =>
+                key !== 'page' &&
+                value !== '' &&
+                value !== null &&
+                value !== undefined,
+        ),
+    );
+}
+
+export function hasActiveListingFilters(
+    filters: Record<string, ListingFilterValue>,
+    defaultValues: Record<string, ListingFilterValue> = {},
+) {
+    return Object.entries(filters).some(
+        ([name, value]) =>
+            name !== 'per_page' &&
+            String(value ?? '') !== String(defaultValues[name] ?? ''),
+    );
+}
+
+export function SearchInput({
+    label,
+    value,
+    placeholder,
+    loading,
+    onChange,
+    onClear,
+}: {
+    label: string;
+    value: string;
+    placeholder: string;
+    loading?: boolean;
+    onChange: (value: string) => void;
+    onClear: () => void;
+}) {
+    const inputId = useId();
+
+    return (
+        <label className="cms-filter-search" htmlFor={inputId}>
+            <span>{label}</span>
+            <span className="cms-search-input">
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="m20 20-4.35-4.35m2.35-5.15a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" />
+                </svg>
+                <input
+                    id={inputId}
+                    type="search"
+                    value={value}
+                    placeholder={placeholder}
+                    onChange={(event) => onChange(event.target.value)}
+                    autoComplete="off"
+                />
+                {loading ? (
+                    <span className="cms-search-spinner" aria-hidden="true" />
+                ) : value ? (
+                    <button
+                        type="button"
+                        aria-label="Limpar pesquisa"
+                        onClick={onClear}
+                    >
+                        ×
+                    </button>
+                ) : null}
+            </span>
+        </label>
+    );
+}
+
 export function ListingFilters({
     basePath,
     filters,
     searchPlaceholder,
-    extra = [],
+    searchLabel = 'Pesquisar',
+    searchName = 'search',
+    fields = [],
+    defaultValues = {},
 }: {
     basePath: string;
-    filters: Record<string, string | null | undefined>;
+    filters: Record<string, ListingFilterValue>;
     searchPlaceholder: string;
-    extra?: Array<{
-        name: string;
-        label: string;
-        options: ListingFilterOption[];
-    }>;
+    searchLabel?: string;
+    searchName?: string;
+    fields?: ListingFilterField[];
+    defaultValues?: Record<string, ListingFilterValue>;
 }) {
+    const serverSearch = String(filters[searchName] ?? '');
+    const [search, setSearch] = useState(serverSearch);
+    const [isLoading, setIsLoading] = useState(false);
+    const debounceTimer = useRef<number | null>(null);
+
+    useEffect(() => setSearch(serverSearch), [serverSearch]);
+
+    function visit(nextFilters: Record<string, ListingFilterValue>) {
+        if (debounceTimer.current !== null) {
+            window.clearTimeout(debounceTimer.current);
+            debounceTimer.current = null;
+        }
+        router.get(basePath, compactFilters(nextFilters), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            onStart: () => setIsLoading(true),
+            onFinish: () => setIsLoading(false),
+        });
+    }
+
     function apply(name: string, value: string) {
-        router.get(
-            basePath,
-            { ...filters, [name]: value || undefined },
-            { preserveState: true, replace: true },
-        );
+        visit({
+            ...filters,
+            [searchName]: search.trim() || undefined,
+            [name]: value || undefined,
+        });
     }
 
-    function search(event: FormEvent<HTMLFormElement>) {
+    function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        const value = data.get('search');
-        apply('search', typeof value === 'string' ? value.trim() : '');
+        visit({
+            ...filters,
+            [searchName]: search.trim() || undefined,
+        });
     }
 
-    const hasFilters = Object.values(filters).some(Boolean);
+    useEffect(() => {
+        if (search.trim() === serverSearch) return;
+        debounceTimer.current = window.setTimeout(() => {
+            visit({
+                ...filters,
+                [searchName]: search.trim() || undefined,
+            });
+        }, 400);
+
+        return () => {
+            if (debounceTimer.current !== null) {
+                window.clearTimeout(debounceTimer.current);
+                debounceTimer.current = null;
+            }
+        };
+        // The server filter is the synchronization boundary for each visit.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search, serverSearch]);
+
+    const hasFilters = hasActiveListingFilters(filters, defaultValues);
+
+    function clear() {
+        visit({ ...defaultValues, per_page: filters.per_page });
+    }
 
     return (
-        <form className="cms-toolbar" role="search" onSubmit={search}>
-            <label>
-                <span>Buscar</span>
-                <span className="cms-search-control">
-                    <input
-                        name="search"
-                        type="search"
-                        defaultValue={filters.search ?? ''}
-                        placeholder={searchPlaceholder}
-                    />
-                    <button type="submit" className="cms-button secondary">
-                        Buscar
-                    </button>
-                </span>
-            </label>
-            <label>
-                <span>Status</span>
-                <select
-                    value={filters.status ?? ''}
-                    onChange={(event) => apply('status', event.target.value)}
-                >
-                    <option value="">Todos</option>
-                    {Object.entries(statusLabels).map(([value, label]) => (
-                        <option key={value} value={value}>
-                            {label}
-                        </option>
-                    ))}
-                </select>
-            </label>
-            {extra.map((filter) => (
+        <form
+            className="cms-toolbar"
+            role="search"
+            onSubmit={submit}
+            aria-busy={isLoading}
+        >
+            <SearchInput
+                label={searchLabel}
+                value={search}
+                placeholder={searchPlaceholder}
+                loading={isLoading}
+                onChange={setSearch}
+                onClear={() => setSearch('')}
+            />
+            {fields.map((filter) => (
                 <label key={filter.name}>
                     <span>{filter.label}</span>
-                    <select
-                        value={filters[filter.name] ?? ''}
-                        onChange={(event) =>
-                            apply(filter.name, event.target.value)
-                        }
-                    >
-                        {filter.options.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>
+                    {filter.type === 'date' || filter.type === 'text' ? (
+                        <input
+                            type={filter.type}
+                            value={String(filters[filter.name] ?? '')}
+                            placeholder={filter.placeholder}
+                            onChange={(event) =>
+                                apply(filter.name, event.target.value)
+                            }
+                        />
+                    ) : (
+                        <select
+                            value={String(filters[filter.name] ?? '')}
+                            onChange={(event) =>
+                                apply(filter.name, event.target.value)
+                            }
+                        >
+                            {(filter.options ?? []).map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                 </label>
             ))}
             {hasFilters && (
-                <Link className="cms-toolbar-clear" href={basePath}>
+                <button
+                    type="button"
+                    className="cms-toolbar-clear"
+                    onClick={clear}
+                >
                     Limpar filtros
-                </Link>
+                </button>
             )}
+            <button type="submit" className="sr-only">
+                Pesquisar
+            </button>
+            <span className="cms-filter-status" aria-live="polite">
+                {isLoading ? 'Atualizando resultados…' : ''}
+            </span>
         </form>
     );
 }

@@ -60,6 +60,38 @@ it('keeps the contact CRM exclusive to administrators', function (): void {
     $this->actingAs($administrator)->get(route('admin.messages.index'))->assertOk();
 });
 
+it('filters and paginates contact messages on the server', function (): void {
+    $administrator = $this->cmsUser('administrator');
+    foreach (range(1, 12) as $index) {
+        ContactMessage::query()->create([
+            'name' => "Pessoa {$index}",
+            'email' => "pessoa{$index}@example.org",
+            'subject' => "Atendimento prioridade {$index}",
+            'message' => 'Mensagem para acompanhamento.',
+            'status' => 'responded',
+        ]);
+    }
+    ContactMessage::query()->create([
+        'name' => 'Outro contato',
+        'email' => 'outro@example.org',
+        'subject' => 'Assunto diferente',
+        'message' => 'Não deve aparecer no resultado filtrado.',
+        'status' => 'new',
+    ]);
+
+    $this->actingAs($administrator)->get(route('admin.messages.index', [
+        'search' => 'PRIORIDADE',
+        'status' => 'responded',
+        'per_page' => 10,
+    ]))->assertOk()->assertInertia(fn (Assert $page): Assert => $page
+        ->where('filters.search', 'PRIORIDADE')
+        ->where('filters.status', 'responded')
+        ->where('filters.per_page', 10)
+        ->where('messages.total', 12)
+        ->where('messages.per_page', 10)
+        ->has('messages.data', 10));
+});
+
 it('keeps Instagram account connection exclusive to administrators', function (): void {
     config([
         'services.instagram.client_id' => 'instagram-app-id',
@@ -427,8 +459,55 @@ it('separates content, media and social admin experiences and preserves their co
         'provider' => 'youtube',
         'external_url' => 'https://www.youtube.com/watch?v=abc123',
     ]);
-    $created = Post::query()->where('slug', 'video-externo')->firstOrFail();
-    $response->assertRedirect(route('admin.posts.edit', ['post' => $created, 'section' => 'media']));
+    Post::query()->where('slug', 'video-externo')->firstOrFail();
+    $response
+        ->assertRedirect(route('admin.posts.index', ['type' => 'media']))
+        ->assertSessionHas('success', 'Conteúdo cadastrado com sucesso.');
+});
+
+it('confirms every content registration and returns to its listing', function (): void {
+    Storage::fake('local');
+    $publisher = $this->cmsUser('publisher');
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'article',
+        'title' => 'Novo artigo',
+        'slug' => 'novo-artigo-retorno',
+        'status' => 'draft',
+    ])->assertRedirect(route('admin.posts.index', ['type' => 'article']))
+        ->assertSessionHas('success', 'Conteúdo cadastrado com sucesso.');
+
+    $this->actingAs($publisher)->post(route('admin.projects.store'), [
+        'title' => 'Novo projeto',
+        'slug' => 'novo-projeto-retorno',
+        'badge_label' => 'Cultura',
+        'status' => 'draft',
+        'sort_order' => 1,
+    ])->assertRedirect(route('admin.projects.index'))
+        ->assertSessionHas('success', 'Projeto cadastrado com sucesso.');
+
+    $this->actingAs($publisher)->post(route('admin.events.store'), [
+        'title' => 'Novo evento',
+        'slug' => 'novo-evento-retorno',
+        'location' => 'Sede Azon',
+        'status' => 'draft',
+    ])->assertRedirect(route('admin.events.index'))
+        ->assertSessionHas('success', 'Evento cadastrado com sucesso.');
+
+    $this->actingAs($publisher)->post(route('admin.documents.store'), [
+        'title' => 'Novo documento',
+        'slug' => 'novo-documento-retorno',
+        'status' => 'draft',
+        'file' => UploadedFile::fake()->create('novo-documento.pdf', 10, 'application/pdf'),
+    ])->assertRedirect(route('admin.documents.index'))
+        ->assertSessionHas('success', 'Documento cadastrado com sucesso.');
+
+    $this->actingAs($publisher)->post(route('admin.pages.store'), [
+        'title' => 'Nova página',
+        'slug' => 'nova-pagina-retorno',
+        'status' => 'draft',
+    ])->assertRedirect(route('admin.pages.index'))
+        ->assertSessionHas('success', 'Página cadastrada com sucesso.');
 });
 
 it('filters every content directory on the server and preserves validated filters', function (): void {
@@ -487,9 +566,12 @@ it('filters every content directory on the server and preserves validated filter
     $this->actingAs($publisher)->get(route('admin.projects.index', [
         'search' => 'horta',
         'status' => 'published',
+        'per_page' => 10,
     ]))->assertInertia(fn (Assert $page): Assert => $page
         ->where('filters.search', 'horta')
         ->where('filters.status', 'published')
+        ->where('filters.per_page', 10)
+        ->where('items.per_page', 10)
         ->has('items.data', 1)
         ->where('items.data.0.slug', 'horta-comunitaria'));
 

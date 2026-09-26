@@ -21,8 +21,9 @@ class PostController extends AdminController
             'search' => mb_substr(trim((string) $request->query('search', '')), 0, 100),
             'type' => in_array($request->query('type'), ['article', 'vlog', 'video', 'podcast', 'social', 'media'], true) ? $request->query('type') : null,
             'status' => in_array($request->query('status'), ['draft', 'review', 'scheduled', 'published', 'archived'], true) ? $request->query('status') : null,
+            'per_page' => $this->perPage($request),
         ];
-        $query = Post::query()->with(['author:id,name', 'cover:id,disk,path,alt_text', 'video:id,disk,path,original_name,mime_type,size'])->latest('updated_at');
+        $query = Post::query()->latest('updated_at');
         if ($filters['search'] !== '') {
             $query->where(fn ($query) => $query->where('title', 'like', "%{$filters['search']}%")->orWhere('excerpt', 'like', "%{$filters['search']}%"));
         }
@@ -36,7 +37,7 @@ class PostController extends AdminController
         if ($filters['status']) {
             $query->where('status', $filters['status']);
         }
-        $posts = $query->paginate(15)->withQueryString()->through(fn (Post $post): array => $this->serialize($post));
+        $posts = $query->paginate($filters['per_page'])->withQueryString()->through(fn (Post $post): array => $this->serializeSummary($post));
 
         return Inertia::render('admin/content/index', [
             'resource' => 'posts',
@@ -64,7 +65,7 @@ class PostController extends AdminController
 
     public function store(PostRequest $request): RedirectResponse
     {
-        $post = DB::transaction(function () use ($request): Post {
+        DB::transaction(function () use ($request): void {
             $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'source_mode', 'video', 'gallery', 'gallery_cover_id', 'remove_gallery_ids', 'project_ids']));
             $data = $this->normalizeSource($request, $data);
             $data['author_id'] = $request->user()->id;
@@ -78,11 +79,9 @@ class PostController extends AdminController
             $this->updateGallery($request, $post, $post->title);
             $post->projects()->sync($request->validated('project_ids', []));
             $this->recordChange('post.created', $post);
-
-            return $post;
         });
 
-        return redirect()->route('admin.posts.edit', ['post' => $post, 'section' => $this->section($request)])->with('success', 'Conteúdo criado.');
+        return redirect()->route('admin.posts.index', ['type' => $this->section($request)])->with('success', 'Conteúdo cadastrado com sucesso.');
     }
 
     public function edit(Request $request, Post $post): Response
@@ -131,6 +130,19 @@ class PostController extends AdminController
         });
 
         return redirect()->route('admin.posts.index')->with('success', 'Conteúdo excluído.');
+    }
+
+    /** @return array<string, mixed> */
+    private function serializeSummary(Post $post): array
+    {
+        return [
+            'id' => $post->id,
+            'slug' => $post->slug,
+            'title' => $post->title,
+            'type' => $post->type->value,
+            'status' => $post->status->value,
+            'updated_at' => $post->updated_at?->toIso8601String(),
+        ];
     }
 
     /** @return array<string, mixed> */

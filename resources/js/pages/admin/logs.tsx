@@ -1,7 +1,10 @@
-import { Link, router } from '@inertiajs/react';
-import { type FormEvent, useState } from 'react';
 import { AdminLayout } from '@/components/admin/admin-layout';
-import { EmptyState, PageHeading, Pagination } from '@/components/admin/cms-ui';
+import {
+    EmptyState,
+    ListingFilters,
+    PageHeading,
+    Pagination,
+} from '@/components/admin/cms-ui';
 import { SeoHead } from '@/components/seo-head';
 import type { AdminSharedProps, Paginated } from '@/types/cms';
 
@@ -27,6 +30,7 @@ type Filters = {
     search?: string;
     category?: string;
     period?: string;
+    per_page?: number;
 };
 
 function formatDate(value: string) {
@@ -48,21 +52,6 @@ export default function LogsPage({
     filters: Filters;
     stats: { activities24h: number; pendingJobs: number; failedJobs: number };
 }) {
-    const [search, setSearch] = useState(filters.search ?? '');
-
-    function filter(name: string, value: string) {
-        router.get(
-            '/admin/logs',
-            { ...filters, [name]: value || undefined },
-            { preserveState: true, replace: true },
-        );
-    }
-
-    function submit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        filter('search', search.trim());
-    }
-
     return (
         <>
             <SeoHead seo={seo} />
@@ -110,73 +99,60 @@ export default function LogsPage({
                             <p>Quem alterou, o que foi alterado e quando.</p>
                         </div>
                     </div>
-                    <form
-                        className="cms-toolbar"
-                        role="search"
-                        onSubmit={submit}
-                    >
-                        <label>
-                            <span>Buscar</span>
-                            <span className="cms-search-control">
-                                <input
-                                    type="search"
-                                    value={search}
-                                    placeholder="Ação ou nome da pessoa"
-                                    onChange={(event) =>
-                                        setSearch(event.target.value)
-                                    }
-                                />
-                                <button
-                                    type="submit"
-                                    className="cms-button secondary"
-                                >
-                                    Buscar
-                                </button>
-                            </span>
-                        </label>
-                        <label>
-                            <span>Área</span>
-                            <select
-                                value={filters.category ?? ''}
-                                onChange={(event) =>
-                                    filter('category', event.target.value)
-                                }
-                            >
-                                <option value="">Todas</option>
-                                <option value="content">Conteúdos</option>
-                                <option value="access">
-                                    Usuários e grupos
-                                </option>
-                                <option value="messages">Mensagens</option>
-                                <option value="settings">Configurações</option>
-                                <option value="system">Sistema</option>
-                            </select>
-                        </label>
-                        <label>
-                            <span>Período</span>
-                            <select
-                                value={filters.period ?? '7d'}
-                                onChange={(event) =>
-                                    filter('period', event.target.value)
-                                }
-                            >
-                                <option value="24h">Últimas 24 horas</option>
-                                <option value="7d">Últimos 7 dias</option>
-                                <option value="30d">Últimos 30 dias</option>
-                                <option value="all">Todo o histórico</option>
-                            </select>
-                        </label>
-                        {(filters.search ||
-                            filters.category ||
-                            filters.period !== '7d') && (
-                            <Link
-                                className="cms-toolbar-clear"
-                                href="/admin/logs"
-                            >
-                                Limpar filtros
-                            </Link>
-                        )}
-                    </form>
+                    <ListingFilters
+                        basePath="/admin/logs"
+                        filters={filters}
+                        searchPlaceholder="Ação ou nome da pessoa"
+                        fields={[
+                            {
+                                name: 'category',
+                                label: 'Área',
+                                options: [
+                                    { value: '', label: 'Todas' },
+                                    {
+                                        value: 'content',
+                                        label: 'Conteúdos',
+                                    },
+                                    {
+                                        value: 'access',
+                                        label: 'Usuários e grupos',
+                                    },
+                                    {
+                                        value: 'messages',
+                                        label: 'Mensagens',
+                                    },
+                                    {
+                                        value: 'settings',
+                                        label: 'Configurações',
+                                    },
+                                    { value: 'system', label: 'Sistema' },
+                                ],
+                            },
+                            {
+                                name: 'period',
+                                label: 'Período',
+                                options: [
+                                    {
+                                        value: '24h',
+                                        label: 'Últimas 24 horas',
+                                    },
+                                    {
+                                        value: '7d',
+                                        label: 'Últimos 7 dias',
+                                    },
+                                    {
+                                        value: '30d',
+                                        label: 'Últimos 30 dias',
+                                    },
+                                    {
+                                        value: 'all',
+                                        label: 'Todo o histórico',
+                                    },
+                                ],
+                            },
+                        ]}
+                        defaultValues={{ period: '7d' }}
+                    />
 
                     {activities.data.length ? (
                         <>

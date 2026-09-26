@@ -1,5 +1,4 @@
-import { Link, router } from '@inertiajs/react';
-import type { FormEvent } from 'react';
+import { ListingFilters } from './cms-ui';
 import type {
     ApplicationStatus,
     Project,
@@ -72,112 +71,58 @@ export function ApplicationFilters({
     filters: Record<string, string | number | null | undefined>;
     statuses?: Array<{ value: string; label: string }>;
 }) {
-    function submit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        const values = Object.fromEntries(
-            [...data.entries()]
-                .map(([key, value]) => [
-                    key,
-                    typeof value === 'string' ? value.trim() : '',
-                ])
-                .filter(([, value]) => value !== ''),
-        );
-        router.get(`/admin/projetos/${projectId}/inscricoes`, values, {
-            preserveState: true,
-            replace: true,
-        });
-    }
-
-    const hasFilters = Boolean(
-        filters.search ||
-        filters.status ||
-        filters.date_from ||
-        filters.date_to ||
-        filters.field ||
-        filters.field_value,
-    );
-
     return (
-        <form className="cms-toolbar" role="search" onSubmit={submit}>
-            <label>
-                <span>Buscar candidato</span>
-                <input
-                    name="search"
-                    type="search"
-                    defaultValue={filters.search ?? ''}
-                    placeholder="Nome, CPF, e-mail ou protocolo"
-                />
-            </label>
-            <label>
-                <span>Status</span>
-                <select name="status" defaultValue={filters.status ?? ''}>
-                    <option value="">Todos</option>
-                    {(
-                        statuses ??
-                        Object.entries(applicationStatusLabels).map(
-                            ([value, label]) => ({ value, label }),
-                        )
-                    ).map(({ value, label }) => (
-                        <option key={value} value={value}>
-                            {label}
-                        </option>
-                    ))}
-                </select>
-            </label>
-            <label>
-                <span>Inscrições a partir de</span>
-                <input
-                    name="date_from"
-                    type="date"
-                    defaultValue={filters.date_from ?? ''}
-                />
-            </label>
-            <label>
-                <span>Até</span>
-                <input
-                    name="date_to"
-                    type="date"
-                    defaultValue={filters.date_to ?? ''}
-                />
-            </label>
-            <label>
-                <span>Ordenar por</span>
-                <select
-                    name="sort"
-                    defaultValue={filters.sort ?? 'submitted_at'}
-                >
-                    <option value="submitted_at">Data da inscrição</option>
-                    <option value="applicant_name">Nome</option>
-                    <option value="protocol">Protocolo</option>
-                    <option value="status">Status</option>
-                    <option value="updated_at">Última atualização</option>
-                </select>
-            </label>
-            <label>
-                <span>Ordem</span>
-                <select
-                    name="direction"
-                    defaultValue={filters.direction ?? 'desc'}
-                >
-                    <option value="desc">Decrescente</option>
-                    <option value="asc">Crescente</option>
-                </select>
-            </label>
-            <div className="cms-inline-actions">
-                <button className="cms-button secondary" type="submit">
-                    Aplicar filtros
-                </button>
-                {hasFilters && (
-                    <Link
-                        className="cms-toolbar-clear"
-                        href={`/admin/projetos/${projectId}/inscricoes`}
-                    >
-                        Limpar
-                    </Link>
-                )}
-            </div>
-        </form>
+        <ListingFilters
+            basePath={`/admin/projetos/${projectId}/inscricoes`}
+            filters={filters}
+            searchLabel="Pesquisar candidatos"
+            searchPlaceholder="Nome, CPF, e-mail ou protocolo"
+            fields={[
+                {
+                    name: 'status',
+                    label: 'Status',
+                    options: [
+                        { value: '', label: 'Todos' },
+                        ...(statuses ??
+                            Object.entries(applicationStatusLabels).map(
+                                ([value, label]) => ({ value, label }),
+                            )),
+                    ],
+                },
+                {
+                    name: 'date_from',
+                    label: 'Inscrições a partir de',
+                    type: 'date',
+                },
+                { name: 'date_to', label: 'Até', type: 'date' },
+                {
+                    name: 'sort',
+                    label: 'Ordenar por',
+                    options: [
+                        {
+                            value: 'submitted_at',
+                            label: 'Data da inscrição',
+                        },
+                        { value: 'applicant_name', label: 'Nome' },
+                        { value: 'protocol', label: 'Protocolo' },
+                        { value: 'status', label: 'Status' },
+                        {
+                            value: 'updated_at',
+                            label: 'Última atualização',
+                        },
+                    ],
+                },
+                {
+                    name: 'direction',
+                    label: 'Ordem',
+                    options: [
+                        { value: 'desc', label: 'Decrescente' },
+                        { value: 'asc', label: 'Crescente' },
+                    ],
+                },
+            ]}
+            defaultValues={{ sort: 'submitted_at', direction: 'desc' }}
+        />
     );
 }
 

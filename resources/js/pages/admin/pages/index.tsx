@@ -2,7 +2,9 @@ import { Link, router } from '@inertiajs/react';
 import { AdminLayout } from '@/components/admin/admin-layout';
 import {
     ConfirmDeleteButton,
+    contentStatusFilter,
     EmptyState,
+    hasActiveListingFilters,
     ListingFilters,
     PageHeading,
     Pagination,
@@ -17,8 +19,10 @@ export default function Pages({
     filters = {},
 }: AdminSharedProps & {
     pages: Paginated<SitePage>;
-    filters?: Record<string, string | null | undefined>;
+    filters?: Record<string, string | number | null | undefined>;
 }) {
+    const hasFilters = hasActiveListingFilters(filters);
+
     return (
         <>
             <SeoHead seo={seo} />
@@ -40,6 +44,7 @@ export default function Pages({
                     basePath="/admin/paginas"
                     filters={filters}
                     searchPlaceholder="Título ou endereço da página"
+                    fields={[contentStatusFilter]}
                 />
                 {pages.data.length ? (
                     <>
@@ -85,7 +90,11 @@ export default function Pages({
                                                     </Link>
                                                 </Can>
                                             </td>
-                                            <td>{p.sections?.length ?? 0}</td>
+                                            <td>
+                                                {p.sections_count ??
+                                                    p.sections?.length ??
+                                                    0}
+                                            </td>
                                             <td>
                                                 <StatusBadge
                                                     status={p.status}
@@ -124,17 +133,34 @@ export default function Pages({
                     </>
                 ) : (
                     <EmptyState
-                        title="Nenhuma página cadastrada"
-                        description="Crie uma página institucional com conteúdo estruturado."
+                        title={
+                            hasFilters
+                                ? 'Nenhuma página encontrada'
+                                : 'Nenhuma página cadastrada'
+                        }
+                        description={
+                            hasFilters
+                                ? 'Ajuste a pesquisa ou limpe os filtros para consultar outras páginas.'
+                                : 'Crie uma página institucional com conteúdo estruturado.'
+                        }
                         action={
-                            <Can permission="content.create">
+                            hasFilters ? (
                                 <Link
-                                    className="cms-button primary"
-                                    href="/admin/paginas/create"
+                                    className="cms-button secondary"
+                                    href="/admin/paginas"
                                 >
-                                    Criar página
+                                    Limpar filtros
                                 </Link>
-                            </Can>
+                            ) : (
+                                <Can permission="content.create">
+                                    <Link
+                                        className="cms-button primary"
+                                        href="/admin/paginas/create"
+                                    >
+                                        Criar página
+                                    </Link>
+                                </Can>
+                            )
                         }
                     />
                 )}

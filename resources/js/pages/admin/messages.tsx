@@ -1,6 +1,11 @@
 import { Link, router } from '@inertiajs/react';
 import { AdminLayout } from '@/components/admin/admin-layout';
-import { EmptyState, PageHeading, Pagination } from '@/components/admin/cms-ui';
+import {
+    EmptyState,
+    ListingFilters,
+    PageHeading,
+    Pagination,
+} from '@/components/admin/cms-ui';
 import { SeoHead } from '@/components/seo-head';
 import type { AdminSharedProps, ContactMessage, Paginated } from '@/types/cms';
 const messageStatus = {
@@ -12,7 +17,15 @@ const messageStatus = {
 export default function Messages({
     seo,
     messages,
-}: AdminSharedProps & { messages: Paginated<ContactMessage> }) {
+    filters,
+}: AdminSharedProps & {
+    messages: Paginated<ContactMessage>;
+    filters: {
+        search?: string;
+        status?: string | null;
+        per_page?: number;
+    };
+}) {
     function change(id: number, status: ContactMessage['status']) {
         router.put(
             `/admin/mensagens/${id}`,
@@ -33,6 +46,27 @@ export default function Messages({
                 <PageHeading
                     title="Mensagens"
                     description="Acompanhe contatos recebidos pelo site e registre o andamento."
+                />
+                <ListingFilters
+                    basePath="/admin/mensagens"
+                    filters={filters}
+                    searchPlaceholder="Nome, e-mail, assunto ou mensagem"
+                    fields={[
+                        {
+                            name: 'status',
+                            label: 'Status',
+                            options: [
+                                { value: '', label: 'Todos' },
+                                { value: 'new', label: 'Novas' },
+                                { value: 'read', label: 'Lidas' },
+                                {
+                                    value: 'responded',
+                                    label: 'Respondidas',
+                                },
+                                { value: 'archived', label: 'Arquivadas' },
+                            ],
+                        },
+                    ]}
                 />
                 {messages.data.length ? (
                     <div className="cms-message-list">
@@ -127,8 +161,26 @@ export default function Messages({
                     </div>
                 ) : (
                     <EmptyState
-                        title="Caixa de entrada vazia"
-                        description="Novas mensagens enviadas pelo formulário de contato aparecerão aqui."
+                        title={
+                            filters.search || filters.status
+                                ? 'Nenhuma mensagem encontrada'
+                                : 'Caixa de entrada vazia'
+                        }
+                        description={
+                            filters.search || filters.status
+                                ? 'Ajuste a pesquisa ou limpe os filtros para consultar outras mensagens.'
+                                : 'Novas mensagens enviadas pelo formulário de contato aparecerão aqui.'
+                        }
+                        action={
+                            filters.search || filters.status ? (
+                                <Link
+                                    className="cms-button secondary"
+                                    href="/admin/mensagens"
+                                >
+                                    Limpar filtros
+                                </Link>
+                            ) : undefined
+                        }
                     />
                 )}
                 <Pagination page={messages} />

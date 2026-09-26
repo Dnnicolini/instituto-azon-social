@@ -20,8 +20,9 @@ class EventController extends AdminController
             'search' => mb_substr(trim((string) $request->query('search', '')), 0, 100),
             'status' => in_array($request->query('status'), ['draft', 'review', 'scheduled', 'published', 'archived'], true) ? $request->query('status') : null,
             'period' => in_array($request->query('period'), ['upcoming', 'past'], true) ? $request->query('period') : null,
+            'per_page' => $this->perPage($request),
         ];
-        $query = Event::query()->with('cover')->orderByDesc('starts_at');
+        $query = Event::query()->orderByDesc('starts_at');
         if ($filters['search'] !== '') {
             $query->where(fn ($query) => $query->whereLike('title', "%{$filters['search']}%", caseSensitive: false)
                 ->orWhereLike('summary', "%{$filters['search']}%", caseSensitive: false)
@@ -37,7 +38,7 @@ class EventController extends AdminController
             $query->where(fn ($query) => $query->whereNotNull('ends_at')->where('ends_at', '<', now())
                 ->orWhere(fn ($query) => $query->whereNull('ends_at')->where('starts_at', '<', now())));
         }
-        $items = $query->paginate(15)->withQueryString()->through(fn (Event $event): array => $this->serialize($event));
+        $items = $query->paginate($filters['per_page'])->withQueryString()->through(fn (Event $event): array => $this->serializeSummary($event));
 
         return Inertia::render('admin/content/index', ['resource' => 'events', 'items' => $items, 'filters' => $filters]);
     }
@@ -51,7 +52,7 @@ class EventController extends AdminController
 
     public function store(EventRequest $request): RedirectResponse
     {
-        $event = DB::transaction(function () use ($request): Event {
+        DB::transaction(function () use ($request): void {
             $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'gallery', 'gallery_cover_id', 'remove_gallery_ids', 'project_ids']));
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
@@ -60,11 +61,9 @@ class EventController extends AdminController
             $this->updateGallery($request, $event, $event->title);
             $event->projects()->sync($request->validated('project_ids', []));
             $this->recordChange('event.created', $event);
-
-            return $event;
         });
 
-        return redirect()->route('admin.events.edit', $event)->with('success', 'Evento criado.');
+        return redirect()->route('admin.events.index')->with('success', 'Evento cadastrado com sucesso.');
     }
 
     public function edit(Event $event): Response
@@ -104,6 +103,20 @@ class EventController extends AdminController
         });
 
         return redirect()->route('admin.events.index')->with('success', 'Evento excluído.');
+    }
+
+    /** @return array<string, mixed> */
+    private function serializeSummary(Event $event): array
+    {
+        return [
+            'id' => $event->id,
+            'title' => $event->title,
+            'slug' => $event->slug,
+            'summary' => $event->summary,
+            'status' => $event->status->value,
+            'starts_at' => $event->starts_at?->toIso8601String(),
+            'location' => $event->location,
+        ];
     }
 
     /** @return array<string, mixed> */

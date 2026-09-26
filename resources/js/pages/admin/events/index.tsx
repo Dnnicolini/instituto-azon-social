@@ -2,7 +2,9 @@ import { Link, router } from '@inertiajs/react';
 import { AdminLayout } from '@/components/admin/admin-layout';
 import {
     ConfirmDeleteButton,
+    contentStatusFilter,
     EmptyState,
+    hasActiveListingFilters,
     ListingFilters,
     PageHeading,
     Pagination,
@@ -17,8 +19,10 @@ export default function Events({
     filters = {},
 }: AdminSharedProps & {
     events: Paginated<Event>;
-    filters?: Record<string, string | null | undefined>;
+    filters?: Record<string, string | number | null | undefined>;
 }) {
+    const hasFilters = hasActiveListingFilters(filters);
+
     return (
         <>
             <SeoHead seo={seo} />
@@ -40,7 +44,8 @@ export default function Events({
                     basePath="/admin/eventos"
                     filters={filters}
                     searchPlaceholder="Título, resumo ou local"
-                    extra={[
+                    fields={[
+                        contentStatusFilter,
                         {
                             name: 'period',
                             label: 'Período',
@@ -147,17 +152,34 @@ export default function Events({
                     </>
                 ) : (
                     <EmptyState
-                        title="Nenhum evento cadastrado"
-                        description="Crie um evento para divulgar uma nova ação ou preservar sua memória."
+                        title={
+                            hasFilters
+                                ? 'Nenhum evento encontrado'
+                                : 'Nenhum evento cadastrado'
+                        }
+                        description={
+                            hasFilters
+                                ? 'Ajuste a pesquisa ou limpe os filtros para consultar outros eventos.'
+                                : 'Crie um evento para divulgar uma nova ação ou preservar sua memória.'
+                        }
                         action={
-                            <Can permission="content.create">
+                            hasFilters ? (
                                 <Link
-                                    className="cms-button primary"
-                                    href="/admin/eventos/create"
+                                    className="cms-button secondary"
+                                    href="/admin/eventos"
                                 >
-                                    Criar evento
+                                    Limpar filtros
                                 </Link>
-                            </Can>
+                            ) : (
+                                <Can permission="content.create">
+                                    <Link
+                                        className="cms-button primary"
+                                        href="/admin/eventos/create"
+                                    >
+                                        Criar evento
+                                    </Link>
+                                </Can>
+                            )
                         }
                     />
                 )}

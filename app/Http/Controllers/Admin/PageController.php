@@ -18,6 +18,7 @@ class PageController extends AdminController
         $filters = [
             'search' => mb_substr(trim((string) $request->query('search', '')), 0, 100),
             'status' => in_array($request->query('status'), ['draft', 'review', 'scheduled', 'published', 'archived'], true) ? $request->query('status') : null,
+            'per_page' => $this->perPage($request),
         ];
         $query = Page::query()->latest('updated_at');
         if ($filters['search'] !== '') {
@@ -27,7 +28,7 @@ class PageController extends AdminController
         if ($filters['status']) {
             $query->where('status', $filters['status']);
         }
-        $items = $query->paginate(15)->withQueryString()->through(fn (Page $page): array => $this->serialize($page));
+        $items = $query->paginate($filters['per_page'])->withQueryString()->through(fn (Page $page): array => $this->serializeSummary($page));
 
         return Inertia::render('admin/content/index', ['resource' => 'pages', 'items' => $items, 'filters' => $filters]);
     }
@@ -41,14 +42,12 @@ class PageController extends AdminController
 
     public function store(PageRequest $request): RedirectResponse
     {
-        $page = DB::transaction(function () use ($request): Page {
+        DB::transaction(function () use ($request): void {
             $page = Page::query()->create($this->normalizePublication($request->validated()));
             $this->recordChange('page.created', $page);
-
-            return $page;
         });
 
-        return redirect()->route('admin.pages.edit', $page)->with('success', 'Página criada.');
+        return redirect()->route('admin.pages.index')->with('success', 'Página cadastrada com sucesso.');
     }
 
     public function edit(Page $page): Response
@@ -79,6 +78,19 @@ class PageController extends AdminController
         });
 
         return redirect()->route('admin.pages.index')->with('success', 'Página excluída.');
+    }
+
+    /** @return array<string, mixed> */
+    private function serializeSummary(Page $page): array
+    {
+        return [
+            'id' => $page->id,
+            'title' => $page->title,
+            'slug' => $page->slug,
+            'sections_count' => count($page->sections ?? []),
+            'status' => $page->status->value,
+            'updated_at' => $page->updated_at?->toIso8601String(),
+        ];
     }
 
     /** @return array<string, mixed> */
