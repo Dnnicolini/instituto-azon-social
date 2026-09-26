@@ -13,11 +13,6 @@ class ProjectApplicationResource extends JsonResource
     public function toArray(Request $request): array
     {
         $isAdmin = $request->user()?->hasPermission('applications.view') ?? false;
-        $setting = $this->project->registrationSetting;
-        $canEdit = $this->user_id === $request->user()?->id
-            && ($this->submitted_at === null || ($setting?->allow_editing && ! $setting->edit_deadline?->isPast()))
-            && ! $this->project->registration_start_at?->isFuture()
-            && ! $this->project->registration_end_at?->isPast();
 
         return [
             'id' => $this->id,
@@ -29,17 +24,17 @@ class ProjectApplicationResource extends JsonResource
             'applicant_cpf' => $isAdmin ? $this->applicant_cpf : null,
             'project' => ['id' => $this->project->id, 'title' => $this->project->title, 'slug' => $this->project->slug, 'registration_ends_at' => $this->project->registration_end_at?->toIso8601String()],
             'registration_ends_at' => $this->project->registration_end_at?->toIso8601String(),
-            'show_url' => route('applications.show', $this->resource),
-            'edit_url' => route('applications.update', $this->resource),
+            'show_url' => null,
+            'edit_url' => null,
             'answers' => $this->whenLoaded('answers', fn () => $this->answers->mapWithKeys(fn ($answer): array => [$answer->field->identifier => [
                 'field_id' => $answer->field_id, 'label' => $answer->field->label, 'type' => $answer->field->type, 'value' => $answer->value,
             ]])),
             'answer_values' => $this->whenLoaded('answers', fn () => $this->answers->mapWithKeys(fn ($answer): array => [$answer->field->identifier => $answer->value])),
-            'files' => $this->whenLoaded('files', fn () => $this->files->map(fn ($file): array => [
+            'files' => $this->whenLoaded('files', fn (): array => $this->files->map(fn ($file): array => [
                 'id' => $file->id, 'field_id' => $file->field_id, 'identifier' => $file->field->identifier,
                 'label' => $file->field->label, 'name' => $file->original_name, 'mime_type' => $file->mime_type,
-                'size' => $file->size, 'url' => route('applications.files.show', [$this->resource, $file]),
-            ])->values()),
+                'size' => $file->size, 'url' => $isAdmin ? route('admin.projects.applications.files.show', [$this->project, $this->resource, $file]) : null,
+            ])->values()->all()),
             'history' => $this->whenLoaded('histories', fn () => $this->histories
                 ->filter(fn ($history): bool => $isAdmin || ! $history->is_internal)
                 ->map(fn ($history): array => [
@@ -47,7 +42,7 @@ class ProjectApplicationResource extends JsonResource
                     'to_status' => $history->to_status, 'note' => $isAdmin ? $history->note : null,
                     'created_at' => $history->created_at?->toIso8601String(), 'user' => $isAdmin ? $history->user?->name : null,
                 ])->values()),
-            'can_edit' => $canEdit,
+            'can_edit' => false,
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

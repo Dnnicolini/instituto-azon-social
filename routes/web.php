@@ -16,13 +16,11 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\CandidateAuthController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DocumentFileController;
-use App\Http\Controllers\MyProjectApplicationController;
 use App\Http\Controllers\ProjectApplicationFileController;
 use App\Http\Controllers\ProjectRegistrationController;
 use App\Http\Controllers\SitePageController;
@@ -48,28 +46,10 @@ Route::controller(SitePageController::class)->group(function (): void {
 });
 Route::post('/contato', [ContactController::class, 'store'])->middleware('throttle:5,10')->name('contact.store');
 Route::get('/documentos/{document}/arquivo', [DocumentFileController::class, 'show'])->name('documents.file');
-Route::middleware('guest')->group(function (): void {
-    Route::get('/acesso', [CandidateAuthController::class, 'login'])->name('candidate.login');
-    Route::post('/acesso', [CandidateAuthController::class, 'authenticate'])->middleware('throttle:5,1')->name('candidate.login.store');
-    Route::get('/cadastro', [CandidateAuthController::class, 'register'])->name('candidate.register');
-    Route::post('/cadastro', [CandidateAuthController::class, 'store'])->middleware('throttle:3,10')->name('candidate.register.store');
-});
 Route::get('/projetos/{project:slug}', [ProjectRegistrationController::class, 'show'])->name('projects.show');
 Route::get('/projetos/{project:slug}/inscricao', [ProjectRegistrationController::class, 'create'])->name('projects.registration.create');
 Route::post('/projetos/{project:slug}/inscricao', [ProjectRegistrationController::class, 'store'])->middleware('throttle:10,1')->name('projects.registration.store');
 Route::post('/projetos/{project:slug}/candidaturas', [ProjectRegistrationController::class, 'store'])->middleware('throttle:10,1')->name('projects.applications.store');
-
-Route::middleware(['auth', 'auth.session', 'active', 'verified'])->group(function (): void {
-    Route::get('/minhas-inscricoes', [MyProjectApplicationController::class, 'index'])->name('applications.index');
-    Route::get('/minhas-inscricoes/{application}', [MyProjectApplicationController::class, 'show'])->name('applications.show');
-    Route::put('/minhas-inscricoes/{application}', [MyProjectApplicationController::class, 'update'])->middleware('throttle:20,1')->name('applications.update');
-    Route::get('/minhas-inscricoes/{application}/arquivos/{file}', [ProjectApplicationFileController::class, 'show'])->name('applications.files.show');
-    Route::post('/sair', [CandidateAuthController::class, 'logout'])->name('candidate.logout');
-});
-Route::middleware(['auth', 'auth.session', 'active'])->group(function (): void {
-    Route::get('/verificar-email', [CandidateAuthController::class, 'verificationNotice'])->name('candidate.verification.notice');
-    Route::post('/verificar-email/reenviar', [CandidateAuthController::class, 'resendVerification'])->middleware('throttle:6,1')->name('candidate.verification.send');
-});
 
 Route::prefix('admin')->middleware('noindex')->group(function (): void {
     Route::middleware('guest')->group(function (): void {
@@ -102,6 +82,7 @@ Route::prefix('admin')->middleware('noindex')->group(function (): void {
         Route::post('/projetos/{project}/inscricoes/formulario/duplicar', [AdminProjectRegistrationFormController::class, 'duplicate'])->name('projects.registration.form.duplicate');
         Route::get('/projetos/{project}/inscricoes/exportar', [AdminProjectApplicationController::class, 'export'])->middleware('throttle:5,1')->name('projects.applications.export');
         Route::get('/projetos/{project}/inscricoes/{application}', [AdminProjectApplicationController::class, 'show'])->name('projects.applications.show');
+        Route::get('/projetos/{project}/inscricoes/{application}/arquivos/{file}', [ProjectApplicationFileController::class, 'show'])->name('projects.applications.files.show');
         Route::patch('/projetos/{project}/inscricoes/{application}/status', [AdminProjectApplicationController::class, 'status'])->middleware('throttle:30,1')->name('projects.applications.status');
         Route::post('/projetos/{project}/inscricoes/{application}/observacoes', [AdminProjectApplicationController::class, 'note'])->middleware('throttle:30,1')->name('projects.applications.notes.store');
         Route::resource('eventos', EventController::class)->except('show')->parameters(['eventos' => 'event'])->names('events');

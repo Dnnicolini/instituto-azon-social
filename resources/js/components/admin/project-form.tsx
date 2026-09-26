@@ -511,124 +511,43 @@ export function ProjectForm({ project }: { project?: Project }) {
                                             }
                                         />
                                     </div>
-                                    <div className="cms-form-grid two">
-                                        <div className="cms-field">
-                                            <label htmlFor="registration_max_applications">
-                                                Limite de inscrições
-                                            </label>
-                                            <input
-                                                id="registration_max_applications"
-                                                type="number"
-                                                min="1"
-                                                placeholder="Sem limite"
-                                                value={
-                                                    form.data
-                                                        .registration_max_applications ??
-                                                    ''
-                                                }
-                                                onChange={(event) =>
-                                                    form.setData(
-                                                        'registration_max_applications',
-                                                        event.target.value
-                                                            ? Number(
-                                                                  event.target
-                                                                      .value,
-                                                              )
-                                                            : null,
-                                                    )
-                                                }
-                                                aria-invalid={Boolean(
-                                                    form.errors
-                                                        .registration_max_applications,
-                                                )}
-                                            />
-                                            <FieldError
-                                                message={
-                                                    form.errors
-                                                        .registration_max_applications
-                                                }
-                                            />
-                                        </div>
-                                        <div className="cms-field">
-                                            <label htmlFor="registration_edit_deadline">
-                                                Editar até
-                                            </label>
-                                            <input
-                                                id="registration_edit_deadline"
-                                                type="datetime-local"
-                                                disabled={
-                                                    !form.data
-                                                        .registration_allow_editing
-                                                }
-                                                value={
-                                                    form.data
-                                                        .registration_edit_deadline
-                                                }
-                                                onChange={(event) =>
-                                                    form.setData(
-                                                        'registration_edit_deadline',
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                aria-invalid={Boolean(
-                                                    form.errors
-                                                        .registration_edit_deadline,
-                                                )}
-                                            />
-                                            <FieldError
-                                                message={
-                                                    form.errors
-                                                        .registration_edit_deadline
-                                                }
-                                            />
-                                        </div>
+                                    <div className="cms-field">
+                                        <label htmlFor="registration_max_applications">
+                                            Limite de inscrições
+                                        </label>
+                                        <input
+                                            id="registration_max_applications"
+                                            type="number"
+                                            min="1"
+                                            placeholder="Sem limite"
+                                            value={
+                                                form.data
+                                                    .registration_max_applications ??
+                                                ''
+                                            }
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'registration_max_applications',
+                                                    event.target.value
+                                                        ? Number(
+                                                              event.target
+                                                                  .value,
+                                                          )
+                                                        : null,
+                                                )
+                                            }
+                                            aria-invalid={Boolean(
+                                                form.errors
+                                                    .registration_max_applications,
+                                            )}
+                                        />
+                                        <FieldError
+                                            message={
+                                                form.errors
+                                                    .registration_max_applications
+                                            }
+                                        />
                                     </div>
-                                    <label className="cms-check-row">
-                                        <input
-                                            type="checkbox"
-                                            checked={
-                                                form.data
-                                                    .registration_allow_editing
-                                            }
-                                            onChange={(event) =>
-                                                form.setData(
-                                                    'registration_allow_editing',
-                                                    event.target.checked,
-                                                )
-                                            }
-                                        />
-                                        <span>
-                                            <strong>
-                                                Permitir edição após o envio
-                                            </strong>
-                                            <small>
-                                                O prazo acima será validado
-                                                também pelo servidor.
-                                            </small>
-                                        </span>
-                                    </label>
-                                    <label className="cms-check-row">
-                                        <input
-                                            type="checkbox"
-                                            checked={
-                                                form.data
-                                                    .registration_requires_authentication
-                                            }
-                                            onChange={(event) =>
-                                                form.setData(
-                                                    'registration_requires_authentication',
-                                                    event.target.checked,
-                                                )
-                                            }
-                                        />
-                                        <span>
-                                            <strong>Exigir autenticação</strong>
-                                            <small>
-                                                O candidato precisará entrar na
-                                                conta antes de começar.
-                                            </small>
-                                        </span>
-                                    </label>
                                     <label className="cms-check-row">
                                         <input
                                             type="checkbox"
@@ -645,11 +564,12 @@ export function ProjectForm({ project }: { project?: Project }) {
                                         />
                                         <span>
                                             <strong>
-                                                Uma inscrição por usuário
+                                                Evitar inscrições duplicadas
                                             </strong>
                                             <small>
-                                                Evita candidaturas duplicadas
-                                                para o mesmo projeto.
+                                                Usa o e-mail preenchido no
+                                                formulário para impedir um novo
+                                                envio ao mesmo projeto.
                                             </small>
                                         </span>
                                     </label>

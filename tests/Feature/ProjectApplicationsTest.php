@@ -6,7 +6,6 @@ use App\Enums\ProjectRegistrationType;
 use App\Mail\ProjectApplicationConfirmation;
 use App\Models\Project;
 use App\Models\ProjectApplication;
-use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -62,13 +61,26 @@ it('submits an internal application with protocol, private file and history', fu
     Mail::assertQueued(ProjectApplicationConfirmation::class, fn (ProjectApplicationConfirmation $mail): bool => $mail->hasTo('ana@example.org') && $mail->protocol === $application->protocol);
 });
 
-it('provides candidate authentication without granting admin access', function (): void {
-    $candidate = User::factory()->create(['email' => 'candidata@example.org']);
+it('keeps public registration independent from accounts and tracking pages', function (): void {
+    Storage::fake('local');
+    $user = $this->cmsUser('administrator');
+    $project = registrationProject();
+    $project->registrationSetting()->update(['requires_authentication' => true, 'allow_editing' => true]);
 
-    $this->post(route('candidate.login.store'), ['email' => $candidate->email, 'password' => 'password'])
-        ->assertRedirect(route('applications.index'));
-    $this->get(route('applications.index'))->assertOk();
-    $this->get(route('admin.dashboard'))->assertForbidden();
+    $this->get('/acesso')->assertNotFound();
+    $this->get('/cadastro')->assertNotFound();
+    $this->get('/minhas-inscricoes')->assertNotFound();
+    $this->get(route('projects.show', $project))
+        ->assertRedirect(route('home', ['projeto' => $project->slug]).'#projetos');
+    $this->get(route('projects.registration.create', $project))->assertOk();
+
+    $this->actingAs($user)->post(route('projects.registration.store', $project), [
+        'submit' => true,
+        'answers' => ['nome_completo' => 'Ana Souza', 'email' => 'ana@example.org', 'area' => 'Educação'],
+        'files' => ['curriculo' => UploadedFile::fake()->create('curriculo.pdf', 120, 'application/pdf')],
+    ])->assertRedirect(route('projects.registration.create', $project));
+
+    expect(ProjectApplication::query()->firstOrFail()->user_id)->toBeNull();
 });
 
 it('validates dynamic fields, unknown answers and private upload MIME types', function (): void {
@@ -96,29 +108,6 @@ it('enforces opening dates and application limit in the backend', function (): v
         'submitted_at' => now(), 'applicant_email' => 'outra@example.org',
     ]);
     $this->post(route('projects.registration.store', $project), $payload)->assertSessionHasErrors('registration');
-});
-
-it('allows an owner to edit only within the configured window', function (): void {
-    Storage::fake('local');
-    $user = $this->cmsUser('administrator');
-    $project = registrationProject();
-    $project->registrationSetting()->update(['requires_authentication' => true, 'edit_deadline' => now()->addHour()]);
-    $form = $project->registrationForm;
-    $application = ProjectApplication::query()->create([
-        'project_id' => $project->id, 'user_id' => $user->id, 'protocol' => 'INS-2026-000002',
-        'status' => ProjectApplicationStatus::Submitted, 'submitted_at' => now(),
-    ]);
-    $fileField = $form->fields()->where('identifier', 'curriculo')->firstOrFail();
-    $application->files()->create(['field_id' => $fileField->id, 'disk' => 'local', 'path' => 'existing.pdf', 'original_name' => 'existing.pdf', 'mime_type' => 'application/pdf', 'size' => 10]);
-
-    $this->actingAs($user)->put(route('applications.update', $application), [
-        'submit' => true, 'answers' => ['nome_completo' => 'Ana Editada', 'email' => 'ana@example.org', 'area' => 'Tecnologia'],
-    ])->assertRedirect(route('applications.show', $application));
-
-    $project->registrationSetting()->update(['edit_deadline' => now()->subMinute()]);
-    $this->actingAs($user)->put(route('applications.update', $application), [
-        'submit' => true, 'answers' => ['nome_completo' => 'Bloqueada', 'email' => 'ana@example.org', 'area' => 'Tecnologia'],
-    ])->assertSessionHasErrors('application');
 });
 
 it('lets authorized administrators filter, change status, add internal notes and export', function (): void {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Models\ProjectApplication;
 use App\Models\ProjectApplicationFile;
 use Illuminate\Http\Request;
@@ -10,8 +11,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProjectApplicationFileController extends Controller
 {
-    public function show(Request $request, ProjectApplication $application, ProjectApplicationFile $file): StreamedResponse
+    public function show(Request $request, Project $project, ProjectApplication $application, ProjectApplicationFile $file): StreamedResponse
     {
+        abort_unless($application->project_id === $project->id, 404);
         abort_unless($file->application_id === $application->id, 404);
         $this->authorize('view', $application);
 

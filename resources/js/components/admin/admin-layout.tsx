@@ -4,6 +4,7 @@ import { AdminIcon, type AdminIconName } from '@/components/admin/admin-icon';
 import type { AdminSharedProps } from '@/types/cms';
 
 const navigation: ReadonlyArray<{
+    group: 'Visão geral' | 'Conteúdo' | 'Relacionamento' | 'Administração';
     label: string;
     href: string;
     icon: AdminIconName;
@@ -11,54 +12,63 @@ const navigation: ReadonlyArray<{
     administratorOnly?: boolean;
 }> = [
     {
+        group: 'Visão geral',
         label: 'Visão geral',
         href: '/admin',
         icon: 'home',
         permission: 'access-admin',
     },
     {
+        group: 'Conteúdo',
         label: 'Artigos',
         href: '/admin/posts',
         icon: 'file-text',
         permission: 'content.view',
     },
     {
+        group: 'Conteúdo',
         label: 'Mídia',
         href: '/admin/posts?type=media',
         icon: 'play-square',
         permission: 'content.view',
     },
     {
+        group: 'Conteúdo',
         label: 'Redes sociais',
         href: '/admin/posts?type=social',
         icon: 'share-nodes',
         permission: 'content.view',
     },
     {
+        group: 'Conteúdo',
         label: 'Projetos',
         href: '/admin/projetos',
         icon: 'sprout',
         permission: 'content.view',
     },
     {
+        group: 'Conteúdo',
         label: 'Eventos',
         href: '/admin/eventos',
         icon: 'calendar',
         permission: 'content.view',
     },
     {
+        group: 'Conteúdo',
         label: 'Transparência',
         href: '/admin/documentos',
         icon: 'shield-check',
         permission: 'content.view',
     },
     {
+        group: 'Conteúdo',
         label: 'Páginas',
         href: '/admin/paginas',
         icon: 'files',
         permission: 'content.view',
     },
     {
+        group: 'Relacionamento',
         label: 'Mensagens',
         href: '/admin/mensagens',
         icon: 'mail',
@@ -66,18 +76,21 @@ const navigation: ReadonlyArray<{
         administratorOnly: true,
     },
     {
+        group: 'Administração',
         label: 'Usuários e grupos',
         href: '/admin/usuarios',
         icon: 'users',
         permission: 'users.manage',
     },
     {
+        group: 'Administração',
         label: 'Configurações',
         href: '/admin/configuracoes',
         icon: 'settings',
         permission: 'settings.manage',
     },
     {
+        group: 'Administração',
         label: 'Atividades e falhas',
         href: '/admin/logs',
         icon: 'activity',
@@ -104,6 +117,12 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
         (currentSection === 'media' || currentSection === 'social'
             ? currentSection
             : null);
+    const visibleNavigation = navigation.filter(
+        (item) =>
+            auth.user.permissions.includes(item.permission) &&
+            (!('administratorOnly' in item) ||
+                auth.user.roles.includes('administrator')),
+    );
 
     function logout() {
         router.post('/admin/logout');
@@ -138,61 +157,72 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                     </span>
                 </Link>
                 <nav aria-label="Administração do site">
-                    {navigation
-                        .filter(
-                            (item) =>
-                                auth.user.permissions.includes(
-                                    item.permission,
-                                ) &&
-                                (!('administratorOnly' in item) ||
-                                    auth.user.roles.includes('administrator')),
-                        )
-                        .map((item) => {
-                            const [itemPath] = item.href.split('?');
-                            let active =
-                                item.href === '/admin'
-                                    ? currentPath === '/admin'
-                                    : currentPath.startsWith(itemPath);
-                            if (itemPath === '/admin/posts') {
-                                const itemType = new URLSearchParams(
-                                    item.href.split('?')[1] ?? '',
-                                ).get('type');
-                                const isMedia = [
-                                    'media',
-                                    'vlog',
-                                    'video',
-                                    'podcast',
-                                ].includes(currentType ?? '');
-                                active = itemType
-                                    ? itemType === 'media'
-                                        ? isMedia
-                                        : currentType === itemType
-                                    : !isMedia && currentType !== 'social';
-                            }
-                            return (
-                                <Link
-                                    key={item.href}
-                                    className={active ? 'active' : ''}
-                                    href={item.href}
-                                    aria-current={active ? 'page' : undefined}
-                                    onClick={() => setMenuOpen(false)}
-                                    prefetch
-                                >
-                                    <span>
-                                        <AdminIcon name={item.icon} />
-                                    </span>
-                                    {item.label}
-                                    {item.label === 'Mensagens' &&
-                                        unreadMessages > 0 && (
-                                            <b
-                                                aria-label={`${unreadMessages} mensagens não lidas`}
-                                            >
-                                                {unreadMessages}
-                                            </b>
-                                        )}
-                                </Link>
-                            );
-                        })}
+                    {[
+                        'Visão geral',
+                        'Conteúdo',
+                        'Relacionamento',
+                        'Administração',
+                    ].map((group) => {
+                        const items = visibleNavigation.filter(
+                            (item) => item.group === group,
+                        );
+                        if (!items.length) return null;
+
+                        return (
+                            <section key={group} className="admin-nav-group">
+                                <h2>{group}</h2>
+                                {items.map((item) => {
+                                    const [itemPath] = item.href.split('?');
+                                    let active =
+                                        item.href === '/admin'
+                                            ? currentPath === '/admin'
+                                            : currentPath.startsWith(itemPath);
+                                    if (itemPath === '/admin/posts') {
+                                        const itemType = new URLSearchParams(
+                                            item.href.split('?')[1] ?? '',
+                                        ).get('type');
+                                        const isMedia = [
+                                            'media',
+                                            'vlog',
+                                            'video',
+                                            'podcast',
+                                        ].includes(currentType ?? '');
+                                        active = itemType
+                                            ? itemType === 'media'
+                                                ? isMedia
+                                                : currentType === itemType
+                                            : !isMedia &&
+                                              currentType !== 'social';
+                                    }
+                                    return (
+                                        <Link
+                                            key={item.href}
+                                            className={active ? 'active' : ''}
+                                            href={item.href}
+                                            aria-current={
+                                                active ? 'page' : undefined
+                                            }
+                                            onClick={() => setMenuOpen(false)}
+                                            prefetch
+                                        >
+                                            <span>
+                                                <AdminIcon name={item.icon} />
+                                            </span>
+                                            {item.label}
+                                            {item.label === 'Mensagens' &&
+                                                unreadMessages > 0 && (
+                                                    <b
+                                                        aria-label={`${unreadMessages} mensagens não lidas`}
+                                                    >
+                                                        {unreadMessages}
+                                                    </b>
+                                                )}
+                                        </Link>
+                                    );
+                                })}
+                            </section>
+                        );
+                    })}
                 </nav>
                 <div className="admin-sidebar-footer">
                     <div className="admin-avatar" aria-hidden="true">

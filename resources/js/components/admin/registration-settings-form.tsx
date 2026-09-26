@@ -164,7 +164,7 @@ export function RegistrationSettingsForm({
 
                     <section className="cms-form-section">
                         <h2>Regras para o candidato</h2>
-                        <div className="cms-form-grid two">
+                        <div className="cms-form-grid">
                             <div className="cms-field">
                                 <label htmlFor="registration-settings-limit">
                                     Número máximo de inscrições
@@ -191,67 +191,7 @@ export function RegistrationSettingsForm({
                                     message={form.errors.max_applications}
                                 />
                             </div>
-                            <div className="cms-field">
-                                <label htmlFor="registration-settings-edit-until">
-                                    Permitir edição até
-                                </label>
-                                <input
-                                    id="registration-settings-edit-until"
-                                    type="datetime-local"
-                                    disabled={!form.data.allow_editing}
-                                    value={form.data.edit_deadline}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'edit_deadline',
-                                            event.target.value,
-                                        )
-                                    }
-                                    aria-invalid={Boolean(
-                                        form.errors.edit_deadline,
-                                    )}
-                                />
-                                <FieldError
-                                    message={form.errors.edit_deadline}
-                                />
-                            </div>
                         </div>
-                        <label className="cms-check-row">
-                            <input
-                                type="checkbox"
-                                checked={form.data.allow_editing}
-                                onChange={(event) =>
-                                    form.setData(
-                                        'allow_editing',
-                                        event.target.checked,
-                                    )
-                                }
-                            />
-                            <span>
-                                <strong>Permitir edição após o envio</strong>
-                                <small>
-                                    A edição será bloqueada depois do prazo.
-                                </small>
-                            </span>
-                        </label>
-                        <label className="cms-check-row">
-                            <input
-                                type="checkbox"
-                                checked={form.data.requires_authentication}
-                                onChange={(event) =>
-                                    form.setData(
-                                        'requires_authentication',
-                                        event.target.checked,
-                                    )
-                                }
-                            />
-                            <span>
-                                <strong>Exigir autenticação</strong>
-                                <small>
-                                    Permite acompanhar e editar a inscrição em
-                                    uma conta identificada.
-                                </small>
-                            </span>
-                        </label>
                         <label className="cms-check-row">
                             <input
                                 type="checkbox"
@@ -264,10 +204,10 @@ export function RegistrationSettingsForm({
                                 }
                             />
                             <span>
-                                <strong>Uma inscrição por usuário</strong>
+                                <strong>Evitar inscrições duplicadas</strong>
                                 <small>
-                                    Evita duplicidade e também é validado no
-                                    servidor.
+                                    Usa o e-mail informado no formulário para
+                                    impedir outro envio ao mesmo projeto.
                                 </small>
                             </span>
                         </label>

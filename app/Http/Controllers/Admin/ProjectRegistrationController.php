@@ -25,7 +25,11 @@ class ProjectRegistrationController extends AdminController
 
     public function update(ProjectRegistrationConfigurationRequest $request, Project $project): RedirectResponse
     {
-        $project->registrationSetting()->updateOrCreate([], $request->validated());
+        $project->registrationSetting()->updateOrCreate([], array_merge($request->validated(), [
+            'allow_editing' => false,
+            'edit_deadline' => null,
+            'requires_authentication' => false,
+        ]));
         $this->recordChange('project.registration.configuration.updated', $project);
 
         return back()->with('success', 'Configuração das inscrições atualizada.');

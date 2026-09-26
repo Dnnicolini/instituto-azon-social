@@ -7,6 +7,7 @@ import {
 } from '@/components/admin/cms-ui';
 import { SeoHead } from '@/components/seo-head';
 import { Can } from '@/components/admin/use-can';
+import { AdminIcon } from '@/components/admin/admin-icon';
 import type { AdminSharedProps, Post } from '@/types/cms';
 
 type DashboardProps = AdminSharedProps & {
@@ -48,7 +49,9 @@ export default function Dashboard({
                 </PageHeading>
                 <section className="admin-stats" aria-label="Resumo do site">
                     <article>
-                        <span className="gold">▤</span>
+                        <span className="gold">
+                            <AdminIcon name="file-text" />
+                        </span>
                         <div>
                             <small>Conteúdos</small>
                             <strong>{stats.posts}</strong>
@@ -56,7 +59,9 @@ export default function Dashboard({
                         </div>
                     </article>
                     <article>
-                        <span className="blue">◆</span>
+                        <span className="blue">
+                            <AdminIcon name="sprout" />
+                        </span>
                         <div>
                             <small>Projetos</small>
                             <strong>{stats.projects}</strong>
@@ -64,7 +69,9 @@ export default function Dashboard({
                         </div>
                     </article>
                     <article>
-                        <span className="green">□</span>
+                        <span className="green">
+                            <AdminIcon name="calendar" />
+                        </span>
                         <div>
                             <small>Eventos</small>
                             <strong>{stats.events}</strong>
@@ -72,7 +79,9 @@ export default function Dashboard({
                         </div>
                     </article>
                     <article>
-                        <span className="brown">✉</span>
+                        <span className="brown">
+                            <AdminIcon name="mail" />
+                        </span>
                         <div>
                             <small>Mensagens novas</small>
                             <strong>{stats.unreadMessages}</strong>

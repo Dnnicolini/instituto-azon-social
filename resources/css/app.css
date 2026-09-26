@@ -1144,13 +1144,61 @@ html[data-a11y-high-contrast] .button {
     justify-content: space-between;
     text-align: left;
 }
-.project-dialog-media {
-    padding: 30px;
+.project-dialog {
+    width: min(1120px, calc(100% - 48px));
+    max-height: min(780px, calc(100dvh - 48px));
+    padding: 0;
+    border: 0;
+    background: var(--ivory);
+    color: var(--dark);
+    box-shadow: 0 28px 90px rgb(33 23 11 / 0.34);
+    overflow: hidden;
+}
+.project-dialog::backdrop {
+    background: rgb(25 15 6 / 0.76);
+    backdrop-filter: blur(4px);
+}
+.project-dialog-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+    min-height: min(680px, calc(100dvh - 48px));
+}
+.project-dialog-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgb(58 33 15 / 0.18);
+    border-radius: 50%;
+    background: rgb(247 242 232 / 0.94);
+    color: var(--brown);
+    font-size: 28px;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+}
+.project-dialog-close:hover,
+.project-dialog-close:focus-visible {
     background: #fff;
+    border-color: var(--brown);
+}
+.project-dialog-media {
+    min-width: 0;
+    padding: clamp(22px, 3vw, 44px);
+    background: #e9dcc5;
+    display: grid;
+    place-items: center;
 }
 .project-dialog-media > img {
-    max-height: 550px;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: 660px;
     object-fit: contain;
+    object-position: center;
+    box-shadow: 0 18px 44px rgb(58 33 15 / 0.16);
 }
 .project-dialog-letter {
     width: min(70%, 360px);
@@ -1162,11 +1210,47 @@ html[data-a11y-high-contrast] .button {
     color: var(--brown);
     font: italic 150px/1 var(--font-display);
 }
-.project-dialog-copy > p:not(.eyebrow) {
-    max-height: 320px;
+.project-dialog-copy {
+    min-width: 0;
+    padding: clamp(72px, 8vw, 112px) clamp(34px, 5vw, 72px) 54px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     overflow-y: auto;
-    padding-right: 8px;
-    white-space: pre-line;
+}
+.project-dialog-label {
+    color: var(--green);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.project-dialog-copy h2 {
+    margin: 14px 0 18px;
+    color: var(--brown);
+    font: 600 clamp(46px, 5vw, 76px) / 0.98 var(--font-display);
+    letter-spacing: -0.035em;
+}
+.project-dialog-summary {
+    margin: 0;
+    color: #4e402f;
+    font-size: clamp(17px, 1.55vw, 21px);
+    line-height: 1.55;
+}
+.project-dialog-body {
+    width: 100%;
+    margin-top: 28px;
+    padding-top: 26px;
+    border-top: 1px solid #d8c8ae;
+    color: #6a5b48;
+    font-size: 14px;
+    line-height: 1.75;
+}
+.project-dialog-body p {
+    margin: 0 0 14px;
+}
+.project-dialog-action {
+    margin-top: 22px;
 }
 .impact {
     background: var(--brown);
@@ -2228,7 +2312,8 @@ footer a:hover {
         padding-top: 70px;
         padding-bottom: 70px;
     }
-    .social-dialog {
+    .social-dialog,
+    .project-dialog {
         width: calc(100% - 20px);
         max-height: calc(100dvh - 20px);
         overflow-y: auto;
@@ -2247,10 +2332,28 @@ footer a:hover {
     .social-dialog-copy {
         padding: 34px 24px 30px;
     }
-    .project-dialog-copy > p:not(.eyebrow) {
-        max-height: none;
+    .project-dialog-inner {
+        min-height: 0;
+        grid-template-columns: 1fr;
+    }
+    .project-dialog-media {
+        min-height: 300px;
+        max-height: 54dvh;
+        padding: 18px;
+    }
+    .project-dialog-media > img {
+        max-height: calc(54dvh - 36px);
+    }
+    .project-dialog-copy {
+        padding: 34px 24px 32px;
         overflow: visible;
-        padding-right: 0;
+    }
+    .project-dialog-copy h2 {
+        font-size: clamp(42px, 14vw, 60px);
+    }
+    .project-dialog-close {
+        top: 12px;
+        right: 12px;
     }
     .project-card {
         min-height: 400px;
@@ -2377,6 +2480,7 @@ footer a:hover {
     font-size: 13px;
     font-weight: 650;
     border-left: 3px solid transparent;
+    border-radius: 8px;
 }
 .admin-sidebar nav a > span {
     color: #a98654;
@@ -2399,6 +2503,17 @@ footer a:hover {
     color: #fff;
     background: rgba(255, 255, 255, 0.07);
     border-left-color: var(--gold);
+}
+.admin-nav-group + .admin-nav-group {
+    margin-top: 18px;
+}
+.admin-nav-group h2 {
+    margin: 0 13px 7px;
+    color: #8f806b;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
 }
 .admin-sidebar-footer > button {
     margin-left: auto;
@@ -2456,14 +2571,29 @@ footer a:hover {
     justify-content: center;
     align-items: center;
     border: 1px solid var(--brown);
-    border-radius: 2px;
+    border-radius: 8px;
     font-weight: 750;
     font-size: 13px;
+}
+.cms-button.danger {
+    border-color: #9b251d;
+    background: #9b251d;
+    color: #fff;
+}
+.cms-button.danger:hover {
+    background: #7f1d17;
 }
 button.cms-button:disabled,
 .admin-primary-button:disabled {
     cursor: wait;
     opacity: 0.65;
+}
+.cms-button:focus-visible,
+.cms-text-action:focus-visible,
+.admin-sidebar a:focus-visible,
+.admin-sidebar button:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--gold) 65%, white);
+    outline-offset: 2px;
 }
 .cms-button.primary {
     background: var(--brown);
@@ -2555,7 +2685,7 @@ button.cms-button:disabled,
     width: 100%;
     min-height: 44px;
     border: 1px solid #cdbfa9;
-    border-radius: 2px;
+    border-radius: 8px;
     background: #fffdf8;
     color: var(--dark);
     padding: 10px 12px;
@@ -2624,7 +2754,9 @@ button.cms-button:disabled,
 .cms-table-wrap {
     overflow-x: auto;
     border: 1px solid #ddd1be;
+    border-radius: 12px;
     background: #fff;
+    box-shadow: 0 8px 28px rgba(66, 46, 22, 0.04);
 }
 
 .cms-log-panel {
@@ -2701,6 +2833,12 @@ button.cms-button:disabled,
     color: #665946;
     font-size: 13px;
     vertical-align: middle;
+}
+.cms-table tbody tr {
+    transition: background-color 0.18s ease;
+}
+.cms-table tbody tr:hover {
+    background: #fdfaf4;
 }
 .cms-table td:first-child {
     min-width: 250px;
@@ -2842,7 +2980,9 @@ button.cms-button:disabled,
     padding: 26px;
     border: 1px solid #ddd1be;
     border-top: 3px solid var(--gold);
+    border-radius: 12px;
     background: #fff;
+    box-shadow: 0 8px 28px rgba(66, 46, 22, 0.035);
 }
 .cms-form-section h2,
 .cms-section-editor legend {
@@ -2961,8 +3101,57 @@ button.cms-button:disabled,
     gap: 20px;
     padding: 15px 20px;
     border: 1px solid #d8cbb8;
+    border-radius: 12px 12px 0 0;
     background: rgba(250, 247, 237, 0.96);
     backdrop-filter: blur(10px);
+}
+.cms-confirm-dialog {
+    width: min(92vw, 520px);
+    padding: 0;
+    border: 0;
+    border-radius: 14px;
+    background: #fffdf9;
+    color: var(--dark);
+    box-shadow: 0 28px 80px rgba(35, 23, 10, 0.28);
+}
+.cms-confirm-dialog::backdrop {
+    background: rgba(35, 23, 10, 0.62);
+    backdrop-filter: blur(3px);
+}
+.cms-confirm-dialog-body {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 18px;
+    padding: 30px 30px 24px;
+}
+.cms-confirm-dialog-body > span {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #f8e4df;
+    color: #9b251d;
+    font-weight: 900;
+}
+.cms-confirm-dialog h2 {
+    margin: 1px 0 8px;
+    color: var(--brown);
+    font: 600 26px/1.15 var(--font-display);
+}
+.cms-confirm-dialog p {
+    margin: 0;
+    color: #71634f;
+    font-size: 13px;
+    line-height: 1.6;
+}
+.cms-confirm-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 18px 30px;
+    border-top: 1px solid #e5dac9;
+    background: #f8f3e9;
 }
 .cms-form-actions > span {
     color: #6f614d;
@@ -3992,6 +4181,15 @@ button.cms-button:disabled,
         align-items: stretch;
         flex-direction: column;
     }
+    .cms-confirm-dialog-body {
+        grid-template-columns: 1fr;
+        padding: 24px 22px 20px;
+    }
+    .cms-confirm-dialog-actions {
+        align-items: stretch;
+        flex-direction: column-reverse;
+        padding: 16px 22px 22px;
+    }
     .cms-form-action-buttons,
     .cms-form-actions .cms-button {
         width: 100%;
@@ -5010,7 +5208,7 @@ button.cms-button:disabled,
     display: flex;
 }
 .admin-sidebar {
-    width: 270px;
+    width: 280px;
     background: #2c2114;
     color: #e8dfd0;
     position: fixed;
@@ -5020,7 +5218,7 @@ button.cms-button:disabled,
     z-index: 90;
 }
 .admin-sidebar-brand {
-    height: 86px;
+    min-height: 82px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -5043,10 +5241,12 @@ button.cms-button:disabled,
     margin-top: 3px;
 }
 .admin-sidebar nav {
-    padding: 24px 14px;
+    padding: 20px 12px 28px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #69543b transparent;
 }
 .admin-sidebar nav button {
     border: 0;
@@ -5124,11 +5324,11 @@ button.cms-button:disabled,
     color: #9f927e;
 }
 .admin-main {
-    width: calc(100% - 270px);
-    margin-left: 270px;
+    width: calc(100% - 280px);
+    margin-left: 280px;
 }
 .admin-topbar {
-    height: 86px;
+    height: 82px;
     background: #fff;
     border-bottom: 1px solid #e0d9cc;
     padding: 0 38px;
@@ -5189,8 +5389,8 @@ button.cms-button:disabled,
     display: none;
 }
 .admin-content {
-    padding: 42px clamp(24px, 4vw, 60px) 70px;
-    max-width: 1600px;
+    padding: 38px clamp(24px, 4vw, 56px) 70px;
+    max-width: 1500px;
     margin: 0 auto;
 }
 .admin-welcome {
@@ -5239,13 +5439,15 @@ button.cms-button:disabled,
     padding: 22px;
     display: flex;
     gap: 15px;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(66, 46, 22, 0.035);
 }
 .admin-stats article > span {
     width: 45px;
     height: 45px;
     display: grid;
     place-items: center;
-    border-radius: 50%;
+    border-radius: 10px;
     font-size: 18px;
     flex: 0 0 auto;
 }
@@ -5296,6 +5498,9 @@ button.cms-button:disabled,
 .admin-panel {
     background: #fff;
     border: 1px solid #e2dccf;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(66, 46, 22, 0.035);
 }
 .admin-panel-heading {
     padding: 24px 26px;

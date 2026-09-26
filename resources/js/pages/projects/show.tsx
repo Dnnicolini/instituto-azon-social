@@ -11,7 +11,6 @@ export default function ProjectShow({
     seo,
     project,
     registration,
-    viewer,
     related_posts: relatedPosts = [],
     related_events: relatedEvents = [],
 }: ProjectShowProps) {
@@ -85,7 +84,6 @@ export default function ProjectShow({
                             <RegistrationStatus
                                 projectSlug={project.slug}
                                 registration={registration}
-                                viewer={viewer}
                             />
                         </aside>
                     )}
@@ -209,17 +207,6 @@ export default function ProjectShow({
                             ))}
                         </ol>
                     </section>
-                )}
-
-                {viewer && (
-                    <nav
-                        className="project-candidate-navigation"
-                        aria-label="Área do candidato"
-                    >
-                        <Link href="/minhas-inscricoes">
-                            Ver minhas inscrições →
-                        </Link>
-                    </nav>
                 )}
             </main>
             <PublicFooter />
