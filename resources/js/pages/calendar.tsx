@@ -95,30 +95,22 @@ function formatSchedule(event: Event) {
         : `${start}, até ${formatDate(event.ends_at)}, às ${formatTime(event.ends_at)}`;
 }
 
-function initialMonth(events: Event[]) {
-    const dated = events.filter(
-        (event): event is Event & { starts_at: string } =>
-            Boolean(event.starts_at),
-    );
-    const now = Date.now();
-    const reference =
-        dated.find((event) => new Date(event.starts_at).getTime() >= now) ??
-        dated.at(-1);
-    const parts = reference?.starts_at
-        ? zonedDateParts(reference.starts_at)
-        : zonedDateParts(new Date());
+function initialMonth(currentDate: string) {
+    const [year, month] = currentDate.split('-').map(Number);
 
-    return new Date(parts.year, parts.month - 1, 1);
+    return new Date(year, month - 1, 1);
 }
 
 export default function CalendarPage({
     seo,
     events,
+    currentDate,
 }: {
     seo: SeoData;
     events: Event[];
+    currentDate: string;
 }) {
-    const [month, setMonth] = useState(() => initialMonth(events));
+    const [month, setMonth] = useState(() => initialMonth(currentDate));
     const [selected, setSelected] = useState<Event | null>(null);
     const [detailStatus, setDetailStatus] = useState<
         'idle' | 'loading' | 'error'
@@ -304,6 +296,7 @@ export default function CalendarPage({
             <PublicHeader />
             <main
                 className="calendar-page"
+                data-current-date={currentDate}
                 id="conteudo-principal"
                 tabIndex={-1}
             >
@@ -374,7 +367,15 @@ export default function CalendarPage({
                                     >
                                         {day && (
                                             <>
-                                                <span className="calendar-day-number">
+                                                <span
+                                                    className="calendar-day-number"
+                                                    aria-current={
+                                                        `${monthYear}-${String(day).padStart(2, '0')}` ===
+                                                        currentDate
+                                                            ? 'date'
+                                                            : undefined
+                                                    }
+                                                >
                                                     {day}
                                                 </span>
                                                 {(

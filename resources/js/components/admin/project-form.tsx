@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { useRef } from 'react';
 import { FieldError, FormActions, StatusBadge } from './cms-ui';
 import { FormErrorSummary } from './form-error-summary';
-import { ImageGalleryFields } from './image-gallery-fields';
+import { CoverImagePreview, ImageGalleryFields } from './image-gallery-fields';
 import type { ContentStatus, Project, RegistrationType } from '@/types/cms';
 import { useCan } from './use-can';
 import {
@@ -29,6 +29,7 @@ export function ProjectForm({ project }: { project?: Project }) {
         cover_alt: string;
         cover: File | null;
         gallery: File[];
+        gallery_cover_id: number | null;
         remove_gallery_ids: number[];
         registration_enabled: boolean;
         registration_type: RegistrationType;
@@ -58,6 +59,7 @@ export function ProjectForm({ project }: { project?: Project }) {
         cover_alt: project?.cover_alt ?? '',
         cover: null,
         gallery: [],
+        gallery_cover_id: null,
         remove_gallery_ids: [],
         registration_enabled: project?.registration_enabled ?? false,
         registration_type: project?.registration_type ?? 'internal',
@@ -647,11 +649,41 @@ export function ProjectForm({ project }: { project?: Project }) {
                 <ImageGalleryFields
                     images={project?.gallery_images}
                     files={form.data.gallery}
+                    coverFile={form.data.cover}
+                    selectedCoverId={form.data.gallery_cover_id}
                     removedIds={form.data.remove_gallery_ids}
                     error={form.errors.gallery}
+                    coverError={form.errors.gallery_cover_id}
                     onFilesChange={(files) => form.setData('gallery', files)}
+                    onNewCoverSelect={(file, remainingFiles) =>
+                        form.setData({
+                            ...form.data,
+                            cover: file,
+                            cover_alt: `Imagem de capa de ${form.data.title || 'projeto'}`,
+                            gallery: remainingFiles,
+                            gallery_cover_id: null,
+                        })
+                    }
+                    onExistingCoverSelect={(id, alt) =>
+                        form.setData({
+                            ...form.data,
+                            cover: null,
+                            cover_alt:
+                                alt ||
+                                `Imagem de capa de ${form.data.title || 'projeto'}`,
+                            gallery_cover_id: id,
+                        })
+                    }
                     onRemovedIdsChange={(ids) =>
-                        form.setData('remove_gallery_ids', ids)
+                        form.setData({
+                            ...form.data,
+                            remove_gallery_ids: ids,
+                            gallery_cover_id: ids.includes(
+                                form.data.gallery_cover_id ?? 0,
+                            )
+                                ? null
+                                : form.data.gallery_cover_id,
+                        })
                     }
                 />
             </div>
@@ -710,13 +742,11 @@ export function ProjectForm({ project }: { project?: Project }) {
                 </section>
                 <section className="cms-form-section">
                     <h2>Capa</h2>
-                    {project?.cover_url && (
-                        <img
-                            className="cms-cover-preview"
-                            src={project.cover_url}
-                            alt={project.cover_alt ?? ''}
-                        />
-                    )}
+                    <CoverImagePreview
+                        file={form.data.cover}
+                        url={project?.cover_url}
+                        alt={form.data.cover_alt}
+                    />
                     <div className="cms-field">
                         <label>
                             Imagem
@@ -725,10 +755,14 @@ export function ProjectForm({ project }: { project?: Project }) {
                                 type="file"
                                 accept="image/jpeg,image/png,image/webp"
                                 onChange={(e) =>
-                                    form.setData(
-                                        'cover',
-                                        e.target.files?.[0] ?? null,
-                                    )
+                                    form.setData({
+                                        ...form.data,
+                                        cover: e.target.files?.[0] ?? null,
+                                        cover_alt: e.target.files?.[0]
+                                            ? `Imagem de capa de ${form.data.title || 'projeto'}`
+                                            : form.data.cover_alt,
+                                        gallery_cover_id: null,
+                                    })
                                 }
                                 aria-invalid={Boolean(form.errors.cover)}
                             />

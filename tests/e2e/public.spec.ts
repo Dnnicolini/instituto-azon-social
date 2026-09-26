@@ -1,4 +1,21 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function goToCalendarMonth(page: Page, year: number, monthIndex: number) {
+    const currentDate = await page
+        .locator('.calendar-page')
+        .getAttribute('data-current-date');
+    if (!currentDate) throw new Error('Calendar current date is unavailable');
+    const [currentYear, currentMonth] = currentDate.split('-').map(Number);
+    const offset =
+        year * 12 + monthIndex - (currentYear * 12 + currentMonth - 1);
+    const control = page.getByRole('button', {
+        name: offset < 0 ? 'Ver mês anterior' : 'Ver próximo mês',
+    });
+
+    for (let step = 0; step < Math.abs(offset); step += 1) {
+        await control.click();
+    }
+}
 
 test('public content, navigation and SEO are available', async ({ page }) => {
     await page.goto('/');
@@ -86,9 +103,25 @@ test('calendar exposes CRM events, details and participation guidance', async ({
     await expect(
         page.getByRole('heading', { name: 'Calendário', exact: true }),
     ).toBeVisible();
+    const currentDate = await page
+        .locator('.calendar-page')
+        .getAttribute('data-current-date');
+    if (!currentDate) throw new Error('Calendar current date is unavailable');
+    const [currentYear, currentMonth, currentDay] = currentDate
+        .split('-')
+        .map(Number);
     await expect(
-        page.getByRole('heading', { name: /agosto de 2026/i }),
+        page.getByRole('heading', {
+            name: new Intl.DateTimeFormat('pt-BR', {
+                month: 'long',
+                year: 'numeric',
+            }).format(new Date(currentYear, currentMonth - 1, 1)),
+        }),
     ).toBeVisible();
+    await expect(page.locator('[aria-current="date"]')).toHaveText(
+        String(currentDay),
+    );
+    await goToCalendarMonth(page, 2026, 7);
     const eventButton = page.getByRole('button', {
         name: /Ver detalhes de Sabeje Sepetiba 2026.*29 de agosto de 2026/i,
     });
@@ -140,6 +173,7 @@ test('calendar remains usable without horizontal overflow on a phone', async ({
         () => document.documentElement.scrollWidth - innerWidth,
     );
     expect(overflow).toBeLessThanOrEqual(1);
+    await goToCalendarMonth(page, 2026, 7);
     await page
         .getByRole('button', { name: /Sabeje Sepetiba 2026.*29 de agosto/i })
         .click();
@@ -158,6 +192,7 @@ test('calendar returns focus to the visible event after a responsive layout chan
     await page.setViewportSize({ width: 800, height: 800 });
     await page.goto('/calendario');
 
+    await goToCalendarMonth(page, 2026, 7);
     await page
         .getByRole('button', { name: /Sabeje Sepetiba 2026.*29 de agosto/i })
         .click();
@@ -252,7 +287,11 @@ test('social publications open an accessible preview and link to Instagram', asy
         const rect = element.getBoundingClientRect();
 
         return {
-            horizontal: Math.abs(rect.left + rect.width / 2 - innerWidth / 2),
+            horizontal: Math.abs(
+                rect.left +
+                    rect.width / 2 -
+                    document.documentElement.clientWidth / 2,
+            ),
             vertical: Math.abs(rect.top + rect.height / 2 - innerHeight / 2),
         };
     });
@@ -285,9 +324,10 @@ test('AYI GBE and Hunto projects expose their new artwork and details', async ({
         }),
     ).toHaveCSS('object-fit', 'contain');
 
-    await page
-        .getByRole('button', { name: 'Conhecer projeto AYI GBÈ' })
-        .click();
+    const projectCard = page
+        .locator('.project-card')
+        .filter({ hasText: 'AYI GBÈ' });
+    await projectCard.getByRole('img').click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     await expect(
@@ -296,6 +336,16 @@ test('AYI GBE and Hunto projects expose their new artwork and details', async ({
     await expect(
         dialog.getByText('Saúde que começa no cuidado com a vida'),
     ).toBeVisible();
+    const centering = await dialog.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+
+        return {
+            horizontal: Math.abs(rect.left + rect.width / 2 - innerWidth / 2),
+            vertical: Math.abs(rect.top + rect.height / 2 - innerHeight / 2),
+        };
+    });
+    expect(centering.horizontal).toBeLessThanOrEqual(1);
+    expect(centering.vertical).toBeLessThanOrEqual(1);
     await dialog.getByRole('button', { name: 'Fechar projeto' }).click();
     await expect(dialog).not.toBeVisible();
 });

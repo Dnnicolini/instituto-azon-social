@@ -52,7 +52,7 @@ class EventController extends AdminController
     public function store(EventRequest $request): RedirectResponse
     {
         $event = DB::transaction(function () use ($request): Event {
-            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'gallery', 'remove_gallery_ids', 'project_ids']));
+            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'gallery', 'gallery_cover_id', 'remove_gallery_ids', 'project_ids']));
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
             }
@@ -78,9 +78,11 @@ class EventController extends AdminController
     {
         DB::transaction(function () use ($request, $event): void {
             $before = $event->attributesToArray();
-            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'gallery', 'remove_gallery_ids', 'project_ids']));
+            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'gallery', 'gallery_cover_id', 'remove_gallery_ids', 'project_ids']));
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
+            } elseif ($galleryCoverId = $this->takeGalleryImageAsCover($request, $event)) {
+                $data['cover_media_id'] = $galleryCoverId;
             } elseif ($request->has('cover_alt') && $event->cover) {
                 $this->updateAssetAlt($event->cover, $request->validated('cover_alt'));
             }

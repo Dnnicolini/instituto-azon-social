@@ -100,6 +100,50 @@ it('stores multiple gallery photos while keeping a distinct cover', function ():
     ])->assertRedirect();
 
     expect($post->galleryImages()->count())->toBe(1);
+
+    $newCover = $post->galleryImages()->firstOrFail();
+    $this->actingAs($publisher)->put(route('admin.posts.update', $post), [
+        'type' => 'article',
+        'title' => $post->title,
+        'slug' => $post->slug,
+        'status' => 'draft',
+        'gallery_cover_id' => $newCover->id,
+        'cover_alt' => 'Nova capa da história',
+    ])->assertRedirect();
+
+    expect($post->fresh()->cover_media_id)->toBe($newCover->media_asset_id)
+        ->and($newCover->media->fresh()->alt_text)->toBe('Nova capa da história')
+        ->and($post->galleryImages()->count())->toBe(0);
+});
+
+it('does not allow a gallery photo from another content item to become the cover', function (): void {
+    Storage::fake('public');
+    $publisher = $this->cmsUser('publisher');
+
+    $this->actingAs($publisher)->post(route('admin.posts.store'), [
+        'type' => 'article',
+        'title' => 'Primeiro conteúdo',
+        'slug' => 'primeiro-conteudo',
+        'status' => 'draft',
+        'gallery' => [UploadedFile::fake()->image('privada.jpg', 1200, 675)],
+    ])->assertRedirect();
+    $first = Post::query()->where('slug', 'primeiro-conteudo')->firstOrFail();
+    $second = Post::query()->create([
+        'type' => PostType::Article,
+        'title' => 'Segundo conteúdo',
+        'slug' => 'segundo-conteudo',
+        'status' => ContentStatus::Draft,
+    ]);
+
+    $this->actingAs($publisher)->put(route('admin.posts.update', $second), [
+        'type' => 'article',
+        'title' => $second->title,
+        'slug' => $second->slug,
+        'status' => 'draft',
+        'gallery_cover_id' => $first->galleryImages()->firstOrFail()->id,
+    ])->assertSessionHasErrors('gallery_cover_id');
+
+    expect($second->fresh()->cover_media_id)->toBeNull();
 });
 
 it('links posts to social programs without mixing their records', function (): void {
