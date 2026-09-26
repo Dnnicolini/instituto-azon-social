@@ -3,7 +3,9 @@ import type { FormEvent } from 'react';
 import { useRef } from 'react';
 import { FieldError, FormActions, StatusBadge } from './cms-ui';
 import { FormErrorSummary } from './form-error-summary';
-import type { ContentStatus, Event } from '@/types/cms';
+import { ImageGalleryFields } from './image-gallery-fields';
+import { ProjectLinkField } from './project-link-field';
+import type { ContentStatus, Event, SelectOption } from '@/types/cms';
 import { useCan } from './use-can';
 import {
     focusFirstFormError,
@@ -11,7 +13,13 @@ import {
     slugifyTitle,
 } from '@/lib/cms-form';
 
-export function EventForm({ event }: { event?: Event }) {
+export function EventForm({
+    event,
+    projectOptions = [],
+}: {
+    event?: Event;
+    projectOptions?: SelectOption[];
+}) {
     const canPublish = useCan('content.publish');
     const formId = event ? `event-${event.id}` : 'create-event';
     const slugWasEdited = useRef(Boolean(event));
@@ -31,6 +39,9 @@ export function EventForm({ event }: { event?: Event }) {
         published_at: string;
         cover_alt: string;
         cover: File | null;
+        gallery: File[];
+        remove_gallery_ids: number[];
+        project_ids: number[];
     }>({
         title: event?.title ?? '',
         slug: event?.slug ?? '',
@@ -52,6 +63,9 @@ export function EventForm({ event }: { event?: Event }) {
         published_at: event?.published_at?.slice(0, 16) ?? '',
         cover_alt: event?.cover_alt ?? '',
         cover: null,
+        gallery: [],
+        remove_gallery_ids: [],
+        project_ids: event?.project_ids ?? [],
     });
     function submit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -289,6 +303,21 @@ export function EventForm({ event }: { event?: Event }) {
                         />
                     </div>
                 </section>
+                <ImageGalleryFields
+                    images={event?.gallery_images}
+                    files={form.data.gallery}
+                    removedIds={form.data.remove_gallery_ids}
+                    error={form.errors.gallery}
+                    onFilesChange={(files) => form.setData('gallery', files)}
+                    onRemovedIdsChange={(ids) =>
+                        form.setData('remove_gallery_ids', ids)
+                    }
+                />
+                <ProjectLinkField
+                    options={projectOptions}
+                    selected={form.data.project_ids}
+                    onChange={(ids) => form.setData('project_ids', ids)}
+                />
             </div>
             <aside className="cms-editor-side">
                 <section className="cms-form-section">

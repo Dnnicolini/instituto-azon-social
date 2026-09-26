@@ -10,6 +10,11 @@ import {
 } from '@/components/admin/cms-ui';
 import { SeoHead } from '@/components/seo-head';
 import { Can } from '@/components/admin/use-can';
+import {
+    projectRegistrationPeriod,
+    projectRegistrationState,
+    RegistrationStateBadge,
+} from '@/components/admin/registration-ui';
 import type { AdminSharedProps, Paginated, Project } from '@/types/cms';
 export default function ProjectsIndex({
     seo,
@@ -49,6 +54,8 @@ export default function ProjectsIndex({
                                     <tr>
                                         <th>Projeto</th>
                                         <th>Status</th>
+                                        <th>Período de inscrição</th>
+                                        <th>Inscrições</th>
                                         <th>Ordem</th>
                                         <th>Atualizado</th>
                                         <th>
@@ -91,6 +98,42 @@ export default function ProjectsIndex({
                                                 <StatusBadge
                                                     status={p.status}
                                                 />
+                                            </td>
+                                            <td>
+                                                {p.registration_enabled ? (
+                                                    <>
+                                                        <strong>
+                                                            {projectRegistrationPeriod(
+                                                                p,
+                                                            )}
+                                                        </strong>
+                                                        {projectRegistrationState(
+                                                            p,
+                                                        ) && (
+                                                            <RegistrationStateBadge
+                                                                state={projectRegistrationState(
+                                                                    p,
+                                                                )!}
+                                                            />
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    'Não habilitadas'
+                                                )}
+                                            </td>
+                                            <td>
+                                                {p.registration_enabled ? (
+                                                    <Link
+                                                        href={`/admin/projetos/${p.id}/inscricoes`}
+                                                    >
+                                                        <strong>
+                                                            {p.applications_count ??
+                                                                0}
+                                                        </strong>
+                                                    </Link>
+                                                ) : (
+                                                    '—'
+                                                )}
                                             </td>
                                             <td>{p.sort_order ?? 0}</td>
                                             <td>

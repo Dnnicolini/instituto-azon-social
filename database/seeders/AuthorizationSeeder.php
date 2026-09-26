@@ -22,6 +22,8 @@ class AuthorizationSeeder extends Seeder
         'settings.manage' => ['Gerenciar configurações', 'configuração'],
         'messages.view' => ['Ver mensagens', 'mensagens'],
         'messages.manage' => ['Tratar e excluir mensagens', 'mensagens'],
+        'applications.view' => ['Ver candidaturas', 'inscrições'],
+        'applications.manage' => ['Gerenciar candidaturas', 'inscrições'],
     ];
 
     public function run(): void

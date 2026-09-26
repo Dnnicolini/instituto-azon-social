@@ -95,13 +95,9 @@ export default function Home({
 }: HomeProps) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [newsFilter, setNewsFilter] = useState('Todos');
-    const [selectedProject, setSelectedProject] = useState<Project | null>(
-        null,
-    );
     const [selectedSocialPost, setSelectedSocialPost] = useState<Post | null>(
         null,
     );
-    const projectDialogRef = useRef<HTMLDialogElement>(null);
     const socialDialogRef = useRef<HTMLDialogElement>(null);
     const form = useForm({
         name: '',
@@ -130,13 +126,6 @@ export default function Home({
                 : posts.filter((post) => post.type === newsFilter),
         [posts, newsFilter],
     );
-    useEffect(() => {
-        const dialog = projectDialogRef.current;
-        if (!dialog) return;
-
-        if (selectedProject && !dialog.open) dialog.showModal();
-        if (!selectedProject && dialog.open) dialog.close();
-    }, [selectedProject]);
     useEffect(() => {
         const dialog = socialDialogRef.current;
         if (!dialog) return;
@@ -389,17 +378,13 @@ export default function Home({
                                     </div>
                                     <h3>{project.title}</h3>
                                     <p>{project.summary}</p>
-                                    <button
+                                    <Link
                                         className="project-card-action"
-                                        type="button"
-                                        onClick={() =>
-                                            setSelectedProject(project)
-                                        }
-                                        aria-haspopup="dialog"
+                                        href={`/projetos/${project.slug}`}
                                         aria-label={`Conhecer projeto ${project.title}`}
                                     >
                                         Conhecer projeto <span>↗</span>
-                                    </button>
+                                    </Link>
                                 </article>
                             ))}
                         </div>
@@ -413,59 +398,6 @@ export default function Home({
                         </div>
                     )}
                 </section>
-                <dialog
-                    className="social-dialog project-dialog"
-                    ref={projectDialogRef}
-                    aria-labelledby="project-preview-title"
-                    onClose={() => setSelectedProject(null)}
-                    onClick={(event) => {
-                        if (event.target === event.currentTarget)
-                            setSelectedProject(null);
-                    }}
-                >
-                    {selectedProject && (
-                        <div className="social-dialog-inner">
-                            <button
-                                className="social-dialog-close"
-                                type="button"
-                                aria-label="Fechar projeto"
-                                onClick={() => setSelectedProject(null)}
-                                autoFocus
-                            >
-                                ×
-                            </button>
-                            <div className="social-dialog-media project-dialog-media">
-                                {selectedProject.cover_url ? (
-                                    <img
-                                        src={selectedProject.cover_url}
-                                        alt={selectedProject.cover_alt ?? ''}
-                                    />
-                                ) : (
-                                    <div
-                                        className="project-dialog-letter"
-                                        aria-hidden="true"
-                                    >
-                                        {selectedProject.title.charAt(0)}
-                                    </div>
-                                )}
-                            </div>
-                            <div className="social-dialog-copy project-dialog-copy">
-                                <p className="eyebrow">Projeto Azon</p>
-                                <h2 id="project-preview-title">
-                                    {selectedProject.title}
-                                </h2>
-                                <p>{selectedProject.body}</p>
-                                <a
-                                    className="button button-gold"
-                                    href="#contato"
-                                    onClick={() => setSelectedProject(null)}
-                                >
-                                    Quero saber mais
-                                </a>
-                            </div>
-                        </div>
-                    )}
-                </dialog>
                 <section className="news section" id="noticias">
                     <div className="section-heading compact">
                         <div>

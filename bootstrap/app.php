@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->redirectGuestsTo(fn (): string => route('admin.login'));
+        $middleware->redirectGuestsTo(fn (Request $request): string => $request->is('admin/*') || $request->is('admin') ? route('admin.login') : route('candidate.login'));
 
         $middleware->alias([
             'permission' => RequirePermission::class,

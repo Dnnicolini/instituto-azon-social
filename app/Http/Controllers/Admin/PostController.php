@@ -30,6 +30,8 @@ class PostController extends AdminController
             $query->whereIn('type', ['vlog', 'video', 'podcast']);
         } elseif ($filters['type']) {
             $query->where('type', $filters['type']);
+        } else {
+            $query->where('type', 'article');
         }
         if ($filters['status']) {
             $query->where('status', $filters['status']);
@@ -57,13 +59,13 @@ class PostController extends AdminController
                 : 'article',
         };
 
-        return Inertia::render('admin/content/form', ['resource' => 'posts', 'item' => null, 'section' => $section, 'initialType' => $initialType]);
+        return Inertia::render('admin/content/form', ['resource' => 'posts', 'item' => null, 'section' => $section, 'initialType' => $initialType, 'projectOptions' => $this->projectOptions()]);
     }
 
     public function store(PostRequest $request): RedirectResponse
     {
         $post = DB::transaction(function () use ($request): Post {
-            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'source_mode', 'video']));
+            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'source_mode', 'video', 'gallery', 'remove_gallery_ids', 'project_ids']));
             $data = $this->normalizeSource($request, $data);
             $data['author_id'] = $request->user()->id;
             if ($request->hasFile('cover')) {
@@ -73,6 +75,8 @@ class PostController extends AdminController
                 $data['video_media_id'] = $this->createAsset($request->file('video'), 'cms/media')->id;
             }
             $post = Post::query()->create($data);
+            $this->updateGallery($request, $post, $post->title);
+            $post->projects()->sync($request->validated('project_ids', []));
             $this->recordChange('post.created', $post);
 
             return $post;
@@ -85,14 +89,14 @@ class PostController extends AdminController
     {
         $this->authorize('update', $post);
 
-        return Inertia::render('admin/content/form', ['resource' => 'posts', 'item' => $this->serialize($post->load(['author:id,name', 'cover', 'video'])), 'section' => $this->section($request)]);
+        return Inertia::render('admin/content/form', ['resource' => 'posts', 'item' => $this->serialize($post->load(['author:id,name', 'cover', 'video', 'galleryImages.media', 'projects:id'])), 'section' => $this->section($request), 'projectOptions' => $this->projectOptions()]);
     }
 
     public function update(PostRequest $request, Post $post): RedirectResponse
     {
         DB::transaction(function () use ($request, $post): void {
             $before = $post->attributesToArray();
-            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'source_mode', 'video']));
+            $data = $this->normalizePublication(Arr::except($request->validated(), ['cover', 'cover_alt', 'source_mode', 'video', 'gallery', 'remove_gallery_ids', 'project_ids']));
             $data = $this->normalizeSource($request, $data, $post);
             if ($request->hasFile('cover')) {
                 $data['cover_media_id'] = $this->createAsset($request->file('cover'), 'cms/images', $request->string('cover_alt')->toString())->id;
@@ -103,6 +107,8 @@ class PostController extends AdminController
                 $data['video_media_id'] = $this->createAsset($request->file('video'), 'cms/media')->id;
             }
             $post->update($data);
+            $this->updateGallery($request, $post, $post->title);
+            $post->projects()->sync($request->validated('project_ids', []));
             $this->recordChange('post.updated', $post, $before);
         });
 
@@ -137,7 +143,8 @@ class PostController extends AdminController
             'duration_seconds' => $post->duration_seconds, 'published_at' => $post->published_at?->toIso8601String(),
             'is_featured' => $post->is_featured, 'sort_order' => $post->sort_order,
             'scheduled_at' => $post->status->value === 'scheduled' ? $post->published_at?->toIso8601String() : null,
-            'seo_title' => $post->seo_title, 'seo_description' => $post->seo_description,
+            'gallery_images' => $post->relationLoaded('galleryImages') ? $post->galleryImages->map(fn ($image): array => ['id' => $image->id, 'url' => $image->media->url, 'alt' => $image->media->alt_text])->values() : [],
+            'project_ids' => $post->relationLoaded('projects') ? $post->projects->pluck('id')->values() : [],
             'author' => $post->relationLoaded('author') ? $post->author?->name : null, 'updated_at' => $post->updated_at?->toIso8601String(),
         ];
     }
@@ -152,7 +159,7 @@ class PostController extends AdminController
         return match ($request->query('type')) {
             'media', 'vlog', 'video', 'podcast' => 'media',
             'social' => 'social',
-            default => 'all',
+            default => 'article',
         };
     }
 

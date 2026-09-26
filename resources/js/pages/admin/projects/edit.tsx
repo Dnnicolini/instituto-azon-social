@@ -1,6 +1,7 @@
 import { AdminLayout } from '@/components/admin/admin-layout';
 import { PageHeading } from '@/components/admin/cms-ui';
 import { ProjectForm } from '@/components/admin/project-form';
+import { ProjectRegistrationNav } from '@/components/admin/project-registration-nav';
 import { SeoHead } from '@/components/seo-head';
 import type { AdminSharedProps, Project } from '@/types/cms';
 export default function Edit({
@@ -15,6 +16,7 @@ export default function Edit({
                     title={project.title}
                     description="Mantenha as informações da iniciativa atualizadas."
                 />
+                <ProjectRegistrationNav project={project} current="project" />
                 <ProjectForm project={project} />
             </AdminLayout>
         </>

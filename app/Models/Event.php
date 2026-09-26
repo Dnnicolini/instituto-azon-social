@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Enums\ContentStatus;
+use App\Models\Concerns\HasImageGallery;
 use App\Models\Concerns\HasPublicationStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -27,7 +29,7 @@ use Illuminate\Support\Carbon;
  */
 class Event extends Model
 {
-    use HasPublicationStatus, SoftDeletes;
+    use HasImageGallery, HasPublicationStatus, SoftDeletes;
 
     protected $fillable = ['cover_media_id', 'title', 'slug', 'summary', 'body', 'location', 'starts_at', 'ends_at', 'date_label', 'registration_url', 'participation_details', 'status', 'published_at'];
 
@@ -40,5 +42,11 @@ class Event extends Model
     public function cover(): BelongsTo
     {
         return $this->belongsTo(MediaAsset::class, 'cover_media_id');
+    }
+
+    /** @return MorphToMany<Project, $this> */
+    public function projects(): MorphToMany
+    {
+        return $this->morphToMany(Project::class, 'linkable', 'project_content_links')->withTimestamps();
     }
 }

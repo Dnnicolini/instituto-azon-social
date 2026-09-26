@@ -10,7 +10,11 @@ const labels: Record<
 > = {
     site_name: { label: 'Nome do Instituto', group: 'Identidade' },
     tagline: { label: 'Frase institucional', group: 'Identidade' },
-    description: { label: 'Descrição para buscadores', group: 'SEO', rows: 4 },
+    description: {
+        label: 'Descrição institucional',
+        group: 'Identidade',
+        rows: 4,
+    },
     email: { label: 'E-mail público', group: 'Contato' },
     phone: { label: 'Telefone público', group: 'Contato' },
     address: { label: 'Localização', group: 'Contato' },

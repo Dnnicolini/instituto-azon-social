@@ -30,7 +30,7 @@ export default function ContentIndex(
             <PostsIndex
                 {...props}
                 posts={props.items as Paginated<Post>}
-                section={props.section ?? 'all'}
+                section={props.section ?? 'article'}
             />
         );
     if (props.resource === 'projects')

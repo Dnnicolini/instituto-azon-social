@@ -4,9 +4,11 @@ namespace App\Models;
 
 use App\Enums\ContentStatus;
 use App\Enums\PostType;
+use App\Models\Concerns\HasImageGallery;
 use App\Models\Concerns\HasPublicationStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -31,7 +33,7 @@ use Illuminate\Support\Carbon;
  */
 class Post extends Model
 {
-    use HasPublicationStatus, SoftDeletes;
+    use HasImageGallery, HasPublicationStatus, SoftDeletes;
 
     protected $fillable = ['author_id', 'cover_media_id', 'video_media_id', 'type', 'title', 'slug', 'excerpt', 'body', 'provider', 'provider_media_id', 'provider_media_type', 'external_url', 'duration_seconds', 'is_featured', 'sort_order', 'status', 'published_at', 'seo_title', 'seo_description'];
 
@@ -56,6 +58,12 @@ class Post extends Model
     public function video(): BelongsTo
     {
         return $this->belongsTo(MediaAsset::class, 'video_media_id');
+    }
+
+    /** @return MorphToMany<Project, $this> */
+    public function projects(): MorphToMany
+    {
+        return $this->morphToMany(Project::class, 'linkable', 'project_content_links')->withTimestamps();
     }
 
     public function publicPath(): string

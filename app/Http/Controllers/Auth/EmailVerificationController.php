@@ -26,7 +26,9 @@ class EmailVerificationController extends Controller
             $user->markEmailAsVerified();
         }
 
-        return redirect()->route('admin.login')->with('status', 'E-mail verificado. Você já pode acessar o painel.');
+        $route = $user->hasPermission('access-admin') ? 'admin.login' : 'candidate.login';
+
+        return redirect()->route($route)->with('status', 'E-mail verificado. Você já pode entrar.');
     }
 
     public function send(Request $request): RedirectResponse

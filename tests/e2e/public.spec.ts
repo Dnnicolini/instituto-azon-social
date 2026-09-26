@@ -285,16 +285,17 @@ test('AYI GBE and Hunto projects expose their new artwork and details', async ({
         }),
     ).toHaveCSS('object-fit', 'contain');
 
-    await page
-        .getByRole('button', { name: 'Conhecer projeto AYI GBÈ' })
-        .click();
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
+    await page.getByRole('link', { name: 'Conhecer projeto AYI GBÈ' }).click();
+    await expect(page).toHaveURL(/\/projetos\/ayi-gbe$/);
     await expect(
-        dialog.getByText('Saúde que começa no cuidado com a vida'),
+        page.getByRole('heading', { name: 'AYI GBÈ', level: 1 }),
     ).toBeVisible();
-    await dialog.getByRole('button', { name: 'Fechar projeto' }).click();
-    await expect(dialog).not.toBeVisible();
+    await expect(
+        page.getByRole('heading', { name: 'Sobre o projeto' }),
+    ).toBeVisible();
+    await expect(
+        page.getByText('Saúde que começa no cuidado com a vida'),
+    ).toBeVisible();
 });
 
 test('admin is private and authentication is not indexable', async ({

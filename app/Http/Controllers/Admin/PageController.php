@@ -84,6 +84,6 @@ class PageController extends AdminController
     /** @return array<string, mixed> */
     private function serialize(Page $page): array
     {
-        return ['id' => $page->id, 'title' => $page->title, 'slug' => $page->slug, 'body' => $page->body, 'sections' => $page->sections ?? [], 'status' => $page->status->value, 'published_at' => $page->published_at?->toIso8601String(), 'seo_title' => $page->seo_title, 'seo_description' => $page->seo_description, 'updated_at' => $page->updated_at?->toIso8601String()];
+        return ['id' => $page->id, 'title' => $page->title, 'slug' => $page->slug, 'body' => $page->body, 'sections' => $page->sections ?? [], 'status' => $page->status->value, 'published_at' => $page->published_at?->toIso8601String(), 'updated_at' => $page->updated_at?->toIso8601String()];
     }
 }

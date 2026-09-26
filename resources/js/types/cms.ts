@@ -41,6 +41,12 @@ export type Paginated<T> = {
     links: PaginationLink[];
 };
 
+export type GalleryImage = {
+    id: number;
+    url: string;
+    alt?: string | null;
+};
+
 export type AdminUserSummary = {
     id: number;
     name: string;
@@ -68,6 +74,8 @@ export type Post = {
     body?: string | null;
     cover_url?: string | null;
     cover_alt?: string | null;
+    gallery_images?: GalleryImage[];
+    project_ids?: number[];
     video_url?: string | null;
     video_name?: string | null;
     video_mime_type?: string | null;
@@ -77,8 +85,6 @@ export type Post = {
     duration_seconds?: number | null;
     is_featured?: boolean;
     sort_order?: number;
-    seo_title?: string | null;
-    seo_description?: string | null;
     published_at?: string | null;
     updated_at: string;
 };
@@ -93,9 +99,167 @@ export type Project = {
     status: ContentStatus;
     cover_url?: string | null;
     cover_alt?: string | null;
+    gallery_images?: GalleryImage[];
     sort_order?: number;
     published_at?: string | null;
+    registration_enabled?: boolean;
+    registration_type?: RegistrationType | null;
+    registration_title?: string | null;
+    registration_description?: string | null;
+    registration_instructions?: string | null;
+    registration_start_at?: string | null;
+    registration_end_at?: string | null;
+    registration_max_applications?: number | null;
+    registration_allow_editing?: boolean;
+    registration_edit_deadline?: string | null;
+    registration_requires_authentication?: boolean;
+    registration_one_per_user?: boolean;
+    registration_success_message?: string | null;
+    registration_confirmation_message?: string | null;
+    registration_url?: string | null;
+    registration_button_label?: string | null;
+    applications_count?: number;
+    registration_state?: RegistrationState | null;
+    registration_period_label?: string | null;
     updated_at: string;
+};
+
+export type RegistrationType = 'internal' | 'external';
+
+export type RegistrationState =
+    | 'not_started'
+    | 'open'
+    | 'closed'
+    | 'limit_reached';
+
+export type ApplicationStatus =
+    | 'draft'
+    | 'submitted'
+    | 'under_review'
+    | 'pending_documents'
+    | 'approved'
+    | 'rejected'
+    | 'cancelled';
+
+export type RegistrationFieldType =
+    | 'short_text'
+    | 'long_text'
+    | 'email'
+    | 'phone'
+    | 'cpf'
+    | 'cnpj'
+    | 'date'
+    | 'number'
+    | 'select'
+    | 'radio'
+    | 'checkbox'
+    | 'multiple_choice'
+    | 'file'
+    | 'image'
+    | 'url'
+    | 'acceptance'
+    | 'heading'
+    | 'paragraph';
+
+export type ProjectRegistration = {
+    enabled: boolean;
+    type: RegistrationType | null;
+    state: RegistrationState;
+    can_apply: boolean;
+    url?: string | null;
+    title?: string | null;
+    description?: string | null;
+    instructions?: string | null;
+    start_at?: string | null;
+    end_at?: string | null;
+    max_applications?: number | null;
+    allow_editing: boolean;
+    edit_deadline?: string | null;
+    requires_auth: boolean;
+    one_per_user: boolean;
+    success_message?: string | null;
+    confirmation_message?: string | null;
+    button_label: string;
+};
+
+export type ProjectRegistrationField = {
+    id: number | string;
+    type: RegistrationFieldType;
+    label: string;
+    identifier: string;
+    description?: string | null;
+    placeholder?: string | null;
+    required: boolean;
+    sort_order: number;
+    options: string[];
+    validations?: Record<string, string | number | boolean | null>;
+    max_length?: number | null;
+    allowed_mime_types?: string[];
+    max_file_size_kb?: number | null;
+    min_value?: number | null;
+    max_value?: number | null;
+};
+
+export type RegistrationFormSource = {
+    id: number;
+    title: string;
+};
+
+export type RegistrationMetrics = {
+    total: number;
+    today: number;
+    this_week: number;
+    submitted: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+    cancelled: number;
+};
+
+export type ProjectApplicationSummary = {
+    id: number;
+    protocol: string;
+    applicant_name: string;
+    applicant_email?: string | null;
+    applicant_cpf?: string | null;
+    status: ApplicationStatus;
+    status_label: string;
+    project: { id: number; title: string; slug: string };
+    submitted_at?: string | null;
+    created_at: string;
+    updated_at: string;
+};
+
+export type ProjectApplication = ProjectApplicationSummary & {
+    answers: Record<
+        string,
+        {
+            field_id: number;
+            label: string;
+            type: RegistrationFieldType;
+            value: string | string[] | boolean | null;
+        }
+    >;
+    files: Array<{
+        id: number;
+        field_id: number;
+        identifier: string;
+        label: string;
+        name: string;
+        mime_type: string;
+        size: number;
+        url: string;
+    }>;
+    history: Array<{
+        id: number;
+        event: string;
+        from_status?: ApplicationStatus | null;
+        to_status?: ApplicationStatus | null;
+        note?: string | null;
+        user?: string | null;
+        created_at: string;
+    }>;
+    can_edit: boolean;
 };
 
 export type Event = {
@@ -111,6 +275,8 @@ export type Event = {
     location: string;
     cover_url?: string | null;
     cover_alt?: string | null;
+    gallery_images?: GalleryImage[];
+    project_ids?: number[];
     registration_url?: string | null;
     participation_details?: string | null;
     published_at?: string | null;
@@ -148,8 +314,6 @@ export type SitePage = {
         cta_label?: string | null;
         cta_url?: string | null;
     }>;
-    seo_title?: string | null;
-    seo_description?: string | null;
     published_at?: string | null;
     updated_at: string;
 };
@@ -225,5 +389,46 @@ export const typeLabels: Record<ContentType, string> = {
     vlog: 'Vlog',
     video: 'Vídeo',
     podcast: 'Podcast',
-    social: 'Publicação social',
+    social: 'Postagem de rede social',
+};
+
+export const registrationStateLabels: Record<RegistrationState, string> = {
+    not_started: 'Não iniciado',
+    open: 'Aberto',
+    closed: 'Encerrado',
+    limit_reached: 'Limite atingido',
+};
+
+export const applicationStatusLabels: Record<ApplicationStatus, string> = {
+    draft: 'Rascunho',
+    submitted: 'Enviada',
+    under_review: 'Em análise',
+    pending_documents: 'Pendente de documentação',
+    approved: 'Aprovada',
+    rejected: 'Rejeitada',
+    cancelled: 'Cancelada',
+};
+
+export const registrationFieldTypeLabels: Record<
+    RegistrationFieldType,
+    string
+> = {
+    short_text: 'Texto curto',
+    long_text: 'Texto longo',
+    email: 'E-mail',
+    phone: 'Telefone',
+    cpf: 'CPF',
+    cnpj: 'CNPJ',
+    date: 'Data',
+    number: 'Número',
+    select: 'Lista de seleção',
+    radio: 'Escolha única',
+    checkbox: 'Caixa de seleção',
+    multiple_choice: 'Múltipla escolha',
+    file: 'Arquivo',
+    image: 'Imagem',
+    url: 'URL/link',
+    acceptance: 'Aceite/termo',
+    heading: 'Título/separador',
+    paragraph: 'Texto explicativo',
 };

@@ -53,6 +53,12 @@ class EventRequest extends ContentRequest
             'published_at' => ['nullable', 'date'],
             'cover' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120', 'dimensions:max_width=5000,max_height=5000'],
             'cover_alt' => ['nullable', 'string', 'max:255', 'required_with:cover'],
+            'gallery' => ['nullable', 'array', 'max:10'],
+            'gallery.*' => ['file', 'mimes:jpg,jpeg,png,webp', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120', 'dimensions:max_width=5000,max_height=5000'],
+            'remove_gallery_ids' => ['nullable', 'array', 'max:20'],
+            'remove_gallery_ids.*' => ['integer', 'distinct', 'min:1'],
+            'project_ids' => ['nullable', 'array', 'max:20'],
+            'project_ids.*' => ['integer', 'distinct', Rule::exists('projects', 'id')],
         ];
     }
 

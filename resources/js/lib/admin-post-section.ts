@@ -1,6 +1,6 @@
 import type { ContentType } from '@/types/cms';
 
-export type PostSection = 'all' | 'media' | 'social';
+export type PostSection = 'article' | 'media' | 'social';
 
 export const postSectionContent: Record<
     PostSection,
@@ -12,12 +12,12 @@ export const postSectionContent: Record<
         emptyDescription: string;
     }
 > = {
-    all: {
-        title: 'Conteúdos',
-        description: 'Gerencie artigos e todos os formatos do fluxo editorial.',
-        createLabel: 'Novo conteúdo',
-        emptyTitle: 'Nenhum conteúdo encontrado',
-        emptyDescription: 'Ajuste os filtros ou crie o primeiro conteúdo.',
+    article: {
+        title: 'Artigos',
+        description: 'Gerencie somente notícias, histórias e artigos do site.',
+        createLabel: 'Novo artigo',
+        emptyTitle: 'Nenhum artigo encontrado',
+        emptyDescription: 'Ajuste os filtros ou crie o primeiro artigo.',
     },
     media: {
         title: 'Mídia',
@@ -30,11 +30,12 @@ export const postSectionContent: Record<
     },
     social: {
         title: 'Redes sociais',
-        description: 'Gerencie as publicações do Instagram exibidas no site.',
-        createLabel: 'Nova publicação',
-        emptyTitle: 'Nenhuma publicação social encontrada',
+        description:
+            'Gerencie postagens do Instagram, Facebook e outras redes exibidas no site.',
+        createLabel: 'Nova postagem de rede social',
+        emptyTitle: 'Nenhuma postagem de rede social encontrada',
         emptyDescription:
-            'Ajuste os filtros ou adicione a primeira publicação do Instagram.',
+            'Ajuste os filtros ou adicione a primeira postagem de rede social.',
     },
 };
 
@@ -51,7 +52,7 @@ export function postCreateHref(section: PostSection): string {
 }
 
 export function postEditHref(id: number, section: PostSection): string {
-    return section === 'all'
+    return section === 'article'
         ? `/admin/posts/${id}/edit`
         : `/admin/posts/${id}/edit?section=${section}`;
 }
@@ -59,5 +60,5 @@ export function postEditHref(id: number, section: PostSection): string {
 export function typesForSection(section: PostSection): ContentType[] {
     if (section === 'media') return ['vlog', 'video', 'podcast'];
     if (section === 'social') return ['social'];
-    return ['article', 'vlog', 'video', 'podcast', 'social'];
+    return ['article'];
 }
