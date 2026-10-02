@@ -395,7 +395,13 @@ function AccountConfiguration({ account }: { account: InstagramAccount }) {
 export default function InstagramIntegrations({
     seo,
     accounts,
-}: AdminSharedProps & { accounts: InstagramAccount[] }) {
+    oauthConfigured,
+    oauthRedirectUri,
+}: AdminSharedProps & {
+    accounts: InstagramAccount[];
+    oauthConfigured: boolean;
+    oauthRedirectUri: string;
+}) {
     const canManage = useCan('instagram.manage');
     const canSync = useCan('instagram.sync');
     const [selectedAccountId, setSelectedAccountId] = useState<number | null>(
@@ -467,6 +473,20 @@ export default function InstagramIntegrations({
                         </button>
                     )}
                 </PageHeading>
+                {canManage && !oauthConfigured && (
+                    <div className="cms-alert warning" role="status">
+                        <strong>
+                            Conexão com a Meta pendente no servidor.
+                        </strong>{' '}
+                        Um operador autorizado precisa configurar o Instagram
+                        App ID, o App Secret e a URI de retorno no ambiente
+                        protegido. Depois de atualizar o cache de configuração,
+                        os botões “Conectar” aparecerão aqui.
+                        <small>
+                            URI de retorno: <code>{oauthRedirectUri}</code>
+                        </small>
+                    </div>
+                )}
                 {creating && (
                     <NewAccountForm onCancel={() => setCreating(false)} />
                 )}

@@ -28,6 +28,8 @@ class InstagramIntegrationController extends AdminController
 
         return Inertia::render('admin/integrations/instagram/index', [
             'accounts' => $accounts,
+            'oauthConfigured' => $this->hasAppCredentials(),
+            'oauthRedirectUri' => $this->redirectUri(),
         ]);
     }
 

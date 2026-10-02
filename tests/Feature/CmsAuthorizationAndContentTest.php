@@ -113,6 +113,30 @@ it('keeps Instagram account connection exclusive to administrators', function ()
         ->assertSessionHas('instagram_oauth_state');
 });
 
+it('reports the pending Meta OAuth configuration without exposing credentials', function (): void {
+    config([
+        'services.instagram.client_id' => null,
+        'services.instagram.client_secret' => null,
+        'services.instagram.redirect_uri' => null,
+    ]);
+    $administrator = $this->cmsUser('administrator');
+    SocialIntegration::query()->create([
+        'provider' => 'instagram',
+        'display_name' => 'Instituto Azon Social',
+        'expected_username' => 'azon.social',
+    ]);
+
+    $this->actingAs($administrator)
+        ->get(route('admin.instagram.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('admin/integrations/instagram/index')
+            ->where('oauthConfigured', false)
+            ->where('oauthRedirectUri', route('admin.instagram.callback'))
+            ->where('accounts.0.can_connect', false)
+            ->missing('accounts.0.access_token'));
+});
+
 it('does not allow CRM permissions in delegated groups', function (): void {
     $administrator = $this->cmsUser('administrator');
     $crmPermission = Permission::query()->where('slug', 'messages.view')->firstOrFail();

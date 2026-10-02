@@ -2666,6 +2666,14 @@ button.cms-button:disabled,
     border-color: var(--green);
     color: #355d10;
 }
+.cms-alert.warning {
+    border-color: #b7791f;
+    color: #714b0e;
+}
+.cms-alert.warning small {
+    display: block;
+    margin-top: 8px;
+}
 .cms-alert.error,
 .cms-field-error {
     color: #9b251d;
