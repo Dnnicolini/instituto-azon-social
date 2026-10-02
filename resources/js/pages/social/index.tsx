@@ -1,11 +1,11 @@
 import { type FormEvent, useRef, useState } from 'react';
 import { AccessibilityTools } from '@/components/accessibility-tools';
+import { InstagramPublicationGrid } from '@/components/instagram-publication-grid';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
 import type {
     InstagramFeedFilters,
     InstagramGroupOption,
-    InstagramPublication,
     InstagramPublicationPage,
     PublicInstagramAccount,
 } from '@/types/instagram';
@@ -26,17 +26,6 @@ type FeedRequest = {
     filters: InstagramFeedFilters;
     append: boolean;
 };
-
-function publicationLabel(publication: InstagramPublication): string {
-    const type = publication.provider_media_type?.toUpperCase();
-    if (type === 'CAROUSEL_ALBUM') return 'Carrossel';
-    if (type === 'VIDEO' || type === 'REEL') return 'Vídeo';
-    return 'Imagem';
-}
-
-function publicationText(publication: InstagramPublication): string {
-    return publication.display_text ?? '';
-}
 
 function normalizePage(
     value: InstagramPublicationPage,
@@ -251,96 +240,12 @@ export default function SocialFeed({
                 )}
 
                 {!error && items.length > 0 && (
-                    <div
+                    <InstagramPublicationGrid
+                        publications={items}
                         className="social-grid social-feed-grid"
-                        aria-busy={isLoading}
-                    >
-                        {items.map((publication, index) => {
-                            const username =
-                                publication.social_account.username ??
-                                publication.social_account.slug;
-                            const text = publicationText(publication);
-                            return (
-                                <article
-                                    className="social-card social-card--feed"
-                                    key={publication.id}
-                                >
-                                    <span className="social-card-media">
-                                        {publication.cover_url ? (
-                                            <img
-                                                src={publication.cover_url}
-                                                alt={
-                                                    publication.title
-                                                        ? `Publicação de ${publication.social_account.display_name}: ${publication.title}`
-                                                        : `Publicação de ${publication.social_account.display_name}`
-                                                }
-                                                loading={
-                                                    index === 0
-                                                        ? 'eager'
-                                                        : 'lazy'
-                                                }
-                                            />
-                                        ) : (
-                                            <span
-                                                className="social-card-placeholder"
-                                                aria-label="Mídia indisponível"
-                                            >
-                                                <img
-                                                    src="/azon-social-logo-v2.webp"
-                                                    alt=""
-                                                    width="721"
-                                                    height="721"
-                                                    loading="lazy"
-                                                />
-                                            </span>
-                                        )}
-                                        <span className="social-featured social-format-badge">
-                                            {publicationLabel(publication)}
-                                        </span>
-                                    </span>
-                                    <div className="social-card-copy">
-                                        <small>
-                                            {
-                                                publication.social_account
-                                                    .display_name
-                                            }{' '}
-                                            · @{username}
-                                        </small>
-                                        <strong>
-                                            {publication.title ||
-                                                `@${username}`}
-                                        </strong>
-                                        {text && <span>{text}</span>}
-                                        <small>
-                                            {publication.published_at
-                                                ? new Date(
-                                                      publication.published_at,
-                                                  ).toLocaleDateString('pt-BR')
-                                                : 'Data não informada'}{' '}
-                                            ·{' '}
-                                            {publication.source_type ===
-                                            'manual'
-                                                ? 'Link cadastrado pela equipe'
-                                                : 'Sincronizada do Instagram'}
-                                        </small>
-                                        {publication.external_url && (
-                                            <b>
-                                                <a
-                                                    href={
-                                                        publication.external_url
-                                                    }
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                >
-                                                    Ver no Instagram ↗
-                                                </a>
-                                            </b>
-                                        )}
-                                    </div>
-                                </article>
-                            );
-                        })}
-                    </div>
+                        eagerFirst
+                        busy={isLoading}
+                    />
                 )}
 
                 {!error && !items.length && !isLoading && (
