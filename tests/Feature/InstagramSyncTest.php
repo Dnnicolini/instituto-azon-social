@@ -7,12 +7,12 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
-it('schedules the automatic Instagram sync every four hours', function (): void {
+it('schedules the automatic Instagram sync every thirty minutes', function (): void {
     $event = collect(app(Schedule::class)->events())
         ->first(fn ($event): bool => str_contains($event->command ?? '', 'instagram:sync'));
 
     expect($event)->not->toBeNull()
-        ->and($event->expression)->toBe('0 */4 * * *');
+        ->and($event->expression)->toBe('*/30 * * * *');
 });
 
 it('skips the automatic Instagram sync cleanly while the integration is inactive', function (): void {
@@ -170,4 +170,77 @@ it('renews and encrypts the Instagram access token', function (): void {
     expect($integration->access_token)->toBe('refreshed-token')
         ->and($integration->getRawOriginal('access_token'))->not->toContain('refreshed-token')
         ->and($integration->token_expires_at)->not->toBeNull();
+});
+
+it('keeps imported publications isolated by Instagram account', function (): void {
+    $news = SocialIntegration::query()->create([
+        'provider' => 'instagram',
+        'display_name' => 'Azon News',
+        'expected_username' => 'azon.news',
+        'account_id' => '17841400000000001',
+        'access_token' => 'news-token',
+        'enabled' => true,
+    ]);
+    $cast = SocialIntegration::query()->create([
+        'provider' => 'instagram',
+        'display_name' => 'Azon Cast',
+        'expected_username' => 'azon.cast',
+        'account_id' => '17841400000000002',
+        'access_token' => 'cast-token',
+        'enabled' => true,
+    ]);
+
+    Http::fake(function ($request) {
+        if (str_contains($request->url(), '17841400000000001/media')) {
+            return Http::response(['data' => [[
+                'id' => '18000000000000101',
+                'caption' => 'Notícia do território',
+                'media_type' => 'IMAGE',
+                'permalink' => 'https://www.instagram.com/p/News101/',
+                'timestamp' => '2026-10-01T12:00:00+0000',
+                'username' => 'azon.news',
+            ]]]);
+        }
+
+        return Http::response(['data' => [[
+            'id' => '18000000000000102',
+            'caption' => 'Novo episódio',
+            'media_type' => 'IMAGE',
+            'permalink' => 'https://www.instagram.com/p/Cast102/',
+            'timestamp' => '2026-10-01T13:00:00+0000',
+            'username' => 'azon.cast',
+        ]]]);
+    });
+
+    $sync = app(InstagramFeedSynchronizer::class);
+    $sync->syncAccount($news, trigger: 'manual');
+    $sync->syncAccount($cast, trigger: 'manual');
+
+    expect($news->posts()->pluck('provider_media_id')->all())->toBe(['18000000000000101'])
+        ->and($cast->posts()->pluck('provider_media_id')->all())->toBe(['18000000000000102']);
+});
+
+it('rejects media returned for a different Instagram identity', function (): void {
+    $integration = SocialIntegration::query()->create([
+        'provider' => 'instagram',
+        'display_name' => 'Azon News',
+        'expected_username' => 'azon.news',
+        'account_id' => '17841400000000003',
+        'access_token' => 'identity-token',
+        'enabled' => true,
+    ]);
+    Http::fake(['https://graph.instagram.com/*' => Http::response(['data' => [[
+        'id' => '18000000000000103',
+        'caption' => 'Conteúdo de outra conta',
+        'media_type' => 'IMAGE',
+        'permalink' => 'https://www.instagram.com/p/Wrong103/',
+        'timestamp' => '2026-10-01T13:00:00+0000',
+        'username' => 'perfil.errado',
+    ]]])]);
+
+    expect(fn () => app(InstagramFeedSynchronizer::class)->syncAccount($integration, trigger: 'manual'))
+        ->toThrow(RuntimeException::class, 'conta diferente');
+
+    expect($integration->posts()->count())->toBe(0)
+        ->and($integration->fresh()->last_error)->toContain('conta diferente');
 });

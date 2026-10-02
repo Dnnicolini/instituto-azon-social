@@ -8,6 +8,7 @@ use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\Project;
 use App\Models\SiteSetting;
+use App\Models\SocialIntegration;
 use Database\Seeders\ContentSeeder;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -212,6 +213,35 @@ it('shows published social highlights before the latest posts', function (): voi
         ->where('socialPosts.1.slug', 'publicacao-recente'));
 });
 
+it('uses editorial social copy on the home without exposing the original caption', function (): void {
+    $integration = SocialIntegration::query()->create([
+        'provider' => 'instagram',
+        'display_name' => 'Azon Social',
+        'expected_username' => 'azon.social',
+        'public_enabled' => true,
+        'display_locations' => ['home'],
+    ]);
+    Post::query()->create([
+        'type' => PostType::Social,
+        'title' => 'Publicação revisada',
+        'slug' => 'publicacao-revisada',
+        'status' => ContentStatus::Published,
+        'published_at' => now()->subMinute(),
+        'provider' => 'instagram',
+        'social_integration_id' => $integration->id,
+        'source_type' => 'automatic',
+        'body' => 'Legenda original que não deve ser publicada.',
+        'original_caption' => 'Legenda original que não deve ser publicada.',
+        'editorial_summary' => 'Resumo aprovado pela equipe.',
+        'source_available' => true,
+    ]);
+
+    $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page): Assert => $page
+        ->has('socialPosts', 1)
+        ->where('socialPosts.0.body', 'Resumo aprovado pela equipe.')
+        ->missing('socialPosts.0.original_caption'));
+});
+
 it('seeds current content and editable structured home sections idempotently', function (): void {
     $this->seed(ContentSeeder::class);
     Project::query()->where('slug', 'ayi-gbe')->update([
@@ -224,7 +254,7 @@ it('seeds current content and editable structured home sections idempotently', f
 
     $this->assertDatabaseCount('projects', 6);
     $this->assertDatabaseCount('events', 3);
-    $this->assertDatabaseCount('pages', 1);
+    $this->assertDatabaseCount('pages', 5);
     $this->assertDatabaseHas('events', ['slug' => 'selecao-lewa-ori', 'starts_at' => null, 'date_label' => 'Inscrições abertas']);
 
     $this->assertDatabaseHas('projects', [
@@ -248,6 +278,39 @@ it('seeds current content and editable structured home sections idempotently', f
         ->where('projects.5.badge_label', 'Corpo & saúde integral')
         ->where('projects.5.cover_url', '/projeto-ayi-gbe.webp')
         ->where('projects.5.cover_alt', 'AYI GBÈ — Saúde preventiva e cuidado com o corpo'));
+});
+
+it('publishes the official channel and initiative pages from editable CMS content', function (): void {
+    $this->seed(ContentSeeder::class);
+
+    $pages = [
+        'azon-news' => 'Azon News',
+        'azon-podcast' => 'Azon Cast',
+        'hunkpame-azon-legidan' => 'Hunkpame Azon Legidan',
+        'presente-de-iemanja-sepetiba' => 'Presente Sepetiba',
+    ];
+
+    foreach ($pages as $slug => $title) {
+        $this->assertDatabaseHas('pages', [
+            'slug' => $slug,
+            'title' => $title,
+            'status' => ContentStatus::Published->value,
+        ]);
+
+        $this->get(route('pages.show', $slug))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->component('page')
+                ->where('page.slug', $slug)
+                ->where('page.title', $title)
+                ->has('page.sections')
+                ->where('seo.canonical', "https://azon.example/pagina/{$slug}"));
+    }
+
+    $sitemap = $this->get(route('sitemap'))->assertOk();
+    foreach (array_keys($pages) as $slug) {
+        $sitemap->assertSee("https://azon.example/pagina/{$slug}", false);
+    }
 });
 
 it('preserves seeded media after it is migrated to R2', function (): void {

@@ -81,7 +81,11 @@ export default function Pages({
                                                     }
                                                 >
                                                     <Link
-                                                        href={`/admin/paginas/${p.id}/edit`}
+                                                        href={
+                                                            p.is_channel
+                                                                ? `/admin/paginas/${p.id}/edit?context=channels`
+                                                                : `/admin/paginas/${p.id}/edit`
+                                                        }
                                                     >
                                                         <strong>
                                                             {p.title}
@@ -108,21 +112,29 @@ export default function Pages({
                                             <td className="cms-row-actions">
                                                 <Can permission="content.update">
                                                     <Link
-                                                        href={`/admin/paginas/${p.id}/edit`}
+                                                        href={
+                                                            p.is_channel
+                                                                ? `/admin/paginas/${p.id}/edit?context=channels`
+                                                                : `/admin/paginas/${p.id}/edit`
+                                                        }
                                                     >
-                                                        Editar
+                                                        {p.is_channel
+                                                            ? 'Gerenciar canal'
+                                                            : 'Editar'}
                                                     </Link>
                                                 </Can>
-                                                <Can permission="content.delete">
-                                                    <ConfirmDeleteButton
-                                                        label={p.title}
-                                                        onConfirm={() =>
-                                                            router.delete(
-                                                                `/admin/paginas/${p.id}`,
-                                                            )
-                                                        }
-                                                    />
-                                                </Can>
+                                                {!p.is_channel && (
+                                                    <Can permission="content.delete">
+                                                        <ConfirmDeleteButton
+                                                            label={p.title}
+                                                            onConfirm={() =>
+                                                                router.delete(
+                                                                    `/admin/paginas/${p.id}`,
+                                                                )
+                                                            }
+                                                        />
+                                                    </Can>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}

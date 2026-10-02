@@ -265,6 +265,72 @@ CAPTION,
             'seo_description' => (string) config('site.description'),
         ]);
 
+        $channelPages = [
+            [
+                'title' => 'Azon News',
+                'slug' => 'azon-news',
+                'body' => 'O Azon News é o canal de comunicação do Instituto Azon Social. Aqui, notícia também é memória, identidade, cultura e participação social.',
+                'sections' => [
+                    ['type' => 'hero', 'eyebrow' => 'Informação • conexão • comunidade', 'title' => 'Informação que fortalece', 'emphasis' => 'nossos territórios.', 'text' => 'Notícias, entrevistas e coberturas que conectam pessoas, iniciativas, culturas e acontecimentos do território.', 'cta_label' => 'Acompanhar as notícias', 'cta_url' => '/noticias'],
+                    ['type' => 'intro', 'eyebrow' => 'Nossa voz', 'title' => 'Comunicação a serviço de pessoas e territórios reais.', 'text' => 'O canal nasce para informar, conectar e dar visibilidade às pessoas, iniciativas, culturas e acontecimentos dos nossos territórios.'],
+                    ['type' => 'text', 'eyebrow' => 'Território', 'title' => 'Notícias e coberturas', 'text' => 'Acontecimentos locais, projetos e eventos registrados com contexto e compromisso comunitário.', 'cta_label' => 'Ver arquivo de notícias', 'cta_url' => '/noticias'],
+                    ['type' => 'text', 'eyebrow' => 'Comunidade', 'title' => 'Pessoas e conexões', 'text' => 'Vozes da comunidade e iniciativas que ajudam a construir o presente e o futuro de Sepetiba.'],
+                    ['type' => 'text', 'eyebrow' => 'Cultura', 'title' => 'Memória e participação', 'text' => 'Cultura, ancestralidade, meio ambiente e participação social também fazem parte da notícia.'],
+                ],
+                'seo_title' => 'Azon News | Notícias do Instituto Azon Social',
+                'seo_description' => 'Conheça o Azon News, canal de notícias, entrevistas e coberturas do Instituto Azon Social.',
+            ],
+            [
+                'title' => 'Azon Cast',
+                'slug' => 'azon-podcast',
+                'body' => 'O perfil oficial do Azon Cast já está aberto. A programação e os primeiros episódios serão anunciados nos canais do Instituto Azon Social.',
+                'sections' => [
+                    ['type' => 'hero', 'eyebrow' => 'Podcast do Instituto Azon Social', 'title' => 'Um novo canal de escuta', 'emphasis' => 'em preparação.', 'text' => 'O Azon Cast está preparando sua estreia. Siga o perfil oficial para acompanhar os próximos anúncios.', 'cta_label' => 'Ver podcasts', 'cta_url' => '/midia?type=podcast'],
+                    ['type' => 'intro', 'eyebrow' => 'Em breve', 'title' => 'O microfone já tem endereço.', 'text' => 'A página está pronta para reunir os episódios quando forem publicados, sem antecipar convidados, formatos ou datas ainda não anunciados.'],
+                    ['type' => 'text', 'eyebrow' => 'Acompanhe', 'title' => 'Novidades no perfil oficial', 'text' => 'A estreia e a programação serão comunicadas pelo perfil @azon.cast e pelos canais do Instituto Azon Social.'],
+                    ['type' => 'text', 'eyebrow' => 'Acervo', 'title' => 'Episódios reunidos no site', 'text' => 'Quando publicados, os episódios poderão ser encontrados na área de mídia do Instituto.', 'cta_label' => 'Abrir área de podcasts', 'cta_url' => '/midia?type=podcast'],
+                ],
+                'seo_title' => 'Azon Cast | Podcast do Instituto Azon Social',
+                'seo_description' => 'Conheça o perfil oficial do Azon Cast e acompanhe os anúncios do podcast do Instituto Azon Social.',
+            ],
+            [
+                'title' => 'Hunkpame Azon Legidan',
+                'slug' => 'hunkpame-azon-legidan',
+                'body' => 'O Instituto Azon Social nasceu dos valores cultivados no Hunkpame Azon Legidan, onde ancestralidade, cuidado comunitário e continuidade caminham juntos.',
+                'sections' => [
+                    ['type' => 'hero', 'eyebrow' => 'Candomblé Jeje Mahi • Sepetiba, RJ', 'title' => 'Ancestralidade, continuidade', 'emphasis' => 'e transformação.', 'text' => 'Hunkpame Azon Legidan, dirigido por Doté Rodrigo de Avimaje, preserva e compartilha uma história construída em comunidade.', 'cta_label' => 'Conhecer o perfil oficial', 'cta_url' => 'https://www.instagram.com/azonlegidan/'],
+                    ['type' => 'intro', 'eyebrow' => 'Nossa história', 'title' => 'Doze anos de caminhada coletiva.', 'text' => 'A trajetória celebrada pelo perfil oficial reúne fé, cuidado, memória e resistência no território de Sepetiba.'],
+                    ['type' => 'text', 'eyebrow' => 'Azonsu', 'title' => 'Cura, terra e renovação', 'text' => 'A nova identidade apresentada pelo Hunkpame reconhece em Azonsu a força da cura, da terra e da renovação.'],
+                    ['type' => 'text', 'eyebrow' => 'Dan', 'title' => 'Continuidade e eternidade', 'text' => 'Dan expressa continuidade, transformação e eternidade na identidade compartilhada pela comunidade.'],
+                    ['type' => 'text', 'eyebrow' => 'Azon Social', 'title' => 'Valores que se tornam ação', 'text' => 'Os valores cultivados no Hunkpame inspiram a atuação social, cultural e comunitária do Instituto Azon Social.'],
+                ],
+                'seo_title' => 'Hunkpame Azon Legidan | Ancestralidade em Sepetiba',
+                'seo_description' => 'Conheça o Hunkpame Azon Legidan, comunidade de Candomblé Jeje Mahi em Sepetiba dirigida por Doté Rodrigo de Avimaje.',
+            ],
+            [
+                'title' => 'Presente Sepetiba',
+                'slug' => 'presente-de-iemanja-sepetiba',
+                'body' => 'Presente Sepetiba é a organização responsável atualmente pelo Presente a Yemonjá em Sepetiba, mantendo viva uma tradição de fé, cultura, memória e respeito às águas realizada desde 1994.',
+                'sections' => [
+                    ['type' => 'hero', 'eyebrow' => 'Fé • cultura • ancestralidade', 'title' => 'Memória que encontra', 'emphasis' => 'o mar.', 'text' => 'A organização conduz atualmente o Presente a Yemonjá em Sepetiba, celebração construída coletivamente com comunidade, tradição e território.', 'cta_label' => 'Ver eventos', 'cta_url' => '/eventos'],
+                    ['type' => 'intro', 'eyebrow' => 'Desde 1994', 'title' => 'Uma tradição viva em Sepetiba.', 'text' => 'O Presente atravessa gerações e fortalece a memória cultural e religiosa do território. Em 2026, o perfil oficial apresentou a 33ª edição dessa caminhada.'],
+                    ['type' => 'text', 'eyebrow' => 'Organização atual', 'title' => 'Responsabilidade compartilhada', 'text' => 'A Comissão do Presente a Yemonjá em Sepetiba e a Confraria das Yemonjas conduzem a organização atual, com coordenação geral de Doté Rodrigo de Avimaje.'],
+                    ['type' => 'text', 'eyebrow' => 'Território', 'title' => 'Cultura, memória e futuro', 'text' => 'A atuação afirma Sepetiba como território de cultura, ancestralidade, arte e construção coletiva.'],
+                    ['type' => 'text', 'eyebrow' => 'Participação', 'title' => 'Acompanhe os próximos encontros', 'text' => 'Datas, orientações e formas de participação são divulgadas nos canais oficiais.', 'cta_label' => 'Abrir calendário', 'cta_url' => '/calendario'],
+                ],
+                'seo_title' => 'Presente a Yemonjá em Sepetiba | Tradição desde 1994',
+                'seo_description' => 'Conheça a história e a organização atual do Presente a Yemonjá em Sepetiba, tradição de fé, cultura e ancestralidade.',
+            ],
+        ];
+
+        foreach ($channelPages as $channelPage) {
+            Page::query()->firstOrCreate(['slug' => $channelPage['slug']], [
+                ...$channelPage,
+                'status' => ContentStatus::Published,
+                'published_at' => '2026-01-01 12:00:00',
+            ]);
+        }
+
         foreach ([
             'site_name' => ['Instituto Azon Social', 'text', 'general'],
             'tagline' => ['Ancestralidade que cuida. Ação que transforma.', 'text', 'general'],

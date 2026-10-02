@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AuthorizationSeeder::class,
             ContentSeeder::class,
+            InstagramIntegrationSeeder::class,
         ]);
     }
 }

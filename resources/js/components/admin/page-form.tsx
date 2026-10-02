@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { FieldError, FormActions, StatusBadge } from './cms-ui';
 import { FormErrorSummary } from './form-error-summary';
 import type { ContentStatus, SitePage } from '@/types/cms';
+import type { SelectOption } from '@/types/cms';
 import { useCan } from './use-can';
 import {
     focusFirstFormError,
@@ -20,7 +21,19 @@ const emptySection: Section = {
     cta_label: '',
     cta_url: '',
 };
-export function PageForm({ page }: { page?: SitePage }) {
+type PageFormProps = {
+    page?: SitePage;
+    instagramAccounts?: SelectOption[];
+    isChannel?: boolean;
+    returnTo?: 'pages' | 'channels';
+};
+
+export function PageForm({
+    page,
+    instagramAccounts = [],
+    isChannel = false,
+    returnTo = 'pages',
+}: PageFormProps) {
     const canPublish = useCan('content.publish');
     const formId = page ? `page-${page.id}` : 'create-page';
     const slugWasEdited = useRef(Boolean(page));
@@ -28,17 +41,23 @@ export function PageForm({ page }: { page?: SitePage }) {
     const form = useForm<{
         title: string;
         slug: string;
+        social_integration_id: string;
         body: string;
         sections: Section[];
         status: ContentStatus;
         published_at: string;
+        return_to: 'pages' | 'channels';
     }>({
         title: page?.title ?? '',
         slug: page?.slug ?? '',
+        social_integration_id: page?.social_integration_id
+            ? String(page.social_integration_id)
+            : '',
         body: page?.body ?? '',
         sections: page?.sections ?? [],
         status: page?.status ?? 'draft',
         published_at: page?.published_at?.slice(0, 16) ?? '',
+        return_to: returnTo,
     });
     function setSection(index: number, key: keyof Section, value: string) {
         form.setData(
@@ -47,6 +66,16 @@ export function PageForm({ page }: { page?: SitePage }) {
                 i === index ? { ...section, [key]: value } : section,
             ),
         );
+    }
+    function moveSection(index: number, direction: -1 | 1) {
+        const destination = index + direction;
+        if (destination < 0 || destination >= form.data.sections.length) return;
+        const sections = [...form.data.sections];
+        [sections[index], sections[destination]] = [
+            sections[destination],
+            sections[index],
+        ];
+        form.setData('sections', sections);
     }
     function submit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -75,6 +104,7 @@ export function PageForm({ page }: { page?: SitePage }) {
                 labels={{
                     title: 'Título',
                     slug: 'Endereço amigável',
+                    social_integration_id: 'Perfil do Instagram',
                     body: 'Texto complementar',
                     sections: 'Seções estruturadas',
                     status: 'Status',
@@ -83,6 +113,7 @@ export function PageForm({ page }: { page?: SitePage }) {
                 fieldIds={{
                     title: 'page-title',
                     slug: 'page-slug',
+                    social_integration_id: 'page-instagram-account',
                     body: 'page-body',
                     sections: 'page-sections',
                     status: 'page-status',
@@ -122,14 +153,56 @@ export function PageForm({ page }: { page?: SitePage }) {
                                     slugWasEdited.current = true;
                                     form.setData('slug', event.target.value);
                                 }}
+                                readOnly={isChannel}
                                 aria-invalid={Boolean(form.errors.slug)}
                             />
                             <small>
-                                Gerado pelo título; ajuste apenas se necessário.
+                                {isChannel
+                                    ? 'Endereço estrutural protegido para manter os links do canal.'
+                                    : 'Gerado pelo título; ajuste apenas se necessário.'}
                             </small>
                             <FieldError message={form.errors.slug} />
                         </div>
                     </div>
+                    {isChannel && (
+                        <div className="cms-field">
+                            <label htmlFor="page-instagram-account">
+                                Perfil do Instagram desta página
+                            </label>
+                            <select
+                                id="page-instagram-account"
+                                value={form.data.social_integration_id}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'social_integration_id',
+                                        event.target.value,
+                                    )
+                                }
+                                aria-invalid={Boolean(
+                                    form.errors.social_integration_id,
+                                )}
+                            >
+                                <option value="">
+                                    Nenhum perfil vinculado
+                                </option>
+                                {instagramAccounts.map((account) => (
+                                    <option
+                                        key={account.value}
+                                        value={account.value}
+                                    >
+                                        {account.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <small>
+                                Somente as publicações aprovadas deste perfil
+                                aparecerão nesta página.
+                            </small>
+                            <FieldError
+                                message={form.errors.social_integration_id}
+                            />
+                        </div>
+                    )}
                     <div className="cms-field">
                         <label htmlFor="page-body">Texto complementar</label>
                         <textarea
@@ -170,20 +243,43 @@ export function PageForm({ page }: { page?: SitePage }) {
                                 key={`${section.type}-${index}`}
                             >
                                 <legend>Seção {index + 1}</legend>
-                                <button
-                                    type="button"
-                                    className="cms-text-action danger"
-                                    onClick={() =>
-                                        form.setData(
-                                            'sections',
-                                            form.data.sections.filter(
-                                                (_, i) => i !== index,
-                                            ),
-                                        )
-                                    }
-                                >
-                                    Remover
-                                </button>
+                                <div className="cms-section-editor-actions">
+                                    <button
+                                        type="button"
+                                        className="cms-text-action"
+                                        disabled={index === 0}
+                                        onClick={() => moveSection(index, -1)}
+                                        aria-label={`Mover seção ${index + 1} para cima`}
+                                    >
+                                        ↑ Subir
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="cms-text-action"
+                                        disabled={
+                                            index ===
+                                            form.data.sections.length - 1
+                                        }
+                                        onClick={() => moveSection(index, 1)}
+                                        aria-label={`Mover seção ${index + 1} para baixo`}
+                                    >
+                                        ↓ Descer
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="cms-text-action danger"
+                                        onClick={() =>
+                                            form.setData(
+                                                'sections',
+                                                form.data.sections.filter(
+                                                    (_, i) => i !== index,
+                                                ),
+                                            )
+                                        }
+                                    >
+                                        Remover
+                                    </button>
+                                </div>
                                 <div className="cms-form-grid two">
                                     <div className="cms-field">
                                         <label>
@@ -364,7 +460,9 @@ export function PageForm({ page }: { page?: SitePage }) {
                 processing={form.processing}
                 isDirty={form.isDirty}
                 isNew={!page}
-                cancelHref="/admin/paginas"
+                cancelHref={
+                    returnTo === 'channels' ? '/admin/canais' : '/admin/paginas'
+                }
                 currentStatus={form.data.status}
                 canPublish={canPublish}
                 canSchedule={Boolean(form.data.published_at)}

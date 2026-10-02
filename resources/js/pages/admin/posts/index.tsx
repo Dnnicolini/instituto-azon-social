@@ -11,7 +11,12 @@ import {
     StatusBadge,
 } from '@/components/admin/cms-ui';
 import { SeoHead } from '@/components/seo-head';
-import type { AdminSharedProps, Paginated, Post } from '@/types/cms';
+import type {
+    AdminSharedProps,
+    Paginated,
+    Post,
+    SelectOption,
+} from '@/types/cms';
 import { typeLabels } from '@/types/cms';
 import { Can } from '@/components/admin/use-can';
 import {
@@ -28,6 +33,7 @@ export default function PostsIndex({
     posts,
     filters = {},
     section,
+    instagramAccounts = [],
 }: AdminSharedProps & {
     posts: Paginated<Post>;
     filters?: {
@@ -35,8 +41,14 @@ export default function PostsIndex({
         type?: string;
         status?: string;
         per_page?: number;
+        account?: number;
+        media_type?: string;
+        source_type?: string;
+        from?: string;
+        to?: string;
     };
     section: PostSection;
+    instagramAccounts?: SelectOption[];
 }) {
     const content = postSectionContent[section];
     const availableTypes = typesForSection(section);
@@ -86,6 +98,56 @@ export default function PostsIndex({
                                               label: typeLabels[value],
                                           })),
                                       ],
+                                  },
+                              ]
+                            : []),
+                        ...(section === 'social'
+                            ? [
+                                  {
+                                      name: 'account',
+                                      label: 'Perfil',
+                                      options: [
+                                          { value: '', label: 'Todos' },
+                                          ...instagramAccounts,
+                                      ],
+                                  },
+                                  {
+                                      name: 'media_type',
+                                      label: 'Formato',
+                                      options: [
+                                          { value: '', label: 'Todos' },
+                                          { value: 'IMAGE', label: 'Imagem' },
+                                          {
+                                              value: 'CAROUSEL_ALBUM',
+                                              label: 'Carrossel',
+                                          },
+                                          { value: 'VIDEO', label: 'Vídeo' },
+                                      ],
+                                  },
+                                  {
+                                      name: 'source_type',
+                                      label: 'Origem',
+                                      options: [
+                                          { value: '', label: 'Todas' },
+                                          {
+                                              value: 'automatic',
+                                              label: 'Sincronização automática',
+                                          },
+                                          {
+                                              value: 'manual',
+                                              label: 'Cadastro manual',
+                                          },
+                                      ],
+                                  },
+                                  {
+                                      name: 'from',
+                                      label: 'De',
+                                      type: 'date' as const,
+                                  },
+                                  {
+                                      name: 'to',
+                                      label: 'Até',
+                                      type: 'date' as const,
                                   },
                               ]
                             : []),

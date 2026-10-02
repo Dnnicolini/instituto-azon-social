@@ -10,6 +10,8 @@ use App\Models\Page;
 use App\Models\Post;
 use App\Models\Project;
 use App\Models\SiteSetting;
+use App\Models\SocialIntegration;
+use App\Support\ChannelCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +31,19 @@ class SitePageController extends Controller
             'page' => $page ? $this->serializePage($page) : null,
             'settings' => $this->publicSettings(),
             'posts' => Post::query()->published()->with('cover')->where('type', PostType::Article)->latest('published_at')->limit(6)->get()->map(fn (Post $post): array => $this->serializePost($post)),
-            'socialPosts' => Post::query()->published()->with('cover')->where('type', PostType::Social)->orderByDesc('is_featured')->orderBy('sort_order')->orderByDesc('published_at')->limit(6)->get()->map(fn (Post $post): array => $this->serializePost($post, withBody: true)),
+            'socialPosts' => Post::query()->published()->with('cover')->where('type', PostType::Social)
+                ->where('source_available', true)
+                ->where(function ($query): void {
+                    $query->whereHas('socialIntegration', fn ($integration) => $integration
+                        ->where('public_enabled', true)
+                        ->whereJsonContains('display_locations', 'home'))
+                        ->orWhere(function ($manual): void {
+                            $manual->whereNull('social_integration_id')
+                                ->where(fn ($source) => $source->whereNull('source_type')->orWhere('source_type', 'manual'));
+                        });
+                })
+                ->orderByDesc('is_featured')->orderBy('sort_order')->orderByDesc('published_at')->limit(6)->get()
+                ->map(fn (Post $post): array => $this->serializeSocialPost($post)),
             'projects' => Project::query()->published()->with(['cover', 'registrationSetting'])->orderBy('sort_order')->limit(8)->get()->map(fn (Project $project): array => $this->serializeProject($project)),
             'events' => Event::query()->published()->with('cover')->orderByRaw('starts_at IS NULL')->orderBy('starts_at')->limit(3)->get()->map(fn (Event $event): array => $this->serializeEvent($event)),
             'documents' => Document::query()->published()->whereHas('media', fn ($query) => $query->where('disk', 'local'))->latest('published_at')->limit(10)->get()->map(fn (Document $document): array => ['id' => $document->id, 'title' => $document->title, 'category' => $document->category, 'file_url' => route('documents.file', $document), 'published_at' => $document->published_at?->toIso8601String()]),
@@ -39,6 +53,36 @@ class SitePageController extends Controller
                 path: '/',
                 schema: [$organization, ['@context' => 'https://schema.org', '@type' => 'WebSite', '@id' => $this->absoluteUrl('/').'#website', 'name' => config('site.name'), 'alternateName' => config('site.short_name'), 'url' => $this->absoluteUrl('/'), 'description' => config('site.description'), 'inLanguage' => 'pt-BR', 'publisher' => ['@id' => $organization['@id']], 'potentialAction' => ['@type' => 'SearchAction', 'target' => $this->absoluteUrl('/midia').'?search={search_term_string}', 'query-input' => 'required name=search_term_string']]],
             ),
+        ]);
+    }
+
+    public function social(Request $request, InstagramPublicController $instagramFeed): InertiaResponse
+    {
+        $accounts = SocialIntegration::query()
+            ->where('provider', 'instagram')
+            ->where('public_enabled', true)
+            ->whereJsonContains('display_locations', 'social_feed')
+            ->orderBy('sort_order')
+            ->get(['id', 'display_name', 'username', 'expected_username', 'group_key']);
+
+        return Inertia::render('social/index', [
+            'accounts' => $accounts->map(fn (SocialIntegration $account): array => [
+                'id' => $account->id,
+                'slug' => $account->expected_username,
+                'display_name' => $account->display_name,
+                'username' => $account->username ?: $account->expected_username,
+                'group_key' => $account->group_key,
+            ]),
+            'groups' => $accounts->pluck('group_key')->filter()->unique()->values()->map(fn (string $group): array => [
+                'value' => $group,
+                'label' => str($group)->replace(['-', '_'], ' ')->title()->toString(),
+            ]),
+            'publications' => $instagramFeed->feed($request),
+            'filters' => [
+                'account' => $request->filled('account') ? (string) $request->integer('account') : null,
+                'group' => $request->filled('group') ? (string) $request->query('group') : null,
+            ],
+            'seo' => $this->seo(title: 'Acompanhe nossas redes | Instituto Azon Social', description: 'Publicações dos perfis e iniciativas do Instituto Azon Social.', path: '/redes'),
         ]);
     }
 
@@ -180,12 +224,18 @@ class SitePageController extends Controller
         ]);
     }
 
-    public function page(string $slug): InertiaResponse
+    public function page(Request $request, string $slug, InstagramPublicController $instagramFeed): InertiaResponse
     {
-        $page = Page::query()->published()->where('slug', $slug)->firstOrFail();
+        $page = Page::query()->published()->with('socialIntegration')->where('slug', $slug)->firstOrFail();
+        $profile = ChannelCatalog::all()[$page->slug] ?? null;
+        $group = $page->socialIntegration?->public_enabled ? $page->socialIntegration->group_key : null;
+        $socialPosts = $group && $profile
+            ? $instagramFeed->feed($request, forcedGroup: $group, forcedPerPage: 6, requireSocialFeedLocation: false, forcedDisplayLocation: $profile['display_location'])->items()
+            : [];
 
         return Inertia::render('page', [
             'page' => $this->serializePage($page),
+            'socialPosts' => $socialPosts,
             'seo' => $this->seo($page->seo_title ?: $page->title.' | Instituto Azon Social', $page->seo_description ?: (string) config('site.description'), '/pagina/'.$page->slug),
         ]);
     }
@@ -392,6 +442,17 @@ class SitePageController extends Controller
     private function serializePost(Post $post, bool $withBody = false): array
     {
         return ['id' => $post->id, 'slug' => $post->slug, 'url' => $post->publicPath(), 'title' => $post->title, 'type' => $post->type->value, 'excerpt' => $post->excerpt, 'body' => $withBody ? $post->body : null, 'cover_url' => $post->cover?->url, 'cover_alt' => $post->cover?->alt_text, 'gallery_images' => $post->relationLoaded('galleryImages') ? $post->galleryImages->map->toMediaPayload()->values() : [], 'video_url' => $post->relationLoaded('video') ? $post->video?->url : null, 'video_name' => $post->relationLoaded('video') ? $post->video?->original_name : null, 'video_mime_type' => $post->relationLoaded('video') ? $post->video?->mime_type : null, 'provider' => $post->provider, 'external_url' => $post->external_url, 'duration_seconds' => $post->duration_seconds, 'is_featured' => $post->is_featured, 'sort_order' => $post->sort_order, 'published_at' => $post->published_at?->toIso8601String(), 'author' => $post->relationLoaded('author') ? $post->author?->name : null];
+    }
+
+    /** @return array<string, mixed> */
+    private function serializeSocialPost(Post $post): array
+    {
+        $payload = $this->serializePost($post, withBody: true);
+        if ($post->source_type === 'automatic') {
+            $payload['body'] = $post->editorial_summary ?: $post->excerpt;
+        }
+
+        return $payload;
     }
 
     /** @return array<string, mixed> */

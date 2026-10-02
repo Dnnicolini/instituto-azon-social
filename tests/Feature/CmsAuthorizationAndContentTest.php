@@ -12,6 +12,7 @@ use App\Models\Permission;
 use App\Models\Post;
 use App\Models\Project;
 use App\Models\Role;
+use App\Models\SocialIntegration;
 use App\Models\User;
 use Database\Seeders\AuthorizationSeeder;
 use Illuminate\Http\UploadedFile;
@@ -101,12 +102,13 @@ it('keeps Instagram account connection exclusive to administrators', function ()
     ]);
     $publisher = $this->cmsUser('publisher');
     $administrator = $this->cmsUser('administrator');
+    $integration = SocialIntegration::query()->create(['provider' => 'instagram', 'display_name' => 'Azon', 'expected_username' => 'azon.social']);
 
     $this->actingAs($publisher)
-        ->get(route('admin.instagram.connect'))
+        ->get(route('admin.instagram.connect', $integration))
         ->assertForbidden();
     $this->actingAs($administrator)
-        ->get(route('admin.instagram.connect'))
+        ->get(route('admin.instagram.connect', $integration))
         ->assertRedirectContains('https://www.instagram.com/oauth/authorize?')
         ->assertSessionHas('instagram_oauth_state');
 });

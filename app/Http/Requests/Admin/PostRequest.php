@@ -27,6 +27,8 @@ class PostRequest extends ContentRequest
             'body' => ['nullable', 'string', 'max:100000'],
             'source_mode' => ['nullable', 'string', Rule::in(['upload', 'link'])],
             'provider' => ['nullable', 'string', 'max:40', Rule::in(['instagram', 'facebook', 'youtube', 'vimeo', 'spotify', 'tiktok', 'linkedin', 'anchor', 'other'])],
+            'editorial_summary' => ['nullable', 'string', 'max:1000'],
+            'source_available' => ['sometimes', 'boolean'],
             'external_url' => ['nullable', 'url:https', 'max:2048'],
             'video' => ['nullable', 'file', 'mimes:mp4,mov,webm,mp3,m4a,wav,ogg', 'mimetypes:video/mp4,video/quicktime,video/webm,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,audio/ogg,application/ogg', 'max:204800'],
             'duration_seconds' => ['nullable', 'integer', 'min:1', 'max:86400'],

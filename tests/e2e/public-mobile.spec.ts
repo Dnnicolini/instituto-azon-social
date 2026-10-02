@@ -1,6 +1,18 @@
 import { expect, test } from '@playwright/test';
 
-for (const path of ['/', '/eventos', '/calendario', '/noticias', '/midia']) {
+for (const path of [
+    '/',
+    '/eventos',
+    '/calendario',
+    '/noticias',
+    '/noticias/folhas-territorio-e-ancestralidade',
+    '/midia',
+    '/redes',
+    '/pagina/azon-news',
+    '/pagina/azon-podcast',
+    '/pagina/hunkpame-azon-legidan',
+    '/pagina/presente-de-iemanja-sepetiba',
+]) {
     test(`${path} has no horizontal overflow on a phone`, async ({ page }) => {
         await page.goto(path);
         await expect(page.locator('body')).toBeVisible();

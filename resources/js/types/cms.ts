@@ -78,6 +78,10 @@ export type Post = {
     status: ContentStatus;
     excerpt?: string | null;
     body?: string | null;
+    editorial_summary?: string | null;
+    original_caption?: string | null;
+    source_type?: 'automatic' | 'manual' | null;
+    source_available?: boolean;
     cover_url?: string | null;
     cover_alt?: string | null;
     gallery_images?: GalleryImage[];
@@ -92,6 +96,7 @@ export type Post = {
     is_featured?: boolean;
     sort_order?: number;
     published_at?: string | null;
+    author?: string | null;
     updated_at: string;
 };
 
@@ -303,6 +308,13 @@ export type SitePage = {
     id: number;
     title: string;
     slug: string;
+    social_integration_id?: number | null;
+    is_channel?: boolean;
+    instagram_account?: {
+        id: number;
+        display_name: string;
+        username: string;
+    } | null;
     status: ContentStatus;
     body?: string | null;
     sections_count?: number;

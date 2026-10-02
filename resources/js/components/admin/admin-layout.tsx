@@ -4,11 +4,17 @@ import { AdminIcon, type AdminIconName } from '@/components/admin/admin-icon';
 import type { AdminSharedProps } from '@/types/cms';
 
 const navigation: ReadonlyArray<{
-    group: 'Visão geral' | 'Conteúdo' | 'Relacionamento' | 'Administração';
+    group:
+        | 'Visão geral'
+        | 'Conteúdo'
+        | 'Relacionamento'
+        | 'Integrações'
+        | 'Administração';
     label: string;
     href: string;
     icon: AdminIconName;
     permission: string;
+    alternativePermission?: string;
     administratorOnly?: boolean;
 }> = [
     {
@@ -68,12 +74,27 @@ const navigation: ReadonlyArray<{
         permission: 'content.view',
     },
     {
+        group: 'Conteúdo',
+        label: 'Canais',
+        href: '/admin/canais',
+        icon: 'share-nodes',
+        permission: 'content.view',
+    },
+    {
         group: 'Relacionamento',
         label: 'Mensagens',
         href: '/admin/mensagens',
         icon: 'mail',
         permission: 'messages.view',
         administratorOnly: true,
+    },
+    {
+        group: 'Integrações',
+        label: 'Instagram',
+        href: '/admin/integracoes/instagram',
+        icon: 'share-nodes',
+        permission: 'instagram.manage',
+        alternativePermission: 'instagram.sync',
     },
     {
         group: 'Administração',
@@ -121,7 +142,12 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
             : null);
     const visibleNavigation = navigation.filter(
         (item) =>
-            auth.user.permissions.includes(item.permission) &&
+            (auth.user.permissions.includes(item.permission) ||
+                ('alternativePermission' in item &&
+                    item.alternativePermission !== undefined &&
+                    auth.user.permissions.includes(
+                        item.alternativePermission,
+                    ))) &&
             (!('administratorOnly' in item) ||
                 auth.user.roles.includes('administrator')),
     );
@@ -201,6 +227,7 @@ export function AdminLayout({ title, children, actions }: AdminLayoutProps) {
                         'Visão geral',
                         'Conteúdo',
                         'Relacionamento',
+                        'Integrações',
                         'Administração',
                     ].map((group) => {
                         const items = visibleNavigation.filter(

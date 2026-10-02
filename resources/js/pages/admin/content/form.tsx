@@ -30,6 +30,9 @@ export default function ContentForm(
         section?: PostSection;
         initialType?: Post['type'];
         projectOptions?: SelectOption[];
+        instagramAccounts?: SelectOption[];
+        isChannel?: boolean;
+        returnTo?: 'pages' | 'channels';
     },
 ) {
     if (props.resource === 'posts')

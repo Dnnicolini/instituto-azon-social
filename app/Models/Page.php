@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ContentStatus;
 use App\Models\Concerns\HasPublicationStatus;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -24,10 +25,16 @@ class Page extends Model
 {
     use HasPublicationStatus, SoftDeletes;
 
-    protected $fillable = ['title', 'slug', 'body', 'sections', 'status', 'published_at', 'seo_title', 'seo_description'];
+    protected $fillable = ['title', 'slug', 'social_integration_id', 'body', 'sections', 'status', 'published_at', 'seo_title', 'seo_description'];
 
     protected function casts(): array
     {
         return ['sections' => 'array', 'status' => ContentStatus::class, 'published_at' => 'datetime'];
+    }
+
+    /** @return BelongsTo<SocialIntegration, $this> */
+    public function socialIntegration(): BelongsTo
+    {
+        return $this->belongsTo(SocialIntegration::class);
     }
 }

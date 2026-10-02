@@ -95,6 +95,40 @@ test('institutional pillars and founder presentation are visible', async ({
     await expect(page.locator('.participate-featured img')).toHaveCount(0);
 });
 
+test('official channel pages expose their identity, source and cross navigation', async ({
+    page,
+}) => {
+    const channels = [
+        ['/pagina/azon-news', 'Azon News', '@azon.news no Instagram'],
+        ['/pagina/azon-podcast', 'Azon Cast', '@azon.cast no Instagram'],
+        [
+            '/pagina/hunkpame-azon-legidan',
+            'Hunkpame Azon Legidan',
+            '@azonlegidan no Instagram',
+        ],
+        [
+            '/pagina/presente-de-iemanja-sepetiba',
+            'Presente Sepetiba',
+            '@presente.sepetiba no Instagram',
+        ],
+    ] as const;
+
+    for (const [path, title, instagramLink] of channels) {
+        await page.goto(path);
+        await expect(
+            page.getByRole('heading', { level: 1, name: title }),
+        ).toBeVisible();
+        await expect(
+            page.getByRole('link', { name: instagramLink }),
+        ).toHaveAttribute('href', /^https:\/\/www\.instagram\.com\//);
+        await expect(
+            page.getByRole('navigation', {
+                name: 'Outros canais e iniciativas',
+            }),
+        ).toBeVisible();
+    }
+});
+
 test('calendar exposes CRM events, details and participation guidance', async ({
     page,
 }) => {
@@ -232,6 +266,32 @@ test('media library exposes the requested formats and a real empty state', async
     await expect(page).toHaveURL(/search=Ax%C3%A9/);
 });
 
+test('article detail presents publication context and related stories', async ({
+    page,
+}) => {
+    await page.goto('/noticias/folhas-territorio-e-ancestralidade');
+
+    await expect(
+        page.getByRole('heading', {
+            name: 'Folhas, território e ancestralidade',
+        }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Informações da publicação')).toContainText(
+        '1 min de leitura',
+    );
+    await expect(page.locator('.media-detail-copy')).toContainText(
+        'O projeto Aman fortalece conhecimentos',
+    );
+    await expect(
+        page.getByRole('heading', {
+            name: 'Outras histórias do território',
+        }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: /Cozinha Ancestral/i }),
+    ).toBeVisible();
+});
+
 test('contact form validates and persists a message', async ({ page }) => {
     await page.goto('/#contato');
 
@@ -300,6 +360,22 @@ test('social publications open an accessible preview and link to Instagram', asy
 
     await dialog.getByRole('button', { name: 'Fechar prévia' }).click();
     await expect(dialog).not.toBeVisible();
+});
+
+test('the synchronized social feed exposes accessible filters and publications', async ({
+    page,
+}) => {
+    await page.goto('/redes');
+
+    await expect(
+        page.getByRole('heading', { name: 'Acompanhe nossas redes' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Perfil')).toBeVisible();
+    await expect(page.getByLabel('Iniciativa')).toBeVisible();
+    await expect(page.getByRole('article').first()).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Ver no Instagram ↗' }).first(),
+    ).toHaveAttribute('target', '_blank');
 });
 
 test('AYI GBE and Hunto projects expose their new artwork and details', async ({

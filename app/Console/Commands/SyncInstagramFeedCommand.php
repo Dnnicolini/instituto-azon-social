@@ -2,10 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\SyncInstagramAccount;
 use App\Models\SocialIntegration;
-use App\Services\InstagramFeedSynchronizer;
 use Illuminate\Console\Command;
-use Throwable;
 
 class SyncInstagramFeedCommand extends Command
 {
@@ -13,7 +12,7 @@ class SyncInstagramFeedCommand extends Command
 
     protected $description = 'Sincroniza automaticamente as publicações da conta oficial do Instagram';
 
-    public function handle(InstagramFeedSynchronizer $synchronizer): int
+    public function handle(): int
     {
         $storedIntegrationIsActive = SocialIntegration::query()
             ->where('provider', 'instagram')
@@ -29,17 +28,31 @@ class SyncInstagramFeedCommand extends Command
             return self::SUCCESS;
         }
 
-        $limit = $this->option('limit');
-
-        try {
-            $result = $synchronizer->sync(is_numeric($limit) ? (int) $limit : null);
-        } catch (Throwable $exception) {
-            $this->error($exception->getMessage());
-
-            return self::FAILURE;
+        if (! $storedIntegrationIsActive) {
+            $username = strtolower(ltrim((string) config('services.instagram.username', 'azon.social'), '@'));
+            $integration = SocialIntegration::query()->firstOrCreate(
+                ['provider' => 'instagram', 'expected_username' => $username],
+                ['display_name' => 'Instituto Azon Social'],
+            );
+            $integration->update([
+                'account_id' => config('services.instagram.account_id'),
+                'username' => $username,
+                'access_token' => config('services.instagram.access_token'),
+                'token_expires_at' => config('services.instagram.token_expires_at'),
+                'enabled' => true,
+                'paused_at' => null,
+            ]);
         }
 
-        $this->info("Instagram sincronizado: {$result['created']} nova(s), {$result['updated']} atualizada(s).");
+        $limit = filter_var($this->option('limit'), FILTER_VALIDATE_INT);
+        $limit = is_int($limit) ? min(max($limit, 1), 100) : null;
+
+        $integrations = SocialIntegration::query()->where('provider', 'instagram')->where('enabled', true)
+            ->whereNull('paused_at')->whereNotNull('access_token')->pluck('id');
+        foreach ($integrations as $integrationId) {
+            SyncInstagramAccount::dispatch((int) $integrationId, 'scheduled', $limit);
+        }
+        $this->info("Sincronização do Instagram enfileirada para {$integrations->count()} conta(s).");
 
         return self::SUCCESS;
     }

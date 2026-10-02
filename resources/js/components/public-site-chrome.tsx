@@ -105,6 +105,17 @@ export function PublicFooter({ children }: { children?: ReactNode }) {
                 <Link href="/calendario">Calendário</Link>
             </div>
             <div>
+                <strong>Canais e iniciativas</strong>
+                <Link href="/pagina/azon-news">Azon News</Link>
+                <Link href="/pagina/azon-podcast">Azon Cast</Link>
+                <Link href="/pagina/hunkpame-azon-legidan">
+                    Hunkpame Azon Legidan
+                </Link>
+                <Link href="/pagina/presente-de-iemanja-sepetiba">
+                    Presente Sepetiba
+                </Link>
+            </div>
+            <div>
                 <strong>Contato</strong>
                 <a href="mailto:instituto.azonsocial@gmail.com">
                     instituto.azonsocial@gmail.com

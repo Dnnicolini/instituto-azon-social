@@ -5,6 +5,7 @@ import type {
     Post,
     Project,
     SitePage,
+    SelectOption,
     TransparencyDocument,
 } from '@/types/cms';
 import PostsIndex from '../posts/index';
@@ -23,6 +24,7 @@ export default function ContentIndex(
         section?: PostSection;
         filters?: Record<string, string | number | null | undefined>;
         categories?: string[];
+        instagramAccounts?: SelectOption[];
     },
 ) {
     if (props.resource === 'posts')
@@ -31,6 +33,7 @@ export default function ContentIndex(
                 {...props}
                 posts={props.items as Paginated<Post>}
                 section={props.section ?? 'article'}
+                instagramAccounts={props.instagramAccounts}
             />
         );
     if (props.resource === 'projects')

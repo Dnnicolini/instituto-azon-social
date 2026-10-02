@@ -47,6 +47,8 @@ export function PostForm({
         status: ContentStatus;
         excerpt: string;
         body: string;
+        editorial_summary: string;
+        source_available: boolean;
         source_mode: '' | 'upload' | 'link';
         provider: '' | MediaProvider;
         external_url: string;
@@ -68,6 +70,8 @@ export function PostForm({
         status: post?.status ?? 'draft',
         excerpt: post?.excerpt ?? '',
         body: post?.body ?? '',
+        editorial_summary: post?.editorial_summary ?? '',
+        source_available: post?.source_available ?? true,
         source_mode:
             post?.source_mode ??
             (post?.external_url
@@ -141,6 +145,8 @@ export function PostForm({
                     slug: 'Endereço amigável',
                     excerpt: 'Resumo',
                     body: 'Texto ou transcrição',
+                    editorial_summary: 'Resumo editorial público',
+                    source_available: 'Disponibilidade na origem',
                     type: 'Formato',
                     status: 'Status',
                     source_mode: 'Origem da mídia',
@@ -161,6 +167,8 @@ export function PostForm({
                     slug: 'post-slug',
                     excerpt: 'post-excerpt',
                     body: 'post-body',
+                    editorial_summary: 'editorial-summary',
+                    source_available: 'source-available',
                     type: 'post-type',
                     status: 'post-status',
                     source_mode: 'source-mode',
@@ -646,6 +654,75 @@ export function PostForm({
                     </div>
                     {isSocial && (
                         <div className="cms-social-options">
+                            {post?.source_type === 'automatic' &&
+                                post.original_caption && (
+                                    <div className="cms-field">
+                                        <label htmlFor="original-caption">
+                                            Legenda original
+                                        </label>
+                                        <textarea
+                                            id="original-caption"
+                                            rows={5}
+                                            value={post.original_caption}
+                                            readOnly
+                                        />
+                                        <small>
+                                            Atualizada pela sincronização e
+                                            preservada separadamente do resumo
+                                            editorial.
+                                        </small>
+                                    </div>
+                                )}
+                            <div className="cms-field">
+                                <label htmlFor="editorial-summary">
+                                    Resumo editorial público
+                                </label>
+                                <textarea
+                                    id="editorial-summary"
+                                    rows={4}
+                                    value={form.data.editorial_summary}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'editorial_summary',
+                                            event.target.value,
+                                        )
+                                    }
+                                    aria-invalid={Boolean(
+                                        form.errors.editorial_summary,
+                                    )}
+                                />
+                                <small>
+                                    Quando preenchido, este texto substitui a
+                                    legenda original no site público.
+                                </small>
+                                <FieldError
+                                    message={form.errors.editorial_summary}
+                                />
+                            </div>
+                            {post?.source_type === 'automatic' && (
+                                <label className="cms-check-row">
+                                    <input
+                                        id="source-available"
+                                        type="checkbox"
+                                        checked={form.data.source_available}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'source_available',
+                                                event.target.checked,
+                                            )
+                                        }
+                                    />
+                                    <span>
+                                        <strong>
+                                            Conteúdo disponível na origem
+                                        </strong>
+                                        <small>
+                                            Desmarque para retirar do site sem
+                                            apagar o registro editorial.
+                                        </small>
+                                    </span>
+                                </label>
+                            )}
                             <label className="cms-check-row">
                                 <input
                                     id="is_featured"

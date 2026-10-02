@@ -59,7 +59,11 @@ Grupos personalizados podem ser criados pelo administrador. O backend aplica tod
 
 ## Sincronização do Instagram
 
-O feed oficial [@azon.social](https://www.instagram.com/azon.social/) pode ser conectado por um administrador em **Configurações → Instagram**. A integração usa a API oficial da Meta, salva o token criptografado, copia as imagens para o disco de mídia configurado e preserva o conteúdo anterior se a API estiver indisponível. O scheduler verifica novas publicações diariamente a cada quatro horas (`00:00`, `04:00`, `08:00`, `12:00`, `16:00` e `20:00`, no fuso da aplicação) e renova semanalmente o token de longa duração.
+As páginas Azon News, Azon Cast, Hunkpame Azon Legidan e Presente Sepetiba possuem uma gestão reunida em **Conteúdo → Canais** (`/admin/canais`). Ali a equipe acompanha publicação, seções e sincronização, abre o editor de cada página e acessa a configuração do perfil oficial. O perfil principal vincula a página à iniciativa; outros perfis só aparecem nela quando compartilham o mesmo grupo e incluem explicitamente aquele local de exibição. Assim, `@presente.iemanja` pode ser cadastrado separadamente e agrupado com `@presente.sepetiba` depois que sua existência e identidade forem confirmadas, sem criar uma conta fictícia por padrão.
+
+Os perfis oficiais podem ser administrados em **Integrações → Instagram**. Cada cadastro mantém separadamente o nome esperado, agrupamento, ordem, locais de exibição, pausa, visibilidade pública e modo de aprovação. A integração usa a API oficial da Meta, salva cada token criptografado, valida se o perfil autorizado corresponde ao `@` esperado, copia as imagens para o disco de mídia configurado e preserva o conteúdo anterior se a API estiver indisponível.
+
+O scheduler enfileira, a cada 30 minutos, um job único para cada conta conectada e ativa. Uma falha fica isolada à respectiva conta. A renovação dos tokens de longa duração continua semanal. Novas publicações entram em revisão por padrão; a publicação automática precisa ser habilitada explicitamente por alguém que também possa publicar conteúdo. A sincronização atualiza os dados de origem sem substituir status, destaque, ordem ou resumo editorial definidos no CMS. A curadoria pode retirar um item do site mantendo o registro; ele não é considerado removido apenas por deixar de aparecer numa página da API.
 
 Configuração inicial na Meta:
 
@@ -68,9 +72,11 @@ Configuração inicial na Meta:
 3. adicione o caso de uso da Instagram API com Instagram Login;
 4. informe `https://admin.azonsocial.org.br/admin/integracoes/instagram/retorno` como URI OAuth válida;
 5. coloque o Instagram App ID e o App Secret somente no arquivo protegido `/etc/azon/production.env`, como `INSTAGRAM_CLIENT_ID` e `INSTAGRAM_CLIENT_SECRET`;
-6. habilite `INSTAGRAM_SYNC_ENABLED=true`, limpe/recrie o cache de configuração e use o botão **Conectar @azon.social** no CRM uma vez.
+6. habilite `INSTAGRAM_SYNC_ENABLED=true`, limpe/recrie o cache de configuração e conecte individualmente cada perfil cadastrado no CRM.
 
-O aplicativo solicita apenas `instagram_business_basic`, suficiente para ler a mídia da própria conta. O App Secret e os tokens nunca devem ser enviados ao navegador, copiados para o Git ou incluídos em logs.
+O aplicativo e a aprovação da Meta são compartilhados, mas cada perfil profissional concede seu próprio token. Mantenha o worker de filas ativo: tanto a ação **Sincronizar agora** quanto o scheduler apenas enfileiram o processamento. O feed público paginado usa `/api/instagram/publicacoes` e aceita os filtros `account` e `group`; a página `/redes` consome somente dados locais já sincronizados.
+
+O aplicativo solicita apenas `instagram_business_basic`, suficiente para ler a mídia da própria conta. O App Secret e os tokens nunca devem ser enviados ao navegador, copiados para o Git ou incluídos em logs. A ação **Desconectar** remove a credencial do sistema e interrompe os jobs, mas a revogação completa também deve ser confirmada nas configurações da conta Meta quando exigida pelo provedor.
 
 ## Armazenamento de mídias no Cloudflare R2
 

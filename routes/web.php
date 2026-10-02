@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ChannelController;
 use App\Http\Controllers\Admin\ContactMessageController as AdminContactMessageController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DocumentFileController;
+use App\Http\Controllers\InstagramPublicController;
 use App\Http\Controllers\ProjectApplicationFileController;
 use App\Http\Controllers\ProjectRegistrationController;
 use App\Http\Controllers\SitePageController;
@@ -45,6 +47,8 @@ Route::controller(SitePageController::class)->group(function (): void {
     Route::get('/sitemap.xml', 'sitemap')->name('sitemap');
 });
 Route::post('/contato', [ContactController::class, 'store'])->middleware('throttle:5,10')->name('contact.store');
+Route::get('/api/instagram/publicacoes', InstagramPublicController::class)->middleware('throttle:60,1')->name('instagram.publications');
+Route::get('/redes', [SitePageController::class, 'social'])->name('social.index');
 Route::get('/documentos/{document}/arquivo', [DocumentFileController::class, 'show'])->name('documents.file');
 Route::get('/projetos/{project:slug}', [ProjectRegistrationController::class, 'show'])->name('projects.show');
 Route::get('/projetos/{project:slug}/inscricao', [ProjectRegistrationController::class, 'create'])->name('projects.registration.create');
@@ -88,13 +92,19 @@ Route::prefix('admin')->middleware('noindex')->group(function (): void {
         Route::resource('eventos', EventController::class)->except('show')->parameters(['eventos' => 'event'])->names('events');
         Route::resource('documentos', DocumentController::class)->except('show')->parameters(['documentos' => 'document'])->names('documents');
         Route::get('/documentos/{document}/arquivo', [DocumentFileController::class, 'preview'])->name('documents.file');
+        Route::get('/canais', ChannelController::class)->name('channels.index');
         Route::resource('paginas', PageController::class)->except('show')->parameters(['paginas' => 'page'])->names('pages');
         Route::get('/configuracoes', [SettingsController::class, 'edit'])->name('settings.edit');
         Route::put('/configuracoes', [SettingsController::class, 'update'])->name('settings.update');
-        Route::get('/integracoes/instagram/conectar', [InstagramIntegrationController::class, 'connect'])->name('instagram.connect');
+        Route::get('/integracoes/instagram', [InstagramIntegrationController::class, 'index'])->name('instagram.index');
+        Route::post('/integracoes/instagram', [InstagramIntegrationController::class, 'store'])->name('instagram.store');
+        Route::patch('/integracoes/instagram/{integration}', [InstagramIntegrationController::class, 'update'])->name('instagram.update');
+        Route::get('/integracoes/instagram/{integration}/conectar', [InstagramIntegrationController::class, 'connect'])->name('instagram.connect');
         Route::get('/integracoes/instagram/retorno', [InstagramIntegrationController::class, 'callback'])->name('instagram.callback');
-        Route::post('/integracoes/instagram/sincronizar', [InstagramIntegrationController::class, 'sync'])->middleware('throttle:3,1')->name('instagram.sync');
-        Route::delete('/integracoes/instagram', [InstagramIntegrationController::class, 'disconnect'])->name('instagram.disconnect');
+        Route::post('/integracoes/instagram/{integration}/sincronizar', [InstagramIntegrationController::class, 'sync'])->middleware('throttle:3,1')->name('instagram.sync');
+        Route::patch('/integracoes/instagram/{integration}/status', [InstagramIntegrationController::class, 'status'])->name('instagram.status');
+        Route::patch('/integracoes/instagram/{integration}/visibilidade', [InstagramIntegrationController::class, 'visibility'])->name('instagram.visibility');
+        Route::delete('/integracoes/instagram/{integration}', [InstagramIntegrationController::class, 'destroy'])->name('instagram.destroy');
         Route::resource('mensagens', AdminContactMessageController::class)->only(['index', 'update', 'destroy'])->parameters(['mensagens' => 'message'])->names('messages');
         Route::resource('usuarios', UserController::class)->except('show')->parameters(['usuarios' => 'user'])->names('users');
         Route::patch('/usuarios/{user}/status', [UserController::class, 'updateStatus'])->middleware('throttle:10,1')->name('users.status');
