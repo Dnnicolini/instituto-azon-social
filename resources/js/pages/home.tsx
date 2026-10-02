@@ -213,6 +213,30 @@ export default function Home({
                     <Link href="/eventos">Eventos</Link>
                     <Link href="/calendario">Calendário</Link>
                     <Link href="/midia">Mídia</Link>
+                    <Link
+                        href="/pagina/azon-news"
+                        onClick={() => setMenuOpen(false)}
+                    >
+                        Azon News
+                    </Link>
+                    <Link
+                        href="/pagina/azon-podcast"
+                        onClick={() => setMenuOpen(false)}
+                    >
+                        Azon Cast
+                    </Link>
+                    <Link
+                        href="/pagina/hunkpame-azon-legidan"
+                        onClick={() => setMenuOpen(false)}
+                    >
+                        Hunkpame Azon Legidan
+                    </Link>
+                    <Link
+                        href="/pagina/presente-de-iemanja-sepetiba"
+                        onClick={() => setMenuOpen(false)}
+                    >
+                        Presente Sepetiba
+                    </Link>
                     {documents.length > 0 && (
                         <a
                             href="#transparencia"

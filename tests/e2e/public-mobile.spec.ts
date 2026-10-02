@@ -52,6 +52,53 @@ test('mobile navigation opens, closes and reaches the media library', async ({
     ).toBeVisible();
 });
 
+test('the main menus expose every Azon channel and initiative', async ({
+    page,
+}) => {
+    const channels = [
+        ['/pagina/azon-news', 'Azon News'],
+        ['/pagina/azon-podcast', 'Azon Cast'],
+        ['/pagina/hunkpame-azon-legidan', 'Hunkpame Azon Legidan'],
+        ['/pagina/presente-de-iemanja-sepetiba', 'Presente Sepetiba'],
+    ] as const;
+
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Abrir menu' }).click();
+    const homeNavigation = page.getByRole('navigation', {
+        name: 'Navegação principal',
+    });
+
+    for (const [href, label] of channels) {
+        await expect(
+            homeNavigation.getByRole('link', { name: label }),
+        ).toHaveAttribute('href', href);
+    }
+
+    await homeNavigation
+        .getByRole('link', { name: 'Hunkpame Azon Legidan' })
+        .click();
+    await expect(page).toHaveURL(/\/pagina\/hunkpame-azon-legidan$/);
+
+    await page.getByRole('button', { name: 'Abrir menu' }).click();
+    const internalNavigation = page.getByRole('navigation', {
+        name: 'Navegação principal',
+    });
+    await expect(
+        internalNavigation.getByRole('link', { name: 'Início' }),
+    ).toBeFocused();
+    for (const [href, label] of channels) {
+        await expect(
+            internalNavigation.getByRole('link', { name: label }),
+        ).toHaveAttribute('href', href);
+    }
+
+    await page.keyboard.press('Escape');
+    await expect(internalNavigation).not.toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Abrir menu' }),
+    ).toBeFocused();
+});
+
 test('the social feed keeps filters and cards readable on a phone', async ({
     page,
 }) => {

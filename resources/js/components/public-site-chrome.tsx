@@ -1,8 +1,108 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+const focusableSelector = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
+function isolateFromBackground(element: HTMLElement) {
+    const changed: Array<{ element: HTMLElement; wasInert: boolean }> = [];
+    let current: HTMLElement | null = element;
+
+    while (current?.parentElement) {
+        for (const sibling of current.parentElement.children) {
+            if (sibling === current || !(sibling instanceof HTMLElement)) {
+                continue;
+            }
+
+            changed.push({ element: sibling, wasInert: sibling.inert });
+            sibling.inert = true;
+        }
+
+        current = current.parentElement;
+    }
+
+    return () => {
+        for (const item of changed) {
+            item.element.inert = item.wasInert;
+        }
+    };
+}
+
+function activePath(url: string) {
+    return url.split(/[?#]/, 1)[0] || '/';
+}
+
 export function PublicHeader() {
     const [open, setOpen] = useState(false);
+    const { url } = usePage();
+    const menuButtonRef = useRef<HTMLButtonElement>(null);
+    const navigationRef = useRef<HTMLElement>(null);
+    const pathname = activePath(url);
+
+    useEffect(() => {
+        if (!open || !navigationRef.current) return;
+
+        const navigation = navigationRef.current;
+        const compactNavigation = window.matchMedia('(max-width: 1500px)');
+        const restoreBackground = isolateFromBackground(navigation);
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        navigation.querySelector<HTMLElement>(focusableSelector)?.focus();
+
+        function keepFocusInMenu(event: KeyboardEvent) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setOpen(false);
+                return;
+            }
+
+            if (event.key !== 'Tab') return;
+
+            const focusable = Array.from(
+                navigation.querySelectorAll<HTMLElement>(focusableSelector),
+            ).filter((element) => !element.hasAttribute('disabled'));
+            const first = focusable[0];
+            const last = focusable.at(-1);
+
+            if (!first || !last) {
+                event.preventDefault();
+                navigation.focus();
+                return;
+            }
+
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+
+        document.addEventListener('keydown', keepFocusInMenu);
+        compactNavigation.addEventListener('change', closeMenu);
+
+        return () => {
+            document.removeEventListener('keydown', keepFocusInMenu);
+            compactNavigation.removeEventListener('change', closeMenu);
+            restoreBackground();
+            document.body.style.overflow = previousOverflow;
+            queueMicrotask(() => menuButtonRef.current?.focus());
+        };
+    }, [open]);
+
+    function closeMenu() {
+        setOpen(false);
+    }
+
     return (
         <header className="site-header media-site-header">
             <Link className="brand" href="/">
@@ -26,6 +126,7 @@ export function PublicHeader() {
                 aria-controls="media-navigation"
                 aria-label={open ? 'Fechar menu' : 'Abrir menu'}
                 onClick={() => setOpen((value) => !value)}
+                ref={menuButtonRef}
             >
                 <span />
                 <span />
@@ -35,44 +136,75 @@ export function PublicHeader() {
                 id="media-navigation"
                 className={open ? 'nav open' : 'nav'}
                 aria-label="Navegação principal"
+                ref={navigationRef}
+                tabIndex={-1}
             >
-                <Link href="/">Início</Link>
-                <Link href="/#projetos">Projetos</Link>
-                <Link href="/eventos">Eventos</Link>
+                <Link
+                    href="/"
+                    aria-current={pathname === '/' ? 'page' : undefined}
+                    onClick={closeMenu}
+                >
+                    Início
+                </Link>
+                <Link href="/#projetos" onClick={closeMenu}>
+                    Projetos
+                </Link>
+                <Link
+                    href="/eventos"
+                    aria-current={
+                        pathname.startsWith('/eventos') ? 'page' : undefined
+                    }
+                    onClick={closeMenu}
+                >
+                    Eventos
+                </Link>
                 <Link
                     href="/noticias"
                     aria-current={
-                        typeof window !== 'undefined' &&
-                        window.location.pathname.startsWith('/noticias')
-                            ? 'page'
-                            : undefined
+                        pathname.startsWith('/noticias') ? 'page' : undefined
                     }
+                    onClick={closeMenu}
                 >
                     Notícias
                 </Link>
                 <Link
                     href="/calendario"
                     aria-current={
-                        typeof window !== 'undefined' &&
-                        window.location.pathname === '/calendario'
-                            ? 'page'
-                            : undefined
+                        pathname === '/calendario' ? 'page' : undefined
                     }
+                    onClick={closeMenu}
                 >
                     Calendário
                 </Link>
                 <Link
                     href="/midia"
                     aria-current={
-                        typeof window !== 'undefined' &&
-                        window.location.pathname.startsWith('/midia')
-                            ? 'page'
-                            : undefined
+                        pathname.startsWith('/midia') ? 'page' : undefined
                     }
+                    onClick={closeMenu}
                 >
                     Mídia
                 </Link>
-                <Link className="button button-small" href="/#contato">
+                <Link href="/pagina/azon-news" onClick={closeMenu}>
+                    Azon News
+                </Link>
+                <Link href="/pagina/azon-podcast" onClick={closeMenu}>
+                    Azon Cast
+                </Link>
+                <Link href="/pagina/hunkpame-azon-legidan" onClick={closeMenu}>
+                    Hunkpame Azon Legidan
+                </Link>
+                <Link
+                    href="/pagina/presente-de-iemanja-sepetiba"
+                    onClick={closeMenu}
+                >
+                    Presente Sepetiba
+                </Link>
+                <Link
+                    className="button button-small"
+                    href="/#contato"
+                    onClick={closeMenu}
+                >
                     Contato
                 </Link>
             </nav>
