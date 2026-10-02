@@ -21,6 +21,12 @@ type SocialFeedProps = {
     description?: string;
 };
 
+type FeedRequest = {
+    page: number;
+    filters: InstagramFeedFilters;
+    append: boolean;
+};
+
 function publicationLabel(publication: InstagramPublication): string {
     const type = publication.provider_media_type?.toUpperCase();
     if (type === 'CAROUSEL_ALBUM') return 'Carrossel';
@@ -63,6 +69,9 @@ export default function SocialFeed({
         useState<InstagramFeedFilters>(filters);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [failedRequest, setFailedRequest] = useState<FeedRequest | null>(
+        null,
+    );
     const requestController = useRef<AbortController | null>(null);
 
     async function load(
@@ -75,6 +84,13 @@ export default function SocialFeed({
         requestController.current = controller;
         setIsLoading(true);
         setError(null);
+        setFailedRequest(null);
+
+        const feedRequest: FeedRequest = {
+            page: nextPage,
+            filters: { ...nextFilters },
+            append,
+        };
 
         const query = new URLSearchParams({ page: String(nextPage) });
         if (nextFilters.account) query.set('account', nextFilters.account);
@@ -107,11 +123,13 @@ export default function SocialFeed({
         } catch (reason) {
             if (reason instanceof DOMException && reason.name === 'AbortError')
                 return;
+            if (requestController.current !== controller) return;
             setError(
                 reason instanceof Error
                     ? reason.message
                     : 'Não foi possível atualizar as publicações.',
             );
+            setFailedRequest(feedRequest);
         } finally {
             if (requestController.current === controller) {
                 requestController.current = null;
@@ -136,7 +154,7 @@ export default function SocialFeed({
             <AccessibilityTools />
             <PublicHeader />
             <main
-                className="social-section section"
+                className="social-section social-feed-page section"
                 id="conteudo-principal"
                 tabIndex={-1}
             >
@@ -151,12 +169,12 @@ export default function SocialFeed({
                 </header>
 
                 <form
-                    className="cms-toolbar"
+                    className="social-feed-filters"
                     onSubmit={applyFilters}
                     aria-label="Filtrar publicações"
                 >
-                    <div className="cms-form-grid two">
-                        <div className="cms-field">
+                    <div className="social-feed-filter-grid">
+                        <div className="social-feed-filter">
                             <label htmlFor="social-account-filter">
                                 Perfil
                             </label>
@@ -181,7 +199,7 @@ export default function SocialFeed({
                                 ))}
                             </select>
                         </div>
-                        <div className="cms-field">
+                        <div className="social-feed-filter">
                             <label htmlFor="social-group-filter">
                                 Iniciativa
                             </label>
@@ -202,7 +220,7 @@ export default function SocialFeed({
                         </div>
                     </div>
                     <button
-                        className="button button-outline"
+                        className="button button-outline social-feed-filter-submit"
                         type="submit"
                         disabled={isLoading}
                     >
@@ -217,9 +235,14 @@ export default function SocialFeed({
                         <button
                             className="button button-outline"
                             type="button"
-                            onClick={() =>
-                                void load(page, appliedFilters, false)
-                            }
+                            onClick={() => {
+                                if (!failedRequest) return;
+                                void load(
+                                    failedRequest.page,
+                                    failedRequest.filters,
+                                    failedRequest.append,
+                                );
+                            }}
                             disabled={isLoading}
                         >
                             Tentar novamente
@@ -228,15 +251,18 @@ export default function SocialFeed({
                 )}
 
                 {!error && items.length > 0 && (
-                    <div className="social-grid" aria-busy={isLoading}>
-                        {items.map((publication) => {
+                    <div
+                        className="social-grid social-feed-grid"
+                        aria-busy={isLoading}
+                    >
+                        {items.map((publication, index) => {
                             const username =
                                 publication.social_account.username ??
                                 publication.social_account.slug;
                             const text = publicationText(publication);
                             return (
                                 <article
-                                    className="social-card"
+                                    className="social-card social-card--feed"
                                     key={publication.id}
                                 >
                                     <span className="social-card-media">
@@ -248,7 +274,11 @@ export default function SocialFeed({
                                                         ? `Publicação de ${publication.social_account.display_name}: ${publication.title}`
                                                         : `Publicação de ${publication.social_account.display_name}`
                                                 }
-                                                loading="lazy"
+                                                loading={
+                                                    index === 0
+                                                        ? 'eager'
+                                                        : 'lazy'
+                                                }
                                             />
                                         ) : (
                                             <span
@@ -264,7 +294,7 @@ export default function SocialFeed({
                                                 />
                                             </span>
                                         )}
-                                        <span className="social-featured">
+                                        <span className="social-featured social-format-badge">
                                             {publicationLabel(publication)}
                                         </span>
                                     </span>

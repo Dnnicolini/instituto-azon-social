@@ -317,6 +317,9 @@ test('social publications open an accessible preview and link to Instagram', asy
     await expect(
         page.getByRole('heading', { name: 'Acompanhe nossas redes sociais' }),
     ).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Ver todas as publicações →' }),
+    ).toHaveAttribute('href', '/redes');
     const publicationImage = page.getByRole('img', {
         name: /Publicação do projeto Lewa Orí/i,
     });
@@ -372,10 +375,60 @@ test('the synchronized social feed exposes accessible filters and publications',
     ).toBeVisible();
     await expect(page.getByLabel('Perfil')).toBeVisible();
     await expect(page.getByLabel('Iniciativa')).toBeVisible();
+    await expect(page.locator('.social-feed-filters')).toBeVisible();
     await expect(page.getByRole('article').first()).toBeVisible();
+    await expect(page.getByRole('article').first()).toHaveClass(
+        /social-card--feed/,
+    );
+    await expect(
+        page.getByRole('article').first().locator('.social-format-badge'),
+    ).toBeVisible();
     await expect(
         page.getByRole('link', { name: 'Ver no Instagram ↗' }).first(),
     ).toHaveAttribute('target', '_blank');
+});
+
+test('social feed retry repeats the failed page and filters', async ({
+    page,
+}) => {
+    const requests: string[] = [];
+    await page.route('**/api/instagram/publicacoes?*', async (route) => {
+        requests.push(route.request().url());
+        if (requests.length === 1) {
+            await route.fulfill({
+                status: 503,
+                body: 'temporarily unavailable',
+            });
+            return;
+        }
+
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                data: [],
+                current_page: 1,
+                last_page: 1,
+                next_page_url: null,
+                total: 0,
+            }),
+        });
+    });
+    await page.goto('/redes?account=99');
+    await page.getByRole('button', { name: 'Aplicar filtros' }).click();
+    await expect(
+        page.getByRole('heading', {
+            name: 'Não foi possível carregar o feed',
+        }),
+    ).toBeVisible();
+
+    await page.getByRole('button', { name: 'Tentar novamente' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Nenhuma publicação encontrada' }),
+    ).toBeVisible();
+
+    expect(requests).toHaveLength(2);
+    expect(new URL(requests[1]).search).toBe(new URL(requests[0]).search);
 });
 
 test('AYI GBE and Hunto projects expose their new artwork and details', async ({

@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ContentStatus;
+use App\Enums\PostType;
 use App\Jobs\SyncInstagramAccount;
 use App\Models\Permission;
 use App\Models\Post;
@@ -9,6 +11,7 @@ use Database\Seeders\InstagramIntegrationSeeder;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Inertia\Testing\AssertableInertia as Assert;
 
 it('seeds the verified configurable profiles without inventing an extra Presente account', function (): void {
     $this->seed(InstagramIntegrationSeeder::class);
@@ -111,6 +114,50 @@ it('keeps editorial state and copy when an automatic publication is synchronized
     expect($post->status->value)->toBe('archived')->and($post->title)->toBe('Título editorial')
         ->and($post->editorial_summary)->toBe('Resumo editorial')->and($post->is_featured)->toBeTrue()->and($post->sort_order)->toBe(7)
         ->and($post->original_caption)->toBe('Legenda atualizada')->and($post->source_available)->toBeFalse();
+});
+
+it('publishes only new automatic posts on the home and social feed when auto publication is enabled', function (): void {
+    $integration = SocialIntegration::query()->create([
+        'provider' => 'instagram', 'display_name' => 'Azon Social', 'expected_username' => 'azon.social',
+        'username' => 'azon.social', 'account_id' => '12345', 'access_token' => 'token', 'enabled' => true,
+        'auto_publish' => true, 'public_enabled' => true, 'display_locations' => ['home', 'social_feed'],
+    ]);
+    $review = Post::query()->create([
+        'type' => PostType::Social, 'title' => 'Publicação em revisão', 'slug' => 'instagram-18000000000000010',
+        'status' => ContentStatus::Review, 'provider' => 'instagram', 'social_integration_id' => $integration->id,
+        'provider_media_id' => '18000000000000010', 'source_type' => 'automatic', 'source_available' => true,
+    ]);
+    Http::fake(['https://graph.instagram.com/*' => Http::response(['data' => [
+        [
+            'id' => '18000000000000010', 'caption' => 'Legenda atualizada da revisão', 'media_type' => 'IMAGE',
+            'permalink' => 'https://www.instagram.com/p/ReviewPost/', 'timestamp' => now()->subHour()->toIso8601String(),
+            'username' => 'azon.social',
+        ],
+        [
+            'id' => '18000000000000011', 'caption' => 'Nova publicação automática', 'media_type' => 'IMAGE',
+            'permalink' => 'https://www.instagram.com/p/NewPost/', 'timestamp' => now()->subMinute()->toIso8601String(),
+            'username' => 'azon.social',
+        ],
+    ]])]);
+
+    app(InstagramFeedSynchronizer::class)->syncAccount($integration, trigger: 'manual');
+
+    $review->refresh();
+    $published = Post::query()->where('provider_media_id', '18000000000000011')->firstOrFail();
+    expect($review->status)->toBe(ContentStatus::Review)
+        ->and($review->published_at)->toBeNull()
+        ->and($published->type)->toBe(PostType::Social)
+        ->and($published->status)->toBe(ContentStatus::Published)
+        ->and($published->published_at?->equalTo($published->source_published_at))->toBeTrue();
+
+    $this->get(route('home'))->assertOk()->assertInertia(fn (Assert $page): Assert => $page
+        ->has('socialPosts', 1)
+        ->where('socialPosts.0.title', 'Nova publicação automática'));
+    $this->get(route('social.index'))->assertOk()->assertInertia(fn (Assert $page): Assert => $page
+        ->has('publications.data', 1)
+        ->where('publications.data.0.title', 'Nova publicação automática'));
+    $this->get(route('articles.index'))->assertOk()->assertInertia(fn (Assert $page): Assert => $page
+        ->has('posts.data', 0));
 });
 
 it('imports an initial history through bounded cursor pagination without duplicates', function (): void {

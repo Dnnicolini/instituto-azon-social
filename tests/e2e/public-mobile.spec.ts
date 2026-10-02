@@ -51,3 +51,37 @@ test('mobile navigation opens, closes and reaches the media library', async ({
         }),
     ).toBeVisible();
 });
+
+test('the social feed keeps filters and cards readable on a phone', async ({
+    page,
+}) => {
+    await page.goto('/redes');
+
+    const accountFilter = page.getByLabel('Perfil');
+    const groupFilter = page.getByLabel('Iniciativa');
+    const applyButton = page.getByRole('button', {
+        name: 'Aplicar filtros',
+    });
+
+    await expect(accountFilter).toBeVisible();
+    await expect(groupFilter).toBeVisible();
+    await expect(applyButton).toBeVisible();
+
+    const [accountBox, groupBox, buttonBox] = await Promise.all([
+        accountFilter.boundingBox(),
+        groupFilter.boundingBox(),
+        applyButton.boundingBox(),
+    ]);
+
+    expect(accountBox).not.toBeNull();
+    expect(groupBox).not.toBeNull();
+    expect(buttonBox).not.toBeNull();
+    expect(groupBox!.y).toBeGreaterThan(accountBox!.y + accountBox!.height);
+    expect(buttonBox!.width).toBeGreaterThan(300);
+
+    const firstCard = page.getByRole('article').first();
+    await expect(firstCard).toBeVisible();
+    expect((await firstCard.boundingBox())!.width).toBeLessThanOrEqual(
+        (await page.locator('main').boundingBox())!.width,
+    );
+});

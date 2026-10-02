@@ -26,7 +26,6 @@ type HomeProps = {
     documents?: PublicDocument[];
 };
 
-const instagramProfileUrl = 'https://www.instagram.com/azon.social/';
 const socialProviderLabels: Record<string, string> = {
     instagram: 'Instagram',
     facebook: 'Facebook',
@@ -633,14 +632,9 @@ export default function Home({
                                 Bastidores, encontros e ações do Instituto Azon
                                 Social.
                             </p>
-                            <a
-                                className="text-link"
-                                href={instagramProfileUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                @azon.social — ver perfil ↗
-                            </a>
+                            <Link className="text-link" href="/redes">
+                                Ver todas as publicações →
+                            </Link>
                         </div>
                     </div>
                     {socialPosts.length ? (
