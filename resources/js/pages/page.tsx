@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { AccessibilityTools } from '@/components/accessibility-tools';
+import { InstagramPublicationGrid } from '@/components/instagram-publication-grid';
 import { PublicFooter, PublicHeader } from '@/components/public-site-chrome';
 import { SeoHead } from '@/components/seo-head';
 import type { SitePage } from '@/types/cms';
@@ -260,59 +261,7 @@ function ChannelPage({
                             Ver todas as publicações →
                         </Link>
                     </header>
-                    <div className="social-grid">
-                        {socialPosts.map((publication) => {
-                            const username =
-                                publication.social_account.username ??
-                                publication.social_account.slug;
-                            const text = publication.display_text;
-
-                            return (
-                                <article
-                                    className="social-card"
-                                    key={publication.id}
-                                >
-                                    <span className="social-card-media">
-                                        {publication.cover_url ? (
-                                            <img
-                                                src={publication.cover_url}
-                                                alt={`Publicação de ${publication.social_account.display_name}`}
-                                                loading="lazy"
-                                            />
-                                        ) : (
-                                            <span className="social-card-placeholder">
-                                                Mídia indisponível
-                                            </span>
-                                        )}
-                                    </span>
-                                    <div className="social-card-copy">
-                                        <small>
-                                            {
-                                                publication.social_account
-                                                    .display_name
-                                            }{' '}
-                                            · @{username}
-                                        </small>
-                                        <strong>{publication.title}</strong>
-                                        {text && <span>{text}</span>}
-                                        {publication.external_url && (
-                                            <b>
-                                                <a
-                                                    href={
-                                                        publication.external_url
-                                                    }
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                >
-                                                    Ver no Instagram ↗
-                                                </a>
-                                            </b>
-                                        )}
-                                    </div>
-                                </article>
-                            );
-                        })}
-                    </div>
+                    <InstagramPublicationGrid publications={socialPosts} />
                 </section>
             )}
 

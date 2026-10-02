@@ -53,6 +53,12 @@ export type InstagramPublication = {
     published_at?: string | null;
     source_type: 'automatic' | 'manual';
     social_account: PublicInstagramAccount;
+    items?: Array<{
+        id?: number;
+        type: InstagramMediaType;
+        media_url: string | null;
+        thumbnail_url: string | null;
+    }>;
 };
 
 export type InstagramPublicationPage = {

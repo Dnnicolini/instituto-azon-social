@@ -103,7 +103,7 @@ class InstagramPublicController extends Controller
             'cover_url' => $post->cover?->url,
             'external_url' => $post->external_url, 'published_at' => ($post->source_published_at ?: $post->published_at)?->toIso8601String(),
             'social_account' => $accountData,
-            'items' => $post->instagramMediaItems->map(fn (InstagramMediaItem $item): array => ['type' => $item->media_type, 'media_url' => $item->media_url, 'thumbnail_url' => $item->thumbnail_url])->values(),
+            'items' => $post->instagramMediaItems->map(fn (InstagramMediaItem $item): array => ['id' => $item->id, 'type' => $item->media_type, 'media_url' => $item->media_url, 'thumbnail_url' => $item->thumbnail_url])->values(),
         ];
     }
 }
